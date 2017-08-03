@@ -623,7 +623,7 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
                 mover->SendEnvironmentalDamageLog(mover->GetGUID(), DAMAGE_FALL, health_loss);
                 mover->DealDamage(mover, health_loss, 0, 0, 0);
 
-                //_player->RemoveStealth(); // cebernic : why again? lost stealth by AURA_INTERRUPT_ON_ANY_DAMAGE_TAKEN already.
+                //_player->removeAurasWithModType(SPELL_AURA_MOD_STEALTH); // cebernic : why again? lost stealth by AURA_INTERRUPT_ON_ANY_DAMAGE_TAKEN already.
             }
             mover->z_axisposition = 0.0f;
         }

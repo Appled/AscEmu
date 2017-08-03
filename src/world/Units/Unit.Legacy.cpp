@@ -534,19 +534,17 @@ Unit::Unit() : m_currentSpeedWalk(2.5f),
     CreatureAttackPowerMod[11] = 0;
     CreatureRangedAttackPowerMod[11] = 0;
 
-    m_invisibility = 0;
-    m_invisible = false;
-    m_invisFlag = INVIS_FLAG_NORMAL;
-
-    for (i = 0; i < INVIS_FLAG_TOTAL; i++)
+    for (int i = 0; i < INVIS_FLAG_TOTAL; ++i)
     {
         m_invisDetect[i] = 0;
+        m_invisFlag[i] = 0;
     }
 
-    m_stealthLevel = 0;
-    m_stealthDetectBonus = 0;
-    m_stealth = 0;
-    m_can_stealth = true;
+    for (int i = 0; i < STEALTH_FLAG_TOTAL; ++i)
+    {
+        m_stealthDetectBonus[i] = 0;
+        m_stealthLevel[i] = 0;
+    }
 
     for (i = 0; i < 5; i++)
         BaseStats[i] = 0;
@@ -601,7 +599,6 @@ Unit::Unit() : m_currentSpeedWalk(2.5f),
         m_detectRangeMOD[i] = 0;
     }
 
-    detectRange = 0;
     trackStealth = false;
 
     m_threatModifyer = 0;
@@ -679,7 +676,6 @@ Unit::Unit() : m_currentSpeedWalk(2.5f),
     m_noFallDamage = false;
     z_axisposition = 0.0f;
     m_safeFall = 0;
-    detectRange = 0.0f;
     m_cTimer = 0;
     m_temp_summon = false;
     m_meleespell_ecn = 0;
@@ -1236,7 +1232,7 @@ void Unit::GiveGroupXP(Unit* pVictim, Player* PlayerInGroup)
             Player* plr = active_player_list[i];
             plr->GiveXP(float2int32(((xp * plr->getLevel()) / total_level) * xp_mod), pVictim->GetGUID(), true);
 
-            active_player_list[i]->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_LASTKILLWITHHONOR);
+            active_player_list[i]->modifyAuraState(AURASTATE_FLAG_LASTKILLWITHHONOR, true);
             if (!sEventMgr.HasEvent(active_player_list[i], EVENT_LASTKILLWITHHONOR_FLAG_EXPIRE))
             {
                 sEventMgr.AddEvent(static_cast<Unit*>(active_player_list[i]), &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_LASTKILLWITHHONOR, EVENT_LASTKILLWITHHONOR_FLAG_EXPIRE, 20000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
@@ -1256,7 +1252,7 @@ void Unit::GiveGroupXP(Unit* pVictim, Player* PlayerInGroup)
     }
 }
 
-uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool is_triggered, uint32 dmg, uint32 abs, uint32 weapon_damage_type)
+uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo const* CastingSpell, bool is_triggered, uint32 dmg, uint32 abs, uint32 weapon_damage_type)
 {
     uint32 resisted_dmg = 0;
     ++m_procCounter;
@@ -1316,14 +1312,14 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
 
         uint32 spellId = spell_proc->mSpell->Id;
 
-        SpellInfo* spe = spell_proc->mSpell;
+        SpellInfo const* spe = spell_proc->mSpell;
 
         uint32 origId;
         if (spell_proc->mOrigSpell != NULL)
             origId = spell_proc->mOrigSpell->Id;
         else
             origId = 0;
-        SpellInfo* ospinfo = sSpellCustomizations.GetSpellInfo(origId);  //no need to check if exists or not since we were not able to register this trigger if it would not exist :P
+        SpellInfo const* ospinfo = sSpellCustomizations.GetSpellInfo(origId);  //no need to check if exists or not since we were not able to register this trigger if it would not exist :P
 
         //this requires some specific spell check,not yet implemented
         //this sucks and should be rewrote
@@ -1663,7 +1659,7 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
                         continue;
                     if (CastingSpell->School != SCHOOL_FIRE)
                         continue;
-                    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);   //we already modified this spell on server loading so it must exist
+                    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);   //we already modified this spell on server loading so it must exist
                     auto spell_duration = sSpellDurationStore.LookupEntry(spellInfo->DurationIndex);
                     uint32 tickcount = GetDuration(spell_duration) / spellInfo->EffectAmplitude[0];
                     dmg_overwrite[0] = ospinfo->EffectBasePoints[0] * dmg / (100 * tickcount);
@@ -1745,7 +1741,7 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
                     Unit* new_caster = victim;
                     if (new_caster && new_caster->isAlive())
                     {
-                        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);   //we already modified this spell on server loading so it must exist
+                        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);   //we already modified this spell on server loading so it must exist
                         Spell* spell = sSpellFactoryMgr.NewSpell(new_caster, spellInfo, true, NULL);
                         SpellCastTargets targets;
                         targets.setDestination(GetPosition());
@@ -1860,7 +1856,7 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
                     }
                     if (!amount)
                         continue;
-                    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
+                    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
                     Spell* spell = sSpellFactoryMgr.NewSpell(this, spellInfo, true, NULL);
                     spell->SetUnitTarget(this);
                     spell->Heal(amount * (ospinfo->EffectBasePoints[0] + 1) / 100);
@@ -1983,8 +1979,8 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
                 {
                     if (!IsPlayer() || !dmg)
                         continue;
-                    SpellInfo* parentproc = sSpellCustomizations.GetSpellInfo(origId);
-                    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
+                    SpellInfo const* parentproc = sSpellCustomizations.GetSpellInfo(origId);
+                    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
                     if (!parentproc || !spellInfo)
                         continue;
                     int32 val = parentproc->EffectBasePoints[0] + 1;
@@ -2119,10 +2115,10 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
                         continue;
                     //!! The weird thing is that we need the spell that triggered this enchant spell in order to output logs ..we are using oldspell info too
                     //we have to recalc the value of this spell
-                    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(origId);
+                    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(origId);
                     uint32 AP_owerride = spellInfo->EffectBasePoints[0] + 1;
                     uint32 dmg2 = static_cast<Player*>(this)->GetMainMeleeDamage(AP_owerride);
-                    SpellInfo* sp_for_the_logs = sSpellCustomizations.GetSpellInfo(spellId);
+                    SpellInfo const* sp_for_the_logs = sSpellCustomizations.GetSpellInfo(spellId);
                     Strike(victim, MELEE, sp_for_the_logs, dmg2, 0, 0, true, false);
                     Strike(victim, MELEE, sp_for_the_logs, dmg2, 0, 0, true, false);
                     spellId = 33010; // WF animation
@@ -2298,7 +2294,7 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo* CastingSpell, bool
                         continue;
                     if (CastingSpell->custom_NameHash != SPELL_HASH_FLASH_OF_LIGHT && CastingSpell->custom_NameHash != SPELL_HASH_HOLY_LIGHT)
                         continue;
-                    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(54203);
+                    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(54203);
                     auto spell_duration = sSpellDurationStore.LookupEntry(spellInfo->DurationIndex);
                     uint32 tickcount = GetDuration(spell_duration) / spellInfo->EffectAmplitude[0];
                     dmg_overwrite[0] = ospinfo->EffectBasePoints[0] * dmg / (100 * tickcount);
@@ -2867,7 +2863,7 @@ void Unit::HandleProcDmgShield(uint32 flag, Unit* attacker)
             }
             else
             {
-                SpellInfo*	ability = sSpellCustomizations.GetSpellInfo((*i2).m_spellId);
+                SpellInfo const*	ability = sSpellCustomizations.GetSpellInfo((*i2).m_spellId);
                 this->Strike(attacker, RANGED, ability, 0, 0, (*i2).m_damage, true, true);  //can dmg shields miss at all ?
             }
         }
@@ -3043,7 +3039,7 @@ void Unit::RegeneratePower(bool isinterrupted)
     }
 }
 
-void Unit::CalculateResistanceReduction(Unit* pVictim, dealdamage* dmg, SpellInfo* ability, float ArmorPctReduce)
+void Unit::CalculateResistanceReduction(Unit* pVictim, dealdamage* dmg, SpellInfo const* ability, float ArmorPctReduce)
 {
     float AverageResistance = 0.0f;
     float ArmorReduce;
@@ -3103,7 +3099,7 @@ void Unit::CalculateResistanceReduction(Unit* pVictim, dealdamage* dmg, SpellInf
     }
 }
 
-uint32 Unit::GetSpellDidHitResult(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability)
+uint32 Unit::GetSpellDidHitResult(Unit* pVictim, uint32 weapon_damage_type, SpellInfo const* ability)
 {
     Item* it = NULL;
     float hitchance = 0.0f;
@@ -3315,7 +3311,7 @@ uint32 Unit::GetSpellDidHitResult(Unit* pVictim, uint32 weapon_damage_type, Spel
     return roll_results[r];
 }
 
-void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability, int32 add_damage, int32 pct_dmg_mod, uint32 exclusive_damage, bool disable_proc, bool skip_hit_check, bool force_crit)
+void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo const* ability, int32 add_damage, int32 pct_dmg_mod, uint32 exclusive_damage, bool disable_proc, bool skip_hit_check, bool force_crit)
 {
     //////////////////////////////////////////////////////////////////////////////////////////
     //Unacceptable Cases Processing
@@ -3789,9 +3785,9 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability, 
             if (pVictim->IsPlayer() && pVictim->getClass() == DEATHKNIGHT)   // omg! dirty hack!
                 pVictim->CastSpell(pVictim, 56817, true);
 
-            pVictim->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_DODGE_BLOCK);
+            pVictim->modifyAuraState(AURASTATE_FLAG_DEFENSE, true);
             if (!sEventMgr.HasEvent(pVictim, EVENT_DODGE_BLOCK_FLAG_EXPIRE))
-                sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_DODGE_BLOCK, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 1, 0);
+                sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_DEFENSE, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 1, 0);
             else sEventMgr.ModifyEventTimeLeft(pVictim, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 0);
             break;
         case 2:     //parry
@@ -3810,16 +3806,16 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability, 
                 if (pVictim->getClass() == DEATHKNIGHT)         // omg! dirty hack!
                     pVictim->CastSpell(pVictim, 56817, true);
 
-                pVictim->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_PARRY);	                        //SB@L: Enables spells requiring parry
+                pVictim->modifyAuraState(AURASTATE_FLAG_PARRY, true);	                        //SB@L: Enables spells requiring parry
                 if (!sEventMgr.HasEvent(pVictim, EVENT_PARRY_FLAG_EXPIRE))
                     sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_PARRY, EVENT_PARRY_FLAG_EXPIRE, 5000, 1, 0);
                 else
                     sEventMgr.ModifyEventTimeLeft(pVictim, EVENT_PARRY_FLAG_EXPIRE, 5000);
                 if (static_cast<Player*>(pVictim)->getClass() == 1 || static_cast<Player*>(pVictim)->getClass() == 4)     //warriors for 'revenge' and rogues for 'riposte'
                 {
-                    pVictim->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_DODGE_BLOCK);	                //SB@L: Enables spells requiring dodge
+                    pVictim->modifyAuraState(AURASTATE_FLAG_DEFENSE, true);	                //SB@L: Enables spells requiring dodge
                     if (!sEventMgr.HasEvent(pVictim, EVENT_DODGE_BLOCK_FLAG_EXPIRE))
-                        sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_DODGE_BLOCK, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 1, 0);
+                        sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_DEFENSE, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 1, 0);
                     else
                         sEventMgr.ModifyEventTimeLeft(pVictim, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000);
                 }
@@ -3965,9 +3961,9 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability, 
                             }
                             if (pVictim->IsPlayer())  //not necessary now but we'll have blocking mobs in future
                             {
-                                pVictim->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_DODGE_BLOCK);	//SB@L: Enables spells requiring dodge
+                                pVictim->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_DEFENSE);	//SB@L: Enables spells requiring dodge
                                 if (!sEventMgr.HasEvent(pVictim, EVENT_DODGE_BLOCK_FLAG_EXPIRE))
-                                    sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_DODGE_BLOCK, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 1, 0);
+                                    sEventMgr.AddEvent(pVictim, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_DEFENSE, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000, 1, 0);
                                 else
                                     sEventMgr.ModifyEventTimeLeft(pVictim, EVENT_DODGE_BLOCK_FLAG_EXPIRE, 5000);
                             }
@@ -4029,13 +4025,14 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability, 
                             aproc |= PROC_ON_RANGED_CRIT_ATTACK;
                         }
 
-                        if (IsPlayer())
+                        // Crit aurastate may not be required (I can't remember) and it's not used by mangos either
+                        /*if (IsPlayer())
                         {
-                            this->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_CRITICAL);
+                            modifyAuraState(AURASTATE_FLAG_CRITICAL, true);
                             if (!sEventMgr.HasEvent(this, EVENT_CRIT_FLAG_EXPIRE))
                                 sEventMgr.AddEvent(this, &Unit::EventAurastateExpire, uint32(AURASTATE_FLAG_CRITICAL), EVENT_CRIT_FLAG_EXPIRE, 5000, 1, 0);
                             else sEventMgr.ModifyEventTimeLeft(this, EVENT_CRIT_FLAG_EXPIRE, 5000);
-                        }
+                        }*/
 
                         CALL_SCRIPT_EVENT(pVictim, OnTargetCritHit)(this, dmg.full_damage);
                         CALL_SCRIPT_EVENT(this, OnCritHit)(pVictim, dmg.full_damage);
@@ -4165,7 +4162,7 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo* ability, 
             Spell* cspell;
 
             // Loop on hit spells, and strike with those.
-            for (std::map<SpellInfo*, std::pair<uint32, uint32>>::iterator itr = static_cast<Player*>(this)->m_onStrikeSpells.begin();
+            for (std::map<SpellInfo const*, std::pair<uint32, uint32>>::iterator itr = static_cast<Player*>(this)->m_onStrikeSpells.begin();
                  itr != static_cast<Player*>(this)->m_onStrikeSpells.end(); ++itr)
             {
                 if (itr->second.first)
@@ -4644,7 +4641,7 @@ void Unit::AddAura(Aura* aur)
             if (IsPlayer() && static_cast<Player*>(this)->AuraStackCheat)
                 maxStack = 999;
 
-            SpellInfo* info = aur->GetSpellInfo();
+            SpellInfo const* info = aur->GetSpellInfo();
             //uint32 flag3 = aur->GetSpellProto()->Flags3;
 
             AuraCheckResponse acr;
@@ -4752,7 +4749,7 @@ void Unit::AddAura(Aura* aur)
                                         {
                                             if (Entry->type[c] && Entry->spell[c])
                                             {
-                                                SpellInfo* sp = sSpellCustomizations.GetSpellInfo(Entry->spell[c]);
+                                                SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(Entry->spell[c]);
                                                 if (sp && sp->custom_c_is_flags & SPELL_FLAG_IS_POISON)
                                                 {
                                                     switch (sp->custom_NameHash)
@@ -4785,7 +4782,7 @@ void Unit::AddAura(Aura* aur)
                                             {
                                                 if (Entry->type[c] && Entry->spell[c])
                                                 {
-                                                    SpellInfo* sp = sSpellCustomizations.GetSpellInfo(Entry->spell[c]);
+                                                    SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(Entry->spell[c]);
                                                     if (sp && sp->custom_c_is_flags & SPELL_FLAG_IS_POISON)
                                                     {
                                                         switch (sp->custom_NameHash)
@@ -4927,8 +4924,8 @@ void Unit::AddAura(Aura* aur)
         Unit* pCaster = aur->GetUnitCaster();
         if (pCaster)
         {
-            pCaster->RemoveStealth();
-            pCaster->RemoveInvisibility();
+            pCaster->removeAurasWithModType(SPELL_AURA_MOD_STEALTH);
+            pCaster->removeAurasWithModType(SPELL_AURA_MOD_INVISIBILITY);
             pCaster->RemoveAllAuraByNameHash(SPELL_HASH_ICE_BLOCK);
             pCaster->RemoveAllAuraByNameHash(SPELL_HASH_DIVINE_SHIELD);
             pCaster->RemoveAllAuraByNameHash(SPELL_HASH_BLESSING_OF_PROTECTION);
@@ -4946,13 +4943,13 @@ void Unit::AddAura(Aura* aur)
     /* Set aurastates */
     uint32 flag = 0;
     if (aur->GetSpellInfo()->MechanicsType == MECHANIC_ENRAGED && !asc_enraged++)
-        flag |= AURASTATE_FLAG_ENRAGED;
+        flag |= AURASTATE_FLAG_ENRAGE;
     else if (aur->GetSpellInfo()->MechanicsType == MECHANIC_BLEEDING && !asc_bleed++)
         flag |= AURASTATE_FLAG_BLEED;
     if (aur->GetSpellInfo()->custom_BGR_one_buff_on_target & SPELL_TYPE_SEAL && !asc_seal++)
         flag |= AURASTATE_FLAG_JUDGEMENT;
 
-    SetFlag(UNIT_FIELD_AURASTATE, flag);
+    modifyAuraState(AuraStates(flag), true);
 }
 
 bool Unit::RemoveAura(Aura* aur)
@@ -5241,7 +5238,7 @@ void Unit::RemoveAllNonPersistentAuras()
 void Unit::RemoveAllAuraType(uint32 auratype)
 {
     for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->HasModType(auratype))
+        if (m_auras[x] && m_auras[x]->HasModType(AuraModTypes(auratype)))
             m_auras[x]->Remove();//remove all morph auras containing to this spell (like wolf morph also gives speed)
 }
 
@@ -5251,7 +5248,7 @@ void Unit::RemoveAllAuraFromSelfType2(uint32 auratype, uint32 butskip_hash)
     for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
         if (m_auras[x])
         {
-            SpellInfo* proto = m_auras[x]->GetSpellInfo();
+            SpellInfo const* proto = m_auras[x]->GetSpellInfo();
             if (proto->custom_BGR_one_buff_from_caster_on_self == auratype && proto->custom_NameHash != butskip_hash && m_auras[x]->GetCaster() == this)
                 RemoveAura(m_auras[x]->GetSpellId());//remove all morph auras containing to this spell (like wolf morph also gives speed)
         }
@@ -5364,7 +5361,7 @@ void Unit::castSpell(Spell* pSpell)
     pLastSpell = pSpell->GetSpellInfo();
 }
 
-int32 Unit::GetSpellDmgBonus(Unit* pVictim, SpellInfo* spellInfo, int32 base_dmg, bool isdot)
+int32 Unit::GetSpellDmgBonus(Unit* pVictim, SpellInfo const* spellInfo, int32 base_dmg, bool isdot)
 {
     float plus_damage = 0.0f;
     Unit* caster = this;
@@ -5457,7 +5454,7 @@ int32 Unit::GetSpellDmgBonus(Unit* pVictim, SpellInfo* spellInfo, int32 base_dmg
     return static_cast<int32>(plus_damage);
 }
 
-float Unit::CalcSpellDamageReduction(Unit* victim, SpellInfo* spell, float res)
+float Unit::CalcSpellDamageReduction(Unit* victim, SpellInfo const* spell, float res)
 {
     float reduced_damage = 0;
     reduced_damage += static_cast<float>(victim->DamageTakenMod[spell->School]);
@@ -5906,7 +5903,7 @@ bool Unit::HasVisialPosAurasOfNameHashWithCaster(uint32 namehash, Unit* caster)
     return false;
 }
 
-uint8 Unit::CastSpell(Unit* Target, SpellInfo* Sp, bool triggered)
+uint8 Unit::CastSpell(Unit* Target, SpellInfo const* Sp, bool triggered)
 {
     if (Sp == NULL)
         return SPELL_FAILED_UNKNOWN;
@@ -5923,30 +5920,30 @@ uint8 Unit::CastSpell(Unit* Target, SpellInfo* Sp, bool triggered)
         newSpell->GenerateTargets(&targets);
     }
 
-    return newSpell->prepare(&targets);
+    /*return */newSpell->prepare(&targets);
 }
 
 uint8 Unit::CastSpell(Unit* Target, uint32 SpellID, bool triggered)
 {
-    SpellInfo* ent = sSpellCustomizations.GetSpellInfo(SpellID);
+    SpellInfo const* ent = sSpellCustomizations.GetSpellInfo(SpellID);
     if (ent == NULL) return SPELL_FAILED_UNKNOWN;
 
     return CastSpell(Target, ent, triggered);
 }
 
-uint8 Unit::CastSpell(uint64 targetGuid, SpellInfo* Sp, bool triggered)
+uint8 Unit::CastSpell(uint64 targetGuid, SpellInfo const* Sp, bool triggered)
 {
     if (Sp == NULL)
         return SPELL_FAILED_UNKNOWN;
 
     SpellCastTargets targets(targetGuid);
     Spell* newSpell = sSpellFactoryMgr.NewSpell(this, Sp, triggered, 0);
-    return newSpell->prepare(&targets);
+    /*return */newSpell->prepare(&targets);
 }
 
 uint8 Unit::CastSpell(uint64 targetGuid, uint32 SpellID, bool triggered)
 {
-    SpellInfo* ent = sSpellCustomizations.GetSpellInfo(SpellID);
+    SpellInfo const* ent = sSpellCustomizations.GetSpellInfo(SpellID);
     if (ent == NULL) return SPELL_FAILED_UNKNOWN;
 
     return CastSpell(targetGuid, ent, triggered);
@@ -5957,7 +5954,7 @@ uint8 Unit::CastSpell(Unit* Target, uint32 SpellID, uint32 forced_basepoints, bo
     return CastSpell(Target, sSpellCustomizations.GetSpellInfo(SpellID), forced_basepoints, triggered);
 }
 
-uint8 Unit::CastSpell(Unit* Target, SpellInfo* Sp, uint32 forced_basepoints, bool triggered)
+uint8 Unit::CastSpell(Unit* Target, SpellInfo const* Sp, uint32 forced_basepoints, bool triggered)
 {
     if (Sp == NULL)
         return SPELL_FAILED_UNKNOWN;
@@ -5975,7 +5972,7 @@ uint8 Unit::CastSpell(Unit* Target, SpellInfo* Sp, uint32 forced_basepoints, boo
         newSpell->GenerateTargets(&targets);
     }
 
-    return newSpell->prepare(&targets);
+    /*return */newSpell->prepare(&targets);
 }
 
 uint8 Unit::CastSpell(Unit* Target, uint32 SpellID, uint32 forced_basepoints, int32 charges, bool triggered)
@@ -5983,7 +5980,7 @@ uint8 Unit::CastSpell(Unit* Target, uint32 SpellID, uint32 forced_basepoints, in
     return CastSpell(Target, sSpellCustomizations.GetSpellInfo(SpellID), forced_basepoints, charges, triggered);
 }
 
-uint8 Unit::CastSpell(Unit* Target, SpellInfo* Sp, uint32 forced_basepoints, int32 charges, bool triggered)
+uint8 Unit::CastSpell(Unit* Target, SpellInfo const* Sp, uint32 forced_basepoints, int32 charges, bool triggered)
 {
     if (Sp == NULL)
         return SPELL_FAILED_UNKNOWN;
@@ -6002,10 +5999,10 @@ uint8 Unit::CastSpell(Unit* Target, SpellInfo* Sp, uint32 forced_basepoints, int
         newSpell->GenerateTargets(&targets);
     }
 
-    return newSpell->prepare(&targets);
+    /*return */newSpell->prepare(&targets);
 }
 
-void Unit::CastSpellAoF(LocationVector lv, SpellInfo* Sp, bool triggered)
+void Unit::CastSpellAoF(LocationVector lv, SpellInfo const* Sp, bool triggered)
 {
     if (Sp == nullptr)
         return;
@@ -6063,7 +6060,7 @@ uint32 Unit::FindAuraCountByHash(uint32 HashName, uint32 maxcount)
     return count;
 }
 
-AuraCheckResponse Unit::AuraCheck(SpellInfo* proto, Object* caster)
+AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Object* caster)
 {
     AuraCheckResponse resp;
 
@@ -6074,7 +6071,7 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo* proto, Object* caster)
     uint32 name_hash = proto->custom_NameHash;
     uint32 rank = proto->custom_RankNumber;
     Aura* aura;
-    SpellInfo* aura_sp;
+    SpellInfo const* aura_sp;
 
     // look for spells with same namehash
     for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
@@ -6117,10 +6114,10 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo* proto, Object* caster)
     return resp;
 }
 
-AuraCheckResponse Unit::AuraCheck(SpellInfo* proto, Aura* aur, Object* caster)
+AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Aura* aur, Object* caster)
 {
     AuraCheckResponse resp;
-    SpellInfo* aura_sp = aur->GetSpellInfo();
+    SpellInfo const* aura_sp = aur->GetSpellInfo();
 
     // no error for now
     resp.Error = AURA_CHECK_RESULT_NONE;
@@ -6254,7 +6251,7 @@ void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
                             continue;
 
                         //this spell gets removed only when casting smite
-                        SpellInfo* spi = sSpellCustomizations.GetSpellInfo(skip);
+                        SpellInfo const* spi = sSpellCustomizations.GetSpellInfo(skip);
                         if (spi && spi->custom_NameHash != SPELL_HASH_SMITE)
                             continue;
                     }
@@ -6265,7 +6262,7 @@ void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
                             continue;
                         if (m_currentSpell && m_currentSpell->GetSpellInfo()->custom_NameHash == SPELL_HASH_INCINERATE)
                             continue;
-                        SpellInfo* spi = sSpellCustomizations.GetSpellInfo(skip);
+                        SpellInfo const* spi = sSpellCustomizations.GetSpellInfo(skip);
                         if (spi && spi->custom_NameHash != SPELL_HASH_SHADOW_BOLT && spi->custom_NameHash != SPELL_HASH_INCINERATE)
                             continue;
                     }
@@ -6273,9 +6270,9 @@ void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
                     case 59578: // Art of War
                     case 53489:
                     {
-                        if (m_currentSpell && m_currentSpell->m_spellInfo->custom_NameHash == SPELL_HASH_FLASH_OF_LIGHT)
+                        if (m_currentSpell && m_currentSpell->GetSpellInfo()->custom_NameHash == SPELL_HASH_FLASH_OF_LIGHT)
                             continue;
-                        SpellInfo* spi = sSpellCustomizations.GetSpellInfo(skip);
+                        SpellInfo const* spi = sSpellCustomizations.GetSpellInfo(skip);
                         if (spi && spi->custom_NameHash != SPELL_HASH_FLASH_OF_LIGHT)
                             continue;
                     }
@@ -6284,14 +6281,14 @@ void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
                     {
                         if (m_currentSpell && m_currentSpell->GetSpellInfo()->custom_NameHash == SPELL_HASH_SHADOW_BOLT)
                             continue;
-                        SpellInfo* spi = sSpellCustomizations.GetSpellInfo(skip);
+                        SpellInfo const* spi = sSpellCustomizations.GetSpellInfo(skip);
                         if (spi && spi->custom_NameHash != SPELL_HASH_SHADOW_BOLT)
                             continue;
                     }
                     break;
                     case 16166: // [Shaman] Elemental Mastery
                     {
-                        SpellInfo* spi = sSpellCustomizations.GetSpellInfo(skip);
+                        SpellInfo const* spi = sSpellCustomizations.GetSpellInfo(skip);
                         if (spi && !(spi->School == SCHOOL_FIRE || spi->School == SCHOOL_FROST || spi->School == SCHOOL_NATURE))
                             continue;
                     }
@@ -6649,7 +6646,7 @@ void Unit::UpdateVisibility()
             pObj = (*itr2);
             ++itr2;
 
-            can_see = plr->CanSee(pObj);
+            can_see = plr->canSeeOrDetect(pObj);
             is_visible = plr->IsVisible(pObj->GetGUID());
             if (can_see)
             {
@@ -6673,7 +6670,7 @@ void Unit::UpdateVisibility()
             if (pObj->IsPlayer())
             {
                 pl = static_cast<Player*>(pObj);
-                can_see = pl->CanSee(plr);
+                can_see = pl->canSeeOrDetect(plr);
                 is_visible = pl->IsVisible(plr->GetGUID());
                 if (can_see)
                 {
@@ -6703,7 +6700,7 @@ void Unit::UpdateVisibility()
 
             Player* p = static_cast<Player*>(*it2);
 
-            can_see = p->CanSee(this);
+            can_see = p->canSeeOrDetect(this);
             is_visible = p->IsVisible(this->GetGUID());
             if (!can_see)
             {
@@ -6736,16 +6733,19 @@ void Unit::EventHealthChangeSinceLastUpdate()
         if (pct < 20)
             toset |= AURASTATE_FLAG_HEALTH20;
         else
-            RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_HEALTH20);
-        SetFlag(UNIT_FIELD_AURASTATE, toset);
+            modifyAuraState(AURASTATE_FLAG_HEALTH20, false);
+        modifyAuraState(AuraStates(toset), false);
     }
     else
-        RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_HEALTH35 | AURASTATE_FLAG_HEALTH20);
+    {
+        modifyAuraState(AURASTATE_FLAG_HEALTH20, false);
+        modifyAuraState(AURASTATE_FLAG_HEALTH35, false);
+    }
 
     if (pct < 75)
-        RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_HEALTH75);
+        modifyAuraState(AURASTATE_FLAG_HEALTH75, false);
     else
-        SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_HEALTH75);
+        modifyAuraState(AURASTATE_FLAG_HEALTH75, true);
 }
 
 int32 Unit::GetAP()
@@ -6785,7 +6785,7 @@ bool Unit::GetSpeedDecrease()
     return false;
 }
 
-void Unit::EventCastSpell(Unit* Target, SpellInfo* Sp)
+void Unit::EventCastSpell(Unit* Target, SpellInfo const* Sp)
 {
     ARCEMU_ASSERT(Sp != NULL);
     Spell* pSpell = sSpellFactoryMgr.NewSpell(Target, Sp, true, NULL);
@@ -7582,7 +7582,7 @@ void Unit::EventStopChanneling(bool abort)
     spell->finish(abort);
 }
 
-void Unit::EventStrikeWithAbility(uint64 guid, SpellInfo* sp, uint32 damage)
+void Unit::EventStrikeWithAbility(uint64 guid, SpellInfo const* sp, uint32 damage)
 {
     Unit* victim = m_mapMgr ? m_mapMgr->GetUnit(guid) : NULL;
     if (victim)
@@ -7774,7 +7774,7 @@ void Unit::EventStunOrImmobilize(Unit* proc_target, bool is_victim)
         if (t_trigger_on_stun_chance < 100 && !Rand(t_trigger_on_stun_chance))
             return;
 
-        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(t_trigger_on_stun);
+        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(t_trigger_on_stun);
 
         if (!spellInfo)
             return;
@@ -7815,7 +7815,7 @@ void Unit::EventChill(Unit* proc_target, bool is_victim)
         if (t_trigger_on_chill_chance < 100 && !Rand(t_trigger_on_chill_chance))
             return;
 
-        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(t_trigger_on_chill);
+        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(t_trigger_on_chill);
 
         if (!spellInfo)
             return;
@@ -7833,7 +7833,7 @@ void Unit::EventChill(Unit* proc_target, bool is_victim)
     }
 }
 
-void Unit::RemoveExtraStrikeTarget(SpellInfo* spell_info)
+void Unit::RemoveExtraStrikeTarget(SpellInfo const* spell_info)
 {
     ExtraStrike* es;
     for (std::list<ExtraStrike*>::iterator i = m_extraStrikeTargets.begin(); i != m_extraStrikeTargets.end(); ++i)
@@ -7849,7 +7849,7 @@ void Unit::RemoveExtraStrikeTarget(SpellInfo* spell_info)
     }
 }
 
-void Unit::AddExtraStrikeTarget(SpellInfo* spell_info, uint32 charges)
+void Unit::AddExtraStrikeTarget(SpellInfo const* spell_info, uint32 charges)
 {
     for (std::list<ExtraStrike*>::iterator i = m_extraStrikeTargets.begin(); i != m_extraStrikeTargets.end(); ++i)
     {
@@ -8154,7 +8154,7 @@ bool Unit::isLootable()
         return false;
 }
 
-SpellProc* Unit::AddProcTriggerSpell(SpellInfo* spell, SpellInfo* orig_spell, uint64 caster, uint32 procChance, uint32 procFlags, uint32 procCharges, uint32* groupRelation, uint32* procClassMask, Object* obj)
+SpellProc* Unit::AddProcTriggerSpell(SpellInfo const* spell, SpellInfo const* orig_spell, uint64 caster, uint32 procChance, uint32 procFlags, uint32 procCharges, uint32 const* groupRelation, uint32* procClassMask, Object* obj)
 {
     SpellProc* sp = NULL;
     if (spell != NULL)
@@ -8176,12 +8176,12 @@ SpellProc* Unit::AddProcTriggerSpell(SpellInfo* spell, SpellInfo* orig_spell, ui
     return sp;
 }
 
-SpellProc* Unit::AddProcTriggerSpell(uint32 spell_id, uint32 orig_spell_id, uint64 caster, uint32 procChance, uint32 procFlags, uint32 procCharges, uint32* groupRelation, uint32* procClassMask, Object* obj)
+SpellProc* Unit::AddProcTriggerSpell(uint32 spell_id, uint32 orig_spell_id, uint64 caster, uint32 procChance, uint32 procFlags, uint32 procCharges, uint32 const* groupRelation, uint32* procClassMask, Object* obj)
 {
     return AddProcTriggerSpell(sSpellCustomizations.GetSpellInfo(spell_id), sSpellCustomizations.GetSpellInfo(orig_spell_id), caster, procChance, procFlags, procCharges, groupRelation, procClassMask, obj);
 }
 
-SpellProc* Unit::AddProcTriggerSpell(SpellInfo* sp, uint64 caster, uint32* groupRelation, uint32* procClassMask, Object* obj)
+SpellProc* Unit::AddProcTriggerSpell(SpellInfo const* sp, uint64 caster, uint32 const* groupRelation, uint32* procClassMask, Object* obj)
 {
     return AddProcTriggerSpell(sp, sp, caster, sp->procChance, sp->procFlags, sp->procCharges, groupRelation, procClassMask, obj);
 }
@@ -8268,7 +8268,7 @@ void Unit::Phase(uint8 command, uint32 newphase)
     UpdateVisibility();
 }
 
-uint64 Unit::GetCurrentUnitForSingleTargetAura(SpellInfo* spell)
+uint64 Unit::GetCurrentUnitForSingleTargetAura(SpellInfo const* spell)
 {
     UniqueAuraTargetMap::iterator itr;
 
@@ -8298,7 +8298,7 @@ uint64 Unit::GetCurrentUnitForSingleTargetAura(uint32* name_hashes, uint32* inde
     }
 }
 
-void Unit::SetCurrentUnitForSingleTargetAura(SpellInfo* spell, uint64 guid)
+void Unit::SetCurrentUnitForSingleTargetAura(SpellInfo const* spell, uint64 guid)
 {
     UniqueAuraTargetMap::iterator itr;
     itr = m_singleTargetAura.find(spell->custom_NameHash);
@@ -8309,7 +8309,7 @@ void Unit::SetCurrentUnitForSingleTargetAura(SpellInfo* spell, uint64 guid)
         m_singleTargetAura.insert(std::make_pair(spell->custom_NameHash, guid));
 }
 
-void Unit::RemoveCurrentUnitForSingleTargetAura(SpellInfo* spell)
+void Unit::RemoveCurrentUnitForSingleTargetAura(SpellInfo const* spell)
 {
     UniqueAuraTargetMap::iterator itr;
     itr = m_singleTargetAura.find(spell->custom_NameHash);
@@ -8359,7 +8359,7 @@ bool Unit::InRaid(Unit* u)
     return false;
 }
 
-bool Unit::IsCriticalDamageForSpell(Object* victim, SpellInfo* spell)
+bool Unit::IsCriticalDamageForSpell(Object* victim, SpellInfo const* spell)
 {
     bool result = false;
     float CritChance = 0.0f;
@@ -8441,7 +8441,7 @@ bool Unit::IsCriticalDamageForSpell(Object* victim, SpellInfo* spell)
     return result;
 }
 
-float Unit::GetCriticalDamageBonusForSpell(Object* victim, SpellInfo* spell, float amount)
+float Unit::GetCriticalDamageBonusForSpell(Object* victim, SpellInfo const* spell, float amount)
 {
     int32 critical_bonus = 100;
     spellModFlatIntValue(SM_PCriticalDamage, &critical_bonus, spell->SpellGroupType);
@@ -8481,7 +8481,7 @@ float Unit::GetCriticalDamageBonusForSpell(Object* victim, SpellInfo* spell, flo
     return amount;
 }
 
-bool Unit::IsCriticalHealForSpell(Object* victim, SpellInfo* spell)
+bool Unit::IsCriticalHealForSpell(Object* victim, SpellInfo const* spell)
 {
     int32 crit_chance = 0;
 
@@ -8496,7 +8496,7 @@ bool Unit::IsCriticalHealForSpell(Object* victim, SpellInfo* spell)
     return Rand(crit_chance);
 }
 
-float Unit::GetCriticalHealBonusForSpell(Object* victim, SpellInfo* spell, float amount)
+float Unit::GetCriticalHealBonusForSpell(Object* victim, SpellInfo const* spell, float amount)
 {
     int32 critical_bonus = 100;
     spellModFlatIntValue(this->SM_PCriticalDamage, &critical_bonus, spell->SpellGroupType);
@@ -8548,7 +8548,7 @@ void Unit::BuildPetSpellList(WorldPacket& data)
 
 void Unit::CastOnMeleeSpell()
 {
-    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(GetOnMeleeSpell());
+    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(GetOnMeleeSpell());
     Spell* spell = sSpellFactoryMgr.NewSpell(this, spellInfo, true, NULL);
     spell->extra_cast_number = GetOnMeleeSpellEcn();
     SpellCastTargets targets;

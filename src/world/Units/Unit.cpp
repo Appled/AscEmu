@@ -640,6 +640,408 @@ void Unit::sendMoveSplinePaket(UnitSpeedType speed_type)
 //////////////////////////////////////////////////////////////////////////////////////////
 // Spells
 
+#ifdef USE_EXPERIMENTAL_SPELL_SYSTEM
+bool Unit::isCastingNonMeleeSpell(bool checkDelayed, bool checkChanneled, bool checkAutoRepeat, bool isAutoShoot, bool checkInstantSpells) const
+{
+    // First we check non-channeled spells, not the best way to check is spell a channeled spell, but the only way right now
+    if (m_currentSpell && m_currentSpell->GetSpellInfo()->ChannelInterruptFlags == 0 &&
+        m_currentSpell->getState() != SPELL_STATE_FINISHED && (checkDelayed || m_currentSpell->getState() != SPELL_STATE_DELAYED))
+    {
+        if (!checkInstantSpells || m_currentSpell->getCastTime())
+        {
+            if (!isAutoShoot || !m_currentSpell->GetSpellInfo()->hasAttributes(ATTRIBUTESEXB_DONT_RESET_AUTO_ACTIONS))
+                return true;
+        }
+    }
+
+    // then we check channeled spells
+    if (!checkChanneled && m_currentSpell && m_currentSpell->GetSpellInfo()->ChannelInterruptFlags != 0 &&
+        m_currentSpell->getState() != SPELL_STATE_FINISHED)
+    {
+        if (!isAutoShoot || !m_currentSpell->GetSpellInfo()->hasAttributes(ATTRIBUTESEXB_DONT_RESET_AUTO_ACTIONS))
+            return true;
+    }
+
+    // and last we check auto repeat spells
+    if (!checkAutoRepeat && m_currentSpell && m_currentSpell->GetSpellInfo()->hasAttributes(ATTRIBUTESEXB_AUTO_REPEAT))
+        return true;
+
+    return false;
+}
+#endif
+
+void Unit::removeAurasWithModType(AuraModTypes type)
+{
+    for (uint32_t i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
+    {
+        if (m_auras[i] == nullptr)
+            continue;
+        if (m_auras[i]->HasModType(type))
+            RemoveAura(m_auras[i]);
+    }
+}
+
+bool Unit::hasAuraWithAuraType(AuraModTypes type)
+{
+    bool found = false;
+    for (uint32_t i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
+    {
+        if (m_auras[i] == nullptr)
+            continue;
+
+        if (m_auras[i]->HasModType(type))
+        {
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
+
+bool Unit::hasAuraState(AuraStates state, SpellInfo const* spellInfo, Unit* caster) const
+{
+    if (caster && spellInfo)
+    {
+        for (uint32_t i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
+        {
+            if (!caster->m_auras[i])
+                continue;
+            if (!caster->m_auras[i]->HasModType(SPELL_AURA_IGNORE_TARGET_AURA_STATE))
+                continue;
+            if (spellInfo->isAffectedBySpell(caster->m_auras[i]->GetSpellInfo()))
+                return true;
+        }
+    }
+    return HasFlag(UNIT_FIELD_AURASTATE, 1 << (state - 1));
+}
+
+void Unit::modifyAuraState(AuraStates state, bool apply)
+{
+    if (apply)
+    {
+        if (!HasFlag(UNIT_FIELD_AURASTATE, 1 << (state - 1)))
+        {
+            SetFlag(UNIT_FIELD_AURASTATE, 1 << (state - 1));
+            if (IsPlayer())
+            {
+                // Cast spells on player which require this aura state
+                SpellSet const& playerSpellMap = ((Player*)this)->mSpells;
+                for (auto itr : playerSpellMap)
+                {
+                    // If player has removed this spell or the spell is disabled, skip it
+                    SpellSet::const_iterator iter = ((Player*)this)->mDeletedSpells.find(itr);
+                    if ((iter != ((Player*)this)->mDeletedSpells.end()) || objmgr.IsSpellDisabled(itr))
+                        continue;
+                    SpellInfo const*spellInfo = sSpellCustomizations.GetSpellInfo(itr);
+                    if (!spellInfo || spellInfo->IsPassive())
+                        continue;
+                    if (AuraStates(spellInfo->CasterAuraState) == state)
+                        CastSpell(this, itr, true);
+                }
+            }
+        }
+    }
+    else
+    {
+        if (HasFlag(UNIT_FIELD_AURASTATE, 1 << (state - 1)))
+        {
+            RemoveFlag(UNIT_FIELD_AURASTATE, 1 << (state - 1));
+
+            if (state != AURASTATE_FLAG_ENRAGE)
+            {
+                for (uint32_t i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
+                {
+                    if (m_auras[i] == nullptr || !m_auras[i]->m_spellInfo)
+                        continue;
+                    if (AuraStates(m_auras[i]->m_spellInfo->CasterAuraState) == state)
+                        RemoveAura(m_auras[i]);
+                }
+            }
+        }
+    }
+}
+
+bool Unit::canSeeOrDetect(Object* obj, bool checkStealth)
+{
+    if (!obj)
+        return false;
+
+    if (this == obj)
+        return true;
+
+    if (!obj->IsInWorld() || (GetMapId() != obj->GetMapId() || GetPhase() != obj->GetPhase()))
+        return false;
+
+    // If the object is invisible Game Master, we do not have to check further
+    // TODO: should GMs be able to see other invisible GMs?
+    if (obj->IsPlayer() && static_cast<Player*>(obj)->m_isGmInvisible)
+        return false;
+
+    // We are dead and we have released the spirit
+    if (IsPlayer() && getDeathState() == CORPSE)
+    {
+        Player* playerMe = static_cast<Player*>(this);
+        const float corpseViewDistance = 1600.0f; // 40*40 yards
+        // If the object is a player
+        if (obj->IsPlayer())
+        {
+            Player* playerTarget = static_cast<Player*>(obj);
+            if (playerMe->getMyCorpseInstanceId() == playerMe->GetInstanceID() &&
+                playerTarget->getDistanceSq(playerMe->getMyCorpseLocation()) <= corpseViewDistance)
+                // We can see all players within range of our corpse
+                return true;
+
+            // We can see all players in arena
+            if (playerMe->m_deathVision)
+                return true;
+
+            // Otherwise we can only see players who have released their spirits as well
+            return (playerTarget->getDeathState() == CORPSE);
+        }
+
+        if (playerMe->getMyCorpseInstanceId() == playerMe->GetInstanceID())
+        {
+            // We can see our corpse
+            if (obj->IsCorpse() && static_cast<Corpse*>(obj)->GetOwner() == playerMe->GetGUID())
+                return true;
+
+            // We can see everything within range of our corpse
+            if (obj->getDistanceSq(playerMe->getMyCorpseLocation()) <= corpseViewDistance)
+                return true;
+        }
+
+        // We can see everything in arena
+        if (playerMe->m_deathVision)
+            return true;
+
+        // We can see spirit healers
+        if (obj->IsCreature() && static_cast<Creature*>(obj)->isSpiritHealer())
+            return true;
+
+        return false;
+    }
+
+    Unit* unitTarget = static_cast<Unit*>(obj);
+    GameObject* gobTarget = static_cast<GameObject*>(obj);
+
+    // We are alive or we haven't released the spirit yet
+    switch (obj->GetTypeId())
+    {
+        case TYPEID_PLAYER:
+        {
+            Player* playerTarget = static_cast<Player*>(obj);
+            if (IsPlayer())
+            {
+                // If player unit has released his/her spirit
+                if (playerTarget->getDeathState() == CORPSE)
+                {
+                    // If the target is in same group or raid
+                    if (static_cast<Player*>(this)->GetGroup() && static_cast<Player*>(this)->GetGroup() == playerTarget->GetGroup())
+                        return true;
+                    // otherwise only Game Master can see the player
+                    return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0);
+                }
+            }
+            break;
+        }
+        case TYPEID_UNIT:
+        {
+            // Can't see spirit healers when alive
+            // but Game Masters can
+            if (unitTarget->IsCreature() && static_cast<Creature*>(unitTarget)->isSpiritHealer())
+                return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0);
+
+            // We can always see our own units
+            if (GetGUID() == unitTarget->GetCreatedByGUID())
+                return true;
+
+            // If unit is visible only to other faction
+            if (IsPlayer())
+            {
+                if (unitTarget->GetAIInterface()->faction_visibility == 1)
+                    return static_cast<Player*>(this)->IsTeamHorde() ? true : false;
+
+                if (unitTarget->GetAIInterface()->faction_visibility == 2)
+                    return static_cast<Player*>(this)->IsTeamHorde() ? false : true;
+            }
+            break;
+        }
+        case TYPEID_GAMEOBJECT:
+        {
+            if (gobTarget->isStealthed || gobTarget->isInvisible)
+            {
+                uint64_t ownerGuid = gobTarget->getUInt64Value(OBJECT_FIELD_CREATED_BY);
+                // We can always see our game objects (i.e hunter traps)
+                if (GetGUID() == ownerGuid)
+                    return true;
+
+                // Group and raid members can see our game objects as well
+                // expect if we are dueling them
+                if (IsPlayer() && static_cast<Player*>(this)->GetGroup())
+                {
+                    Player* ownerPlayer = GetMapMgrPlayer((uint32)ownerGuid);
+                    if (ownerPlayer && static_cast<Player*>(this)->GetGroup()->HasMember(ownerPlayer) &&
+                        static_cast<Player*>(this)->DuelingWith != ownerPlayer)
+                        return true;
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    // Game Masters can see invisible and stealthed objects
+    if (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM))
+        return true;
+
+    // Pets don't have detection, they rely on their master's detection
+    Unit* meUnit = this;
+    if (GetSummonedByGUID() != 0)
+    {
+        if (Unit* summoner = GetMapMgrUnit(GetSummonedByGUID()))
+            meUnit = summoner;
+    }
+    if (GetCharmedByGUID() != 0)
+    {
+        if (Unit* charmer = GetMapMgrUnit(GetCharmedByGUID()))
+            meUnit = charmer;
+    }
+
+    // Hunter's Marked units are always visible to caster
+    if (obj->IsUnit() && unitTarget->stalkedby == meUnit->GetGUID())
+        return true;
+
+    if (meUnit->IsPlayer())
+    {
+        // If object, or its summoner/owner, is in same group with us, we can always see it
+        // expect if we are dueling it
+        Unit* objOwner = obj->IsUnit() ? unitTarget : nullptr;
+        if (obj->IsUnit())
+        {
+            if (obj->getUInt64Value(UNIT_FIELD_SUMMONEDBY) != 0)
+            {
+                if (Unit* objSummoner = obj->GetMapMgrUnit(getUInt64Value(UNIT_FIELD_SUMMONEDBY)))
+                    objOwner = objSummoner;
+            }
+            if (obj->getUInt64Value(UNIT_FIELD_CHARMEDBY) != 0)
+            {
+                if (Unit* objCharmer = obj->GetMapMgrUnit(getUInt64Value(UNIT_FIELD_CHARMEDBY)))
+                    objOwner = objCharmer;
+            }
+        }
+        else if (obj->IsGameObject())
+        {
+            if (obj->getUInt64Value(OBJECT_FIELD_CREATED_BY) != 0)
+            {
+                if (Unit* objSummoner = obj->GetMapMgrUnit(getUInt64Value(OBJECT_FIELD_CREATED_BY)))
+                    objOwner = objSummoner;
+            }
+        }
+
+        if (objOwner && objOwner->IsPlayer())
+        {
+            if (static_cast<Player*>(meUnit)->GetGroup() && static_cast<Player*>(meUnit)->GetGroup()->HasMember(static_cast<Player*>(objOwner)) &&
+                static_cast<Player*>(meUnit)->DuelingWith != static_cast<Player*>(objOwner))
+                return true;
+        }
+    }
+
+    // Invisibility Detection
+    for (int i = 0; i < INVIS_FLAG_TOTAL; ++i)
+    {
+        int32_t ourInvisibilityValue = meUnit->getInvisibilityLevel(InvisibilityFlag(i)) ? meUnit->getInvisibilityLevel(InvisibilityFlag(i)) : 0;
+        int32_t ourInvisibilityDetection = meUnit->getInvisibilityDetectBonus(InvisibilityFlag(i)) ? meUnit->getInvisibilityDetectBonus(InvisibilityFlag(i)) : 0;
+        int32_t objectInvisibilityValue = 0;
+        int32_t objectInvisibilityDetection = 0;
+        if (obj->IsUnit())
+        {
+            objectInvisibilityValue = unitTarget->getInvisibilityLevel(InvisibilityFlag(i)) ? unitTarget->getInvisibilityLevel(InvisibilityFlag(i)) : 0;
+            objectInvisibilityDetection = unitTarget->getInvisibilityDetectBonus(InvisibilityFlag(i)) ? unitTarget->getInvisibilityDetectBonus(InvisibilityFlag(i)) : 0;
+
+            // When we are invisible we can only see those who have enough detection value to see us
+            // When object is invisible we can only see it if we have enough detection value
+            if ((ourInvisibilityValue > objectInvisibilityDetection) ||
+                (objectInvisibilityValue > ourInvisibilityDetection))
+                return false;
+        }
+        else if (obj->IsGameObject() && i == INVIS_FLAG_TRAP)
+        {
+            // TODO: implement game object invisibility (yes, there are stealthed and invisible game objects)
+            // currently only stealthed game objects are implemented
+
+            /*if (!gobTarget->isInvisible)
+                continue;
+
+            objectsInvisibilityValue = gobTarget->invisibilityValue ? gobTarget->invisibilityValue : 0;
+            if (objectsInvisibilityValue > ourInvisibilityDetection)
+                return false;*/
+        }
+    }
+
+    if (!checkStealth)
+        return true;
+
+    // Stealth Detection
+    // TODO: may need some tweaking...
+    if ((obj->IsUnit() && unitTarget->isStealthed()) || (obj->IsGameObject() && gobTarget->isStealthed))
+    {
+        const float distance = meUnit->getDistanceSq(obj);
+        const float combatReach = meUnit->GetCombatReach();
+
+        // If object is closer than our melee range
+        if (distance < combatReach)
+            return true;
+
+        if (obj->IsUnit())
+        {
+            // Some spells make you detect stealth regardless of range and facing
+            // i.e Shadow Sight buff in arena
+            if (meUnit->hasAuraWithAuraType(SPELL_AURA_DETECT_STEALTH))
+                return true;
+
+            // We can't normally detect units outside line of sight
+            if (worldConfig.terrainCollision.isCollisionEnabled)
+            {
+                if (!meUnit->IsWithinLOSInMap(obj))
+                    return false;
+            }
+
+            // We can't normally detect what is not in front of us
+            if (!meUnit->isInFront(obj))
+                return false;
+        }
+
+        // In unit cases base stealth level and base stealth detection increases by 5 points per unit level, starting from level 1
+        // Gameobject traps seems to have 70 base stealth value and they inherit higher stealth value from their owner, if they have one
+        int32_t detectionValue = meUnit->getLevel() * 5;
+
+        // Apply modifiers which increase stealth detection
+        detectionValue += obj->IsUnit() ? meUnit->getStealthDetectBonus(STEALTH_FLAG_NORMAL) : meUnit->getStealthDetectBonus(STEALTH_FLAG_TRAP);
+
+        // Subtract object's unit level and stealth level
+        if (obj->IsGameObject())
+        {
+            detectionValue -= gobTarget->stealthValue;
+            if (gobTarget->m_summoner && gobTarget->m_summoner->IsInWorld())
+                detectionValue -= gobTarget->m_summoner->getLevel() * 5;
+        }
+        else
+            detectionValue -= unitTarget->getLevel() * 5 + unitTarget->getStealthLevel(STEALTH_FLAG_NORMAL);
+
+        float visibilityRange = float(detectionValue) * 0.3f + combatReach;
+        if (visibilityRange <= 0.0f)
+            return false;
+        // Players cannot see stealthed objects from further than 30 yards
+        if (visibilityRange > 30.0f && meUnit->IsPlayer())
+            visibilityRange = 30.0f;
+
+        if (distance > visibilityRange)
+            return false;
+    }
+    return true;
+}
+
 void Unit::playSpellVisual(uint64_t guid, uint32_t spell_id)
 {
 #if VERSION_STRING != Cata
@@ -683,7 +1085,7 @@ void Unit::playSpellVisual(uint64_t guid, uint32_t spell_id)
 #endif
 }
 
-void Unit::applyDiminishingReturnTimer(uint32_t* duration, SpellInfo* spell)
+void Unit::applyDiminishingReturnTimer(uint32_t* duration, SpellInfo const* spell)
 {
     uint32_t status = spell->custom_DiminishStatus;
     uint32_t group  = status & 0xFFFF;
@@ -730,7 +1132,7 @@ void Unit::applyDiminishingReturnTimer(uint32_t* duration, SpellInfo* spell)
     ++m_diminishCount[group];
 }
 
-void Unit::removeDiminishingReturnTimer(SpellInfo* spell)
+void Unit::removeDiminishingReturnTimer(SpellInfo const* spell)
 {
     uint32_t status = spell->custom_DiminishStatus;
     uint32_t group  = status & 0xFFFF;

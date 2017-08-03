@@ -804,7 +804,7 @@ void Item::ApplyEnchantmentBonus(uint32 Slot, bool Apply)
                     if (Apply)
                     {
                         SpellCastTargets targets(m_owner->GetGUID());
-                        SpellInfo* sp;
+                        SpellInfo const* sp;
                         Spell* spell;
 
                         if (Entry->spell[c] != 0)
@@ -1382,5 +1382,38 @@ bool Item::RepairItem(Player* pPlayer, bool guildmoney, int32* pCost)   //pCost 
     }
     SetDurabilityToMax();
     m_isDirty = true;
+    return true;
+}
+
+bool Item::fitsToSpellRequirements(SpellInfo const* spellInfo) const
+{
+    ItemProperties const* proto = GetItemProperties();
+    bool const isEnchantSpell = spellInfo->HasEffect(SPELL_EFFECT_ENCHANT_ITEM) || spellInfo->HasEffect(SPELL_EFFECT_ENCHANT_ITEM_TEMPORARY) || spellInfo->HasEffect(SPELL_EFFECT_ADD_SOCKET);
+    if (spellInfo->EquippedItemClass != -1)
+    {
+        if (isEnchantSpell)
+        {
+            // Armor Vellums
+            if (spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR && proto->Class == ITEM_CLASS_TRADEGOODS && proto->SubClass == ITEM_SUBCLASS_ARMOR_ENCHANTMENT)
+                return true;
+            // Weapon Vellums
+            if (spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON && proto->Class == ITEM_CLASS_TRADEGOODS && proto->SubClass == ITEM_SUBCLASS_WEAPON_ENCHANTMENT)
+                return true;
+        }
+        if (spellInfo->EquippedItemClass != int32_t(proto->Class))
+            return false;
+        if (spellInfo->EquippedItemSubClass != 0 && (spellInfo->EquippedItemSubClass & (1 << proto->SubClass)) == 0)
+            return false;
+    }
+
+    if (isEnchantSpell && spellInfo->RequiredItemFlags != 0)
+    {
+        if (proto->InventoryType == INVTYPE_WEAPON &&
+            (spellInfo->RequiredItemFlags & (1 << INVTYPE_WEAPONMAINHAND) ||
+                spellInfo->RequiredItemFlags & (1 << INVTYPE_WEAPONOFFHAND)))
+            return true;
+        else if (spellInfo->RequiredItemFlags & (1 << proto->InventoryType) == 0)
+            return false;
+    }
     return true;
 }

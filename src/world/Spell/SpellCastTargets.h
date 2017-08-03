@@ -44,8 +44,9 @@ public:
     SpellCastTargets& operator=(const SpellCastTargets& target);
     ~SpellCastTargets();
 
-    uint32 GetTargetMask() const;
-    bool hasSource() const;
+    uint32_t getTargetMask() const { return m_targetMask; }
 
+    bool hasSource() const;
     bool hasDestination() const;
+    bool hasDestinationOrSource() const { return (hasSource() || hasDestination()); }
 };

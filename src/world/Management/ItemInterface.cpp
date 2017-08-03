@@ -2677,6 +2677,52 @@ int8 ItemInterface::GetItemSlotByType(uint32 type)
     }
 }
 
+// Finds item by entry id
+Item* ItemInterface::getItemById(uint32_t itemId) const
+{
+    for (uint8_t i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
+    {
+        if (m_pItems[i] && m_pItems[i]->GetEntry() == itemId)
+            return m_pItems[i];
+    }
+
+    for (uint8_t i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; ++i)
+    {
+        if (m_pItems[i] && m_pItems[i]->IsContainer())
+        {
+            if (m_pItems[i]->GetEntry() == itemId)
+                return m_pItems[i];
+
+            for (uint8_t j = 0; i < m_pItems[i]->GetItemProperties()->ContainerSlots; ++j)
+            {
+                Item* bagItem = static_cast<Container*>(m_pItems[i])->GetItem(static_cast<int16_t>(j));
+                if (bagItem && bagItem->GetEntry() == itemId)
+                    return bagItem;
+            }
+        }
+    }
+
+    for (uint8_t i = INVENTORY_SLOT_ITEM_START; i < INVENTORY_SLOT_ITEM_END; ++i)
+    {
+        if (m_pItems[i] && m_pItems[i]->GetEntry() == itemId)
+            return m_pItems[i];
+    }
+
+    for (uint8_t i = INVENTORY_KEYRING_START; i < INVENTORY_KEYRING_END; ++i)
+    {
+        if (m_pItems[i] && m_pItems[i]->GetEntry() == itemId)
+            return m_pItems[i];
+    }
+
+    for (uint8_t i = CURRENCYTOKEN_SLOT_START; i < CURRENCYTOKEN_SLOT_END; ++i)
+    {
+        if (m_pItems[i] && m_pItems[i]->GetEntry() == itemId)
+            return m_pItems[i];
+    }
+
+    return nullptr;
+}
+
 /// Gets a Item by guid
 Item* ItemInterface::GetItemByGUID(uint64 Guid)
 {

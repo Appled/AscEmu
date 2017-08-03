@@ -392,7 +392,7 @@ DBC::Structures::SkillLineAbilityEntry const* ObjectMgr::GetSpellSkill(uint32 id
     return mSpellSkills[id];
 }
 
-SpellInfo* ObjectMgr::GetNextSpellRank(SpellInfo* sp, uint32 level)
+SpellInfo const* ObjectMgr::GetNextSpellRank(SpellInfo const* sp, uint32 level)
 {
     // Looks for next spell rank
     if (sp == nullptr)
@@ -403,7 +403,7 @@ SpellInfo* ObjectMgr::GetNextSpellRank(SpellInfo* sp, uint32 level)
     auto skill_line_ability = GetSpellSkill(sp->Id);
     if (skill_line_ability != nullptr && skill_line_ability->next > 0)
     {
-        SpellInfo* sp1 = sSpellCustomizations.GetSpellInfo(skill_line_ability->next);
+        SpellInfo const* sp1 = sSpellCustomizations.GetSpellInfo(skill_line_ability->next);
         if (sp1 && sp1->baseLevel <= level)   // check level
         {
             return GetNextSpellRank(sp1, level);   // recursive for higher ranks
@@ -1364,7 +1364,9 @@ std::vector<CreatureItem>* ObjectMgr::GetVendorList(uint32 entry)
 
 void ObjectMgr::LoadAIThreatToSpellId()
 {
-    QueryResult* result = WorldDatabase.Query("SELECT * FROM ai_threattospellid");
+    // Temporarily disable this. Need to implement different approach, perhaps a new class? -Appled
+    LogError("DEV NOTE: SPELL SYSTEM REWRITE - AI_THREATTOSPELLID TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED OR REMOVED");
+    /*QueryResult* result = WorldDatabase.Query("SELECT * FROM ai_threattospellid");
 
     if (!result)
     {
@@ -1374,7 +1376,7 @@ void ObjectMgr::LoadAIThreatToSpellId()
     do
     {
         Field* fields = result->Fetch();
-        SpellInfo* sp = sSpellCustomizations.GetSpellInfo(fields[0].GetUInt32());
+        SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(fields[0].GetUInt32());
         if (sp != NULL)
         {
             sp->custom_ThreatForSpell = fields[1].GetUInt32();
@@ -1386,12 +1388,14 @@ void ObjectMgr::LoadAIThreatToSpellId()
     }
     while (result->NextRow());
 
-    delete result;
+    delete result;*/
 }
 
+// Permanently disable this. TODO: convert changes from here to source and drop table
 void ObjectMgr::LoadSpellEffectsOverride()
 {
-    QueryResult* result = WorldDatabase.Query("SELECT * FROM spell_effects_override");
+    LogDefault("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_EFFECTS_OVERRIDE TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED");
+    /*QueryResult* result = WorldDatabase.Query("SELECT * FROM spell_effects_override");
     if (result)
     {
         do
@@ -1412,7 +1416,7 @@ void ObjectMgr::LoadSpellEffectsOverride()
 
             if (seo_SpellId)
             {
-                SpellInfo* sp = sSpellCustomizations.GetSpellInfo(seo_SpellId);
+                SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(seo_SpellId);
                 if (sp != NULL)
                 {
                     if (seo_Disable)
@@ -1454,7 +1458,7 @@ void ObjectMgr::LoadSpellEffectsOverride()
         }
         while (result->NextRow());
         delete result;
-    }
+    }*/
 }
 
 Item* ObjectMgr::CreateItem(uint32 entry, Player* owner)
@@ -2340,7 +2344,7 @@ uint32 ObjectMgr::GetPetSpellCooldown(uint32 SpellId)
     if (itr != mPetSpellCooldowns.end())
         return itr->second;
 
-    SpellInfo* sp = sSpellCustomizations.GetSpellInfo(SpellId);
+    SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(SpellId);
     if (sp->RecoveryTime > sp->CategoryRecoveryTime)
         return sp->RecoveryTime;
     else
@@ -3739,7 +3743,7 @@ void ObjectMgr::LoadCreatureAIAgents()
                 Field* fields = result->Fetch();
                 uint32 entry = fields[0].GetUInt32();
                 CreatureProperties const* cn = sMySQLStore.getCreatureProperties(entry);
-                SpellInfo* spe = sSpellCustomizations.GetSpellInfo(fields[6].GetUInt32());
+                SpellInfo const* spe = sSpellCustomizations.GetSpellInfo(fields[6].GetUInt32());
 
                 if (spe == nullptr)
                 {

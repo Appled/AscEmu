@@ -652,7 +652,7 @@ void ArathiBasin::HookOnAreaTrigger(Player* plr, uint32 trigger)
             sEventMgr.AddEvent(this, &ArathiBasin::SpawnBuff, static_cast<uint32>(buffslot), EVENT_AB_RESPAWN_BUFF, AB_BUFF_RESPAWN_TIME, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 
             // cast the spell on the player
-            SpellInfo* sp = sSpellCustomizations.GetSpellInfo(spellid);
+            SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(spellid);
             if (sp)
             {
                 Spell* pSpell = sSpellFactoryMgr.NewSpell(plr, sp, true, nullptr);
@@ -1008,7 +1008,7 @@ bool ArathiBasin::HookSlowLockOpen(GameObject* pGo, Player* pPlayer, Spell* pSpe
         //Stealthed / invisible players can't cap
         //if(pPlayer->GetStealthLevel() > 0 || pPlayer->HasAurasWithNameHash(SPELL_HASH_PROWL) || pPlayer->HasAurasWithNameHash(SPELL_HASH_SHADOWMELD))
 
-    if (pPlayer->IsStealth() || pPlayer->m_invisible)
+    if (pPlayer->isStealthed() || pPlayer->isInvisible())
         return false;
 
     AssaultControlPoint(pPlayer, cpid);

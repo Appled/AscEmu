@@ -20,7 +20,7 @@ enum SPELL_MODIFIER_TYPE
     SMT_CAST_TIME         = 10,
     SMT_COOLDOWN_DECREASE = 11,
     SMT_EFFECT_2          = 12,
-    // UNUSED_13
+    SMT_ARMOR             = 13,
     SMT_COST              = 14,
     SMT_CRITICAL_DAMAGE   = 15,
     SMT_HITCHANCE         = 16,
@@ -36,4 +36,6 @@ enum SPELL_MODIFIER_TYPE
     // UNUSED_26
     SMT_EFFECT_BONUS      = 27,
     SMT_RESIST_DISPEL     = 28,
+    SMT_CROWD_DAMAGE      = 29,
+    SMT_REFUND_ON_FAIL    = 30
 };

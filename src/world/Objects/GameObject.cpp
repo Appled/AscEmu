@@ -51,8 +51,8 @@ GameObject::GameObject(uint64 guid)
     m_wowGuid.Init(guid);
     SetScale(1);
     m_summonedGo = false;
-    invisible = false;
-    invisibilityFlag = INVIS_FLAG_NORMAL;
+    isStealthed = false;
+    stealthValue = 0;
     m_summoner = NULL;
     charges = -1;
     gameobject_properties = nullptr;
@@ -454,7 +454,7 @@ void GameObject::SetRotationAngles(float z_rot, float y_rot, float x_rot)
     SetRotationQuat(quat.x, quat.y, quat.z, quat.w);
 }
 
-void GameObject::CastSpell(uint64 TargetGUID, SpellInfo* sp)
+void GameObject::CastSpell(uint64 TargetGUID, SpellInfo const* sp)
 {
     Spell* s = new Spell(this, sp, true, NULL);
 
@@ -468,7 +468,7 @@ void GameObject::CastSpell(uint64 TargetGUID, SpellInfo* sp)
 
 void GameObject::CastSpell(uint64 TargetGUID, uint32 SpellID)
 {
-    SpellInfo* sp = sSpellCustomizations.GetSpellInfo(SpellID);
+    SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(SpellID);
     if (sp == nullptr)
     {
         LogError("GameObject %u tried to cast a non-existing Spell %u.", gameobject_properties->entry, SpellID);
@@ -748,8 +748,8 @@ void GameObject_Trap::InitAI()
 
     if (gameobject_properties->trap.stealthed != 0)
     {
-        invisible = true;
-        invisibilityFlag = INVIS_FLAG_TRAP;
+        isStealthed = true;
+        stealthValue = 70;
     }
 
     cooldown = gameobject_properties->trap.cooldown * 1000;

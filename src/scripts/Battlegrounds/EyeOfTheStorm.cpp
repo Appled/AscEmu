@@ -327,7 +327,7 @@ void EyeOfTheStorm::HookOnAreaTrigger(Player* plr, uint32 id)
         if (EOTSm_buffs[x] && EOTSm_buffs[x]->IsInWorld())
         {
             spellid = EOTSm_buffs[x]->GetGameObjectProperties()->raw.parameter_3;
-            SpellInfo* sp = sSpellCustomizations.GetSpellInfo(spellid);
+            SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(spellid);
             if (sp)
             {
                 Spell* pSpell = sSpellFactoryMgr.NewSpell(plr, sp, true, NULL);
@@ -669,7 +669,7 @@ void EyeOfTheStorm::UpdateCPs()
         for (; itr != itrend; ++itr)
         {
             plr = static_cast<Player*>(*itr);
-            if (plr->isAlive() && !(plr->IsStealth()) && !(plr->m_invisible) && !(plr->SchoolImmunityList[0]) && plr->GetDistance2dSq(go) <= EOTS_CAPTURE_DISTANCE)
+            if (plr->isAlive() && !(plr->isStealthed()) && !(plr->isInvisible()) && !(plr->SchoolImmunityList[0]) && plr->GetDistance2dSq(go) <= EOTS_CAPTURE_DISTANCE)
             {
                 playercounts[plr->GetTeam()]++;
 

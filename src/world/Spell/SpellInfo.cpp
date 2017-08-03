@@ -341,7 +341,7 @@ bool SpellInfo::HasEffect(uint32 effect) const
     return false;
 }
 
-bool SpellInfo::HasEffectApplyAuraName(uint32_t aura_name)
+bool SpellInfo::HasEffectApplyAuraName(uint32_t aura_name) const
 {
     for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
         if (Effect[i] == SPELL_EFFECT_APPLY_AURA && EffectApplyAuraName[i] == aura_name)
@@ -350,7 +350,7 @@ bool SpellInfo::HasEffectApplyAuraName(uint32_t aura_name)
     return false;
 }
 
-bool SpellInfo::HasCustomFlagForEffect(uint32 effect, uint32 flag)
+bool SpellInfo::HasCustomFlagForEffect(uint32 effect, uint32 flag) const
 {
     if (effect >= MAX_SPELL_EFFECTS)
         return false;
@@ -527,38 +527,38 @@ int SpellInfo::aiTargetType() const
     /*  this is not good as one spell effect can target self and other one an enemy,
     maybe we should make it for each spell effect or use as flags */
     if (
-        hasTargetType(EFF_TARGET_INVISIBLE_OR_HIDDEN_ENEMIES_AT_LOCATION_RADIUS) ||
-        hasTargetType(EFF_TARGET_ALL_TARGETABLE_AROUND_LOCATION_IN_RADIUS)       ||
+        hasTargetType(EFF_TARGET_RANDOM_FRIENDLY_CHAIN_IN_AREA)                  ||
+        hasTargetType(EFF_TARGET_AREAEFFECT_CUSTOM)                              ||
         hasTargetType(EFF_TARGET_ALL_ENEMY_IN_AREA)                              ||
         hasTargetType(EFF_TARGET_ALL_ENEMY_IN_AREA_INSTANT)                      ||
         hasTargetType(EFF_TARGET_ALL_ENEMY_IN_AREA_CHANNELED)                    ||
-        hasTargetType(EFF_TARGET_ALL_TARGETABLE_AROUND_LOCATION_IN_RADIUS_OVER_TIME)
+        hasTargetType(EFF_TARGET_ALL_FRIENDLY_IN_AREA)
     )
     {
         return TTYPE_DESTINATION;
     }
 
     if (
-        hasTargetType(EFF_TARGET_LOCATION_TO_SUMMON)      ||
-        hasTargetType(EFF_TARGET_IN_FRONT_OF_CASTER)      ||
-        hasTargetType(EFF_TARGET_ALL_FRIENDLY_IN_AREA)    ||
-        hasTargetType(EFF_TARGET_PET_SUMMON_LOCATION)     ||
-        hasTargetType(EFF_TARGET_LOCATION_INFRONT_CASTER) ||
+        hasTargetType(EFF_TARGET_LOCATION_TO_SUMMON)          ||
+        hasTargetType(EFF_TARGET_IN_FRONT_OF_CASTER)          ||
+        hasTargetType(EFF_TARGET_ALL_FRIENDLY_AROUND_CASTER)  ||
+        hasTargetType(EFF_TARGET_ALL_ENEMY_AROUND_CASTER)     ||
+        hasTargetType(EFF_TARGET_LOCATION_INFRONT_CASTER)     ||
         hasTargetType(EFF_TARGET_CONE_IN_FRONT)
     )
     {
         return TTYPE_SOURCE;
     }
     if (
-        hasTargetType(EFF_TARGET_SINGLE_ENEMY)                      ||
-        hasTargetType(EFF_TARGET_ALL_ENEMIES_AROUND_CASTER)         ||
+        hasTargetType(EFF_TARGET_CHAIN_DAMAGE)                      ||
+        hasTargetType(EFF_TARGET_22)                                ||
         hasTargetType(EFF_TARGET_DUEL)                              ||
         hasTargetType(EFF_TARGET_SCRIPTED_OR_SINGLE_TARGET)         ||
-        hasTargetType(EFF_TARGET_CHAIN)                             ||
-        hasTargetType(EFF_TARGET_CURRENT_SELECTION)                 ||
-        hasTargetType(EFF_TARGET_TARGET_AT_ORIENTATION_TO_CASTER)   ||
-        hasTargetType(EFF_TARGET_MULTIPLE_GUARDIAN_SUMMON_LOCATION) ||
-        hasTargetType(EFF_TARGET_SELECTED_ENEMY_CHANNELED)
+        hasTargetType(EFF_TARGET_CHAIN_HEAL)                        ||
+        hasTargetType(EFF_TARGET_CURRENT_ENEMY_TARGET_COORDINATES)  ||
+        hasTargetType(EFF_TARGET_FRONTAL_CONE_LARGE)                ||
+        hasTargetType(EFF_TARGET_RANDOM_NEARBY_SUMMON_LOCATION)     ||
+        hasTargetType(EFF_TARGET_SINGLE_ENEMY)
     )
     {
         return TTYPE_SINGLETARGET;
@@ -569,11 +569,11 @@ int SpellInfo::aiTargetType() const
         hasTargetType(EFF_TARGET_SINGLE_FRIEND)               ||
         hasTargetType(EFF_TARGET_PET_MASTER)                  ||
         hasTargetType(EFF_TARGET_ALL_PARTY_IN_AREA_CHANNELED) ||
-        hasTargetType(EFF_TARGET_ALL_PARTY_IN_AREA)           ||
-        hasTargetType(EFF_TARGET_SINGLE_PARTY)                ||
         hasTargetType(EFF_TARGET_ALL_PARTY)                   ||
+        hasTargetType(EFF_TARGET_SINGLE_PARTY)                ||
+        hasTargetType(EFF_TARGET_ALL_PARTY_2)                 ||
         hasTargetType(EFF_TARGET_ALL_RAID)                    ||
-        hasTargetType(EFF_TARGET_PARTY_MEMBER)                ||
+        hasTargetType(EFF_TARGET_SINGLE_FRIEND_2)             ||
         hasTargetType(EFF_TARGET_AREAEFFECT_PARTY_AND_CLASS)
     )
     {
@@ -581,9 +581,9 @@ int SpellInfo::aiTargetType() const
     }
 
     if (
-        hasTargetType(EFF_TARGET_SELF) ||
-        hasTargetType(4) ||
-        hasTargetType(EFF_TARGET_PET) ||
+        hasTargetType(EFF_TARGET_SELF)                      ||
+        hasTargetType(EFF_TARGET_RANDOM_UNIT_CHAIN_IN_AREA) ||
+        hasTargetType(EFF_TARGET_PET)                       ||
         hasTargetType(EFF_TARGET_MINION)
     )
     {
@@ -595,8 +595,8 @@ int SpellInfo::aiTargetType() const
 
 bool SpellInfo::isTargetingStealthed() const
 {
-    if (hasTargetType(EFF_TARGET_INVISIBLE_OR_HIDDEN_ENEMIES_AT_LOCATION_RADIUS) ||
-        hasTargetType(EFF_TARGET_ALL_ENEMIES_AROUND_CASTER) ||
+    if (hasTargetType(EFF_TARGET_RANDOM_FRIENDLY_CHAIN_IN_AREA) ||
+        hasTargetType(EFF_TARGET_22) ||
         hasTargetType(EFF_TARGET_ALL_ENEMY_IN_AREA_CHANNELED) ||
         hasTargetType(EFF_TARGET_ALL_ENEMY_IN_AREA_INSTANT))
     {
@@ -638,7 +638,7 @@ bool SpellInfo::isRequireCooldownSpell() const
     return cond1 || cond2;
 }
 
-bool SpellInfo::IsPassive()
+bool SpellInfo::IsPassive() const
 {
     return (Attributes & ATTRIBUTES_PASSIVE) != 0;
 }
@@ -717,7 +717,7 @@ bool SpellInfo::appliesAreaAura(uint32 aura) const
     return false;
 }
 
-uint32 SpellInfo::GetAreaAuraEffectId()
+uint32 SpellInfo::GetAreaAuraEffectId() const
 {
     for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
     {
@@ -731,4 +731,9 @@ uint32 SpellInfo::GetAreaAuraEffectId()
     }
 
     return 0;
+}
+
+SpellInfo const* SpellInfo::getAuraRankForUnitLevel(uint32_t level) const
+{
+    return this;
 }

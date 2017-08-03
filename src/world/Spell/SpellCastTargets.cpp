@@ -78,11 +78,6 @@ SpellCastTargets::~SpellCastTargets()
     m_strTarget.clear();
 }
 
-uint32 SpellCastTargets::GetTargetMask() const
-{
-    return m_targetMask;
-}
-
 void SpellCastTargets::reset()
 {
     m_source = LocationVector();
@@ -233,10 +228,10 @@ void SpellCastTargets::write(WorldPacket& data) const
 
 bool SpellCastTargets::hasSource() const
 {
-    return GetTargetMask() & TARGET_FLAG_SOURCE_LOCATION;
+    return getTargetMask() & TARGET_FLAG_SOURCE_LOCATION;
 }
 
 bool SpellCastTargets::hasDestination() const
 {
-    return GetTargetMask() & TARGET_FLAG_DEST_LOCATION;
+    return getTargetMask() & TARGET_FLAG_DEST_LOCATION;
 }

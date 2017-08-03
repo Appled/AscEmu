@@ -408,7 +408,7 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recv_data)
             qst_giver->GetAIInterface()->StopMovement(30000);
 
         // unstealth meh
-        if (_player->IsStealth())
+        if (_player->isStealthed())
             _player->RemoveAllAuraType(SPELL_AURA_MOD_STEALTH);
 
         // reputation
@@ -488,7 +488,7 @@ void WorldSession::HandleSpiritHealerActivateOpcode(WorldPacket& recv_data)
 
         if (aur == NULL)        // If the player already have the aura, just extend it.
         {
-            SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(15007);    //resurrection sickness
+            SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(15007);    //resurrection sickness
             SpellCastTargets targets;
             targets.m_unitTarget = GetPlayer()->GetGUID();
             Spell* sp = sSpellFactoryMgr.NewSpell(_player, spellInfo, true, NULL);

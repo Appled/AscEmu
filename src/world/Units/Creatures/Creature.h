@@ -204,9 +204,6 @@ class SERVER_DECL Creature : public Unit
         void RegenerateHealth();
         void RegenerateMana();
         int BaseAttackType;
-        
-        /// Invisibility & Stealth Detection - Partha
-        bool CanSee(Unit* obj);
 
         /// Looting
         void generateLoot();

@@ -379,8 +379,8 @@ namespace LuaSpell
             lua_pushboolean(L, 0);
             return 1;
         }
-        sp->InitProtoOverride();
-        SpellInfo* proto = sp->GetSpellInfo();
+        //sp->InitProtoOverride();
+        SpellInfo const* proto = sp->GetSpellInfo();
         LuaSpellEntry l = GetLuaSpellEntryByName(var);
         if (!l.name)
             RET_BOOL(false);
@@ -415,7 +415,7 @@ namespace LuaSpell
             lua_pushnil(L);
             return 1;
         }
-        SpellInfo* proto = sp->GetSpellInfo();
+        SpellInfo const* proto = sp->GetSpellInfo();
         LuaSpellEntry l = GetLuaSpellEntryByName(var);
         if (!l.name)
             RET_NIL();
@@ -452,29 +452,30 @@ namespace LuaSpell
         switch (l.typeId)  //0: int, 1: char*, 2: bool, 3: float
         {
             case 0:
-                GET_SPELLVAR_INT(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_INT(sp->m_spellInfo, l.offset, subindex);
+                GET_SPELLVAR_INT(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_INT(sp->GetSpellInfo(), l.offset, subindex);
                 lua_pushboolean(L, 1);
                 break;
             case 1:
-                GET_SPELLVAR_CHAR(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_CHAR(sp->m_spellInfo, l.offset, subindex);
+                GET_SPELLVAR_CHAR(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_CHAR(sp->GetSpellInfo(), l.offset, subindex);
                 lua_pushboolean(L, 1);
                 break;
             case 2:
-                GET_SPELLVAR_BOOL(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_BOOL(sp->m_spellInfo, l.offset, subindex);
+                GET_SPELLVAR_BOOL(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_BOOL(sp->GetSpellInfo(), l.offset, subindex);
                 lua_pushboolean(L, 1);
                 break;
             case 3:
-                GET_SPELLVAR_FLOAT(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_FLOAT(sp->m_spellInfo, l.offset, subindex);
+                GET_SPELLVAR_FLOAT(sp->GetSpellInfo(), l.offset, subindex) = GET_SPELLVAR_FLOAT(sp->GetSpellInfo(), l.offset, subindex);
                 lua_pushboolean(L, 1);
                 break;
         }
         return 1;
     }
 
+    // TODO: remove? variable is unused
     int ResetAllVars(lua_State* L, Spell* sp)
     {
         if (!sp) return 0;
-        sp->m_spellInfo_override = NULL;
+        //sp->m_spellInfo_override = NULL;
         return 0;
     }
 

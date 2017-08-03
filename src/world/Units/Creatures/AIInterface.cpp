@@ -581,10 +581,7 @@ void AIInterface::_UpdateCombat(uint32 p_time)
     {
         if (getNextTarget()->event_GetCurrentInstanceId() == m_Unit->event_GetCurrentInstanceId())
         {
-            if (m_Unit->IsCreature())
-                cansee = static_cast< Creature* >(m_Unit)->CanSee(getNextTarget());
-            else
-                cansee = static_cast< Player* >(m_Unit)->CanSee(getNextTarget());
+            cansee = m_Unit->canSeeOrDetect(getNextTarget());
         }
         else
         {
@@ -713,7 +710,7 @@ void AIInterface::_UpdateCombat(uint32 p_time)
                                 float his_facing = getNextTarget()->GetOrientation();
                                 if (fabs(our_facing - his_facing) < CREATURE_DAZE_TRIGGER_ANGLE && !getNextTarget()->HasAura(CREATURE_SPELL_TO_DAZE))
                                 {
-                                    SpellInfo* info = sSpellCustomizations.GetSpellInfo(CREATURE_SPELL_TO_DAZE);
+                                    SpellInfo const* info = sSpellCustomizations.GetSpellInfo(CREATURE_SPELL_TO_DAZE);
                                     Spell* sp = sSpellFactoryMgr.NewSpell(m_Unit, info, false, NULL);
                                     SpellCastTargets targets;
                                     targets.m_unitTarget = getNextTarget()->GetGUID();
@@ -766,7 +763,7 @@ void AIInterface::_UpdateCombat(uint32 p_time)
                         if (infront)
                         {
                             m_Unit->setAttackTimer(0, false);
-                            SpellInfo* info = sSpellCustomizations.GetSpellInfo(SPELL_RANGED_GENERAL);
+                            SpellInfo const* info = sSpellCustomizations.GetSpellInfo(SPELL_RANGED_GENERAL);
                             if (info)
                             {
                                 Spell* sp = sSpellFactoryMgr.NewSpell(m_Unit, info, false, NULL);
@@ -810,7 +807,7 @@ void AIInterface::_UpdateCombat(uint32 p_time)
                 float distance = m_Unit->CalcDistance(getNextTarget());
                 if (los && ((distance <= m_nextSpell->maxrange + m_Unit->GetModelHalfSize()) || m_nextSpell->maxrange == 0))  // Target is in Range -> Attack
                 {
-                    SpellInfo* spellInfo = m_nextSpell->spell;
+                    SpellInfo const* spellInfo = m_nextSpell->spell;
 
                     /* if in range stop moving so we don't interrupt the spell */
                     //do not stop for instant spells
@@ -1037,7 +1034,7 @@ void AIInterface::AttackReaction(Unit* pUnit, uint32 damage_dealt, uint32 spellI
     HandleEvent(EVENT_DAMAGETAKEN, pUnit, _CalcThreat(damage_dealt, spellId ? sSpellCustomizations.GetSpellInfo(spellId) : NULL, pUnit));
 }
 
-void AIInterface::HealReaction(Unit* caster, Unit* victim, SpellInfo* sp, uint32 amount)
+void AIInterface::HealReaction(Unit* caster, Unit* victim, SpellInfo const* sp, uint32 amount)
 {
     if (!caster || !victim)
         return;
@@ -1111,9 +1108,56 @@ bool AIInterface::UnsafeCanOwnerAttackUnit(Unit* pUnit)
     if (!(pUnit->m_phase & m_Unit->m_phase))   //Not in the same phase
         return false;
 
-    //do not agro units that are faking death. Should this be based on chance ?
+    // Do not aggro units that are faking death
+    // This is based on chance; the higher level difference between units, the higher chance to fail
     if (pUnit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
-        return false;
+    {
+        int resistChance = 0; // the chance for us to resist unit's feign death
+        int32_t levelDifference = m_Unit->getLevel() - pUnit->getLevel();
+        if (levelDifference < 0)
+            return false; // unit is on higher level than we are => 100% success on feign death
+
+        switch (levelDifference)
+        {
+            case 0: // on same level
+                resistChance = 4;
+                break;
+            case 1:
+                resistChance = 5;
+                break;
+            case 2:
+                resistChance = 6;
+                break;
+            case 3:
+                resistChance = 37;
+                break;
+            case 4:
+                resistChance = 48;
+                break;
+            case 5:
+                resistChance = 59;
+                break;
+            case 6:
+                resistChance = 70;
+                break;
+            case 7:
+                resistChance = 81;
+                break;
+            case 8:
+                resistChance = 92;
+                break;
+            default: // if we are 9 or more levels higher than unit who is faking death, it won't work
+                resistChance = 101;
+                break;
+        }
+
+        if (resistChance < 100)
+        {
+            if (Rand(100 - resistChance))
+                return false;
+        }
+    }
+
 
     //don't attack owner
     if (m_Unit->GetCreatedByGUID() == pUnit->GetGUID())
@@ -1185,12 +1229,57 @@ Unit* AIInterface::FindTarget()
                 continue;
 
             if (tmpPlr->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FEIGN_DEATH))
-                continue;
+            {
+                int resistChance = 0; // the chance for us to resist player's feign death
+                int32_t levelDifference = m_Unit->getLevel() - tmpPlr->getLevel();
+                if (levelDifference < 0)
+                    continue; // player is on higher level than we are => 100% success on feign death
+
+                switch (levelDifference)
+                {
+                    case 0: // on same level
+                        resistChance = 4;
+                        break;
+                    case 1:
+                        resistChance = 5;
+                        break;
+                    case 2:
+                        resistChance = 6;
+                        break;
+                    case 3:
+                        resistChance = 37;
+                        break;
+                    case 4:
+                        resistChance = 48;
+                        break;
+                    case 5:
+                        resistChance = 59;
+                        break;
+                    case 6:
+                        resistChance = 70;
+                        break;
+                    case 7:
+                        resistChance = 81;
+                        break;
+                    case 8:
+                        resistChance = 92;
+                        break;
+                    default: // if we are 9 or more levels higher than unit who is faking death, it won't work
+                        resistChance = 101;
+                        break;
+                }
+
+                if (resistChance < 100)
+                {
+                    if (Rand(100 - resistChance))
+                        continue;
+                }
+            }
 
             if (tmpPlr->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_ATTACKABLE_9))
                 continue;
 
-            if (tmpPlr->m_invisible)
+            if (tmpPlr->isInvisible())
                 continue;
 
             if (!tmpPlr->HasFlag(PLAYER_FLAGS, PLAYER_FLAG_CONT_PVP))    //PvP Guard Attackable.
@@ -1547,7 +1636,7 @@ float AIInterface::_CalcAggroRange(Unit* target)
         lvlDiff = -8;
     }
 
-    if (!static_cast<Creature*>(m_Unit)->CanSee(target))
+    if (!m_Unit->canSeeOrDetect(target))
         return 0;
 
     // Retrieve aggrorange from table
@@ -2649,7 +2738,7 @@ void AIInterface::_UpdateMovement(uint32 p_time)
     }
 }
 
-void AIInterface::CastSpell(Unit* caster, SpellInfo* spellInfo, SpellCastTargets targets)
+void AIInterface::CastSpell(Unit* caster, SpellInfo const* spellInfo, SpellCastTargets targets)
 {
     ARCEMU_ASSERT(spellInfo != NULL);
     if (!isAiScriptType(AI_SCRIPT_PET) && disable_spell)
@@ -2667,9 +2756,9 @@ void AIInterface::CastSpell(Unit* caster, SpellInfo* spellInfo, SpellCastTargets
     nspell->prepare(&targets);
 }
 
-SpellInfo* AIInterface::getSpellEntry(uint32 spellId)
+SpellInfo const* AIInterface::getSpellEntry(uint32 spellId)
 {
-    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
+    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
 
     if (!spellInfo)
     {
@@ -2680,7 +2769,7 @@ SpellInfo* AIInterface::getSpellEntry(uint32 spellId)
     return spellInfo;
 }
 
-SpellCastTargets AIInterface::setSpellTargets(SpellInfo* spellInfo, Unit* target) const
+SpellCastTargets AIInterface::setSpellTargets(SpellInfo const* spellInfo, Unit* target) const
 {
     SpellCastTargets targets;
     targets.m_unitTarget = target ? target->GetGUID() : 0;
@@ -3279,7 +3368,7 @@ void AIInterface::CheckTarget(Unit* target)
         tauntedBy = nullptr;
 }
 
-uint32 AIInterface::_CalcThreat(uint32 damage, SpellInfo* sp, Unit* Attacker)
+uint32 AIInterface::_CalcThreat(uint32 damage, SpellInfo const* sp, Unit* Attacker)
 {
     if (!Attacker)
         return 0; // No attacker means no threat and we prevent crashes this way
@@ -4783,11 +4872,7 @@ void AIInterface::SetCreatureProtoDifficulty(uint32 entry)
             m_Unit->m_aiInterface->UpdateSpeeds(); // use speed from creature_proto_difficulty.
 
             //invisibility
-            m_Unit->m_invisFlag = static_cast<uint8>(properties_difficulty->invisibility_type);
-            if (m_Unit->m_invisFlag > 0)
-                m_Unit->m_invisible = true;
-            else
-                m_Unit->m_invisible = false;
+            m_Unit->m_invisFlag[static_cast<uint8>(properties_difficulty->invisibility_type)] = 1;
 
             if (m_Unit->IsVehicle())
             {

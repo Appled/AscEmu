@@ -11,5 +11,6 @@ enum SpellState
     SPELL_STATE_PREPARING = 1,
     SPELL_STATE_CASTING   = 2,
     SPELL_STATE_FINISHED  = 3,
-    SPELL_STATE_IDLE      = 4
+    SPELL_STATE_IDLE      = 4,
+    SPELL_STATE_DELAYED   = 5
 };

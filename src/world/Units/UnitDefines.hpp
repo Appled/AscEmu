@@ -809,7 +809,14 @@ enum HitStatus
     HITSTATUS_RESIST            = HITSTATUS_RESIST_FULL | HITSTATUS_RESIST_PARTIAL
 };
 
-enum INVIS_FLAG
+enum StealthFlag
+{
+    STEALTH_FLAG_NORMAL, // generic stealth for players and npcs
+    STEALTH_FLAG_TRAP, // stealthed gameobjects
+    STEALTH_FLAG_TOTAL
+};
+
+enum InvisibilityFlag
 {
     INVIS_FLAG_NORMAL, // players and units with no special invisibility flags
     INVIS_FLAG_SPIRIT1,

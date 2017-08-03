@@ -315,7 +315,7 @@ pSpellAura SpellAuraHandler[TOTAL_SPELL_AURAS] =
     &Aura::SpellAuraNULL,                                                   // 259 Mod Periodic Damage Taken Pct - Periodic Shadow damage taken increased by 3% (http://thottbot.com/s60448)
     &Aura::SpellAuraNULL,                                                   // 260 Screen Effect
     &Aura::SpellAuraPhase,                                                  // 261
-    &Aura::SpellAuraIgnoreTargetAuraState,                                  // 262 SPELL_AURA_IGNORE_TARGET_AURA_STATE
+    &Aura::SpellAuraNULL,                                                   // 262 SPELL_AURA_IGNORE_TARGET_AURA_STATE
     &Aura::SpellAuraAllowOnlyAbility,                                       // 263 SPELL_AURA_ALLOW_ONLY_ABILITY
     &Aura::SpellAuraNULL,                                                   // 264
     &Aura::SpellAuraNULL,                                                   // 265
@@ -328,7 +328,7 @@ pSpellAura SpellAuraHandler[TOTAL_SPELL_AURAS] =
     &Aura::SpellAuraNULL,                                                   // 272 Unknown
     &Aura::SpellAuraNULL,                                                   // 273 Some sort of dummy aura? (http://thottbot.com/s54844 + http://thottbot.com/s26659)
     &Aura::SpellAuraConsumeNoAmmo,                                          // 274 Consumes no ammo
-    &Aura::SpellAuraIgnoreShapeshift,                                       // 275 Ignore unit states
+    &Aura::SpellAuraNULL,                                                   // 275 Ignore unit states
     &Aura::SpellAuraNULL,                                                   // 276 Mod Damage % Mechanic
     &Aura::SpellAuraNULL,                                                   // 277 SPELL_AURA_REDIRECT_THREAT or SPELL_AURA_MOD_MAX_AFFECTED_TARGETS ?
     &Aura::SpellAuraModDisarm,                                              // 278 SPELL_AURA_MOD_DISARM_RANGED
@@ -650,7 +650,7 @@ const char* SpellAuraNames[TOTAL_SPELL_AURAS] =
     "",                                                 // 272
     "",                                                 // 273
     "SPELL_AURA_CONSUMES_NO_AMMO",                      // 274
-    "",                                                 // 275
+    "SPELL_AURA_IGNORE_SHAPESHIFT",                     // 275 Ignores forms/shapeshifts
     "",                                                 // 276
     "",                                                 // 277
     "SPELL_AURA_MOD_DISARM_RANGED",                     // 278
@@ -743,7 +743,7 @@ Object* Aura::GetCaster()
         return nullptr;
 }
 
-Aura::Aura(SpellInfo* proto, int32 duration, Object* caster, Unit* target, bool temporary, Item* i_caster)
+Aura::Aura(SpellInfo const* proto, int32 duration, Object* caster, Unit* target, bool temporary, Item* i_caster)
 {
     m_castInDuel = false;
     m_spellInfo = proto;
@@ -836,7 +836,7 @@ Aura::Aura(SpellInfo* proto, int32 duration, Object* caster, Unit* target, bool 
     mod = 0;
     for (uint8 i = 0; i < 3; ++i)
     {
-        m_modList[i].m_type = 0;
+        m_modList[i].m_type = AuraModTypes(0);
         m_modList[i].m_amount = 0;
         m_modList[i].m_miscValue = 0;
         m_modList[i].i = 0;
@@ -959,13 +959,13 @@ void Aura::Remove()
     /* Remove aurastates */
     uint32 flag = 0;
     if (m_spellInfo->MechanicsType == MECHANIC_ENRAGED && !--m_target->asc_enraged)
-        flag |= AURASTATE_FLAG_ENRAGED;
+        flag |= AURASTATE_FLAG_ENRAGE;
     else if (m_spellInfo->MechanicsType == MECHANIC_BLEEDING && !--m_target->asc_bleed)
         flag |= AURASTATE_FLAG_BLEED;
     if (m_spellInfo->custom_BGR_one_buff_on_target & SPELL_TYPE_SEAL && !--m_target->asc_seal)
         flag |= AURASTATE_FLAG_JUDGEMENT;
     if (flag != 0)
-        m_target->RemoveFlag(UNIT_FIELD_AURASTATE, flag);
+        m_target->modifyAuraState(AuraStates(flag), false);
 
     // We will delete this on the next update, eluding some spell crashes :|
     m_target->AddGarbageAura(this);
@@ -990,7 +990,7 @@ void Aura::Remove()
     }
 }
 
-void Aura::AddMod(uint32 t, int32 a, uint32 miscValue, uint32 i)
+void Aura::AddMod(AuraModTypes t, int32 a, uint32 miscValue, uint32 i)
 {
     // this is fix, when u have the same unit in target list several times
     // for (uint32 x= 0;x<m_modcount;x++)
@@ -1745,7 +1745,7 @@ void Aura::SpellAuraPeriodicDamage(bool apply)
             {
                 if (!pSpellId) //we need a parent spell and should always have one since it procs on it
                     break;
-                SpellInfo* parentsp = sSpellCustomizations.GetSpellInfo(pSpellId);
+                SpellInfo const* parentsp = sSpellCustomizations.GetSpellInfo(pSpellId);
                 if (!parentsp)
                     return;
                 if (c != nullptr && c->IsPlayer())
@@ -1796,7 +1796,7 @@ void Aura::SpellAuraPeriodicDamage(bool apply)
                 }
             }
         }
-        uint32* gr = GetSpellInfo()->SpellGroupType;
+        uint32 const* gr = GetSpellInfo()->SpellGroupType;
         if (gr)
         {
             if (c != nullptr)
@@ -1818,22 +1818,22 @@ void Aura::SpellAuraPeriodicDamage(bool apply)
         SetNegative();
         if (m_spellInfo->custom_BGR_one_buff_on_target & SPELL_TYPE_WARLOCK_IMMOLATE)
         {
-            m_target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_IMMOLATE);
+            m_target->modifyAuraState(AURASTATE_FLAG_CONFLAGRATE, true);
         }
         //maybe poison aurastate should get triggered on other spells too ?
         else if (m_spellInfo->custom_c_is_flags & SPELL_FLAG_IS_POISON)  //deadly poison
         {
-            m_target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_POISON);
+            m_target->modifyAuraState(AURASTATE_FLAG_ENVENOM, true);
         }
     }
     else if ((m_flags & (1 << mod->i)) == 0)   //add these checks to mods where immunity can cancel only 1 mod and not whole spell
     {
         if (m_spellInfo->custom_BGR_one_buff_on_target & SPELL_TYPE_WARLOCK_IMMOLATE)
-            m_target->RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_IMMOLATE);
+            m_target->modifyAuraState(AURASTATE_FLAG_CONFLAGRATE, false);
         //maybe poison aurastate should get triggered on other spells too ?
         else if (m_spellInfo->custom_c_is_flags & SPELL_FLAG_IS_POISON)  //deadly poison
         {
-            m_target->RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_POISON);
+            m_target->modifyAuraState(AURASTATE_FLAG_ENVENOM, false);
         }
     }
 }
@@ -1944,7 +1944,7 @@ void Aura::EventPeriodicDamage(uint32 amount)
     }
 
     // grep: this is hack.. some auras seem to delete this shit.
-    SpellInfo* sp = m_spellInfo;
+    SpellInfo const* sp = m_spellInfo;
 
     if (m_target->m_damageSplitTarget)
         res = static_cast<float>(m_target->DoDamageSplitTarget(static_cast<uint32>(res), GetSpellInfo()->School, false));
@@ -2209,10 +2209,10 @@ void Aura::SpellAuraPeriodicHeal(bool apply)
 
             if (GetSpellInfo()->custom_NameHash == SPELL_HASH_REJUVENATION || GetSpellInfo()->custom_NameHash == SPELL_HASH_REGROWTH)
             {
-                m_target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_REJUVENATE);
+                m_target->modifyAuraState(AURASTATE_FLAG_SWIFTMEND, true);
                 if (!sEventMgr.HasEvent(m_target, EVENT_REJUVENATION_FLAG_EXPIRE))
                 {
-                    sEventMgr.AddEvent(m_target, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_REJUVENATE, EVENT_REJUVENATION_FLAG_EXPIRE, GetDuration(), 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
+                    sEventMgr.AddEvent(m_target, &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_SWIFTMEND, EVENT_REJUVENATION_FLAG_EXPIRE, GetDuration(), 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
                 }
                 else
                 {
@@ -2504,8 +2504,8 @@ void Aura::SpellAuraModStun(bool apply)
         if (m_target->m_rootCounter == 1)
             m_target->setMoveRoot(true);
 
-        if (m_target->IsStealth())
-            m_target->RemoveStealth();
+        if (m_target->isStealthed())
+            m_target->removeAurasWithModType(SPELL_AURA_MOD_STEALTH);
 
         m_target->m_stunned++;
         m_target->addUnitStateFlag(UNIT_STATE_STUN);
@@ -2735,7 +2735,7 @@ void Aura::SpellAuraModStealth(bool apply)
     if (apply)
     {
         //Overkill must proc only if we aren't already stealthed, also refreshing duration.
-        if (!m_target->IsStealth() && m_target->HasAura(58426))
+        if (!m_target->isStealthed() && m_target->HasAura(58426))
         {
             Aura *buff = m_target->getAuraWithId(58427);
             if (buff)
@@ -2760,8 +2760,8 @@ void Aura::SpellAuraModStealth(bool apply)
         }
 
         SetPositive();
-        if (m_spellInfo->custom_NameHash != SPELL_HASH_VANISH)
-            m_target->SetStealth(GetSpellId());
+        //if (m_spellInfo->custom_NameHash != SPELL_HASH_VANISH)
+            //m_target->SetStealth(GetSpellId());
 
         if (m_spellInfo->custom_NameHash == SPELL_HASH_STEALTH)
             m_target->SetFlag(UNIT_FIELD_BYTES_2, 0x1E000000); //sneak anim
@@ -2771,7 +2771,7 @@ void Aura::SpellAuraModStealth(bool apply)
             m_target->SetFlag(PLAYER_FIELD_BYTES2, 0x2000);
 
         m_target->RemoveAurasByInterruptFlag(AURA_INTERRUPT_ON_STEALTH | AURA_INTERRUPT_ON_INVINCIBLE);
-        m_target->m_stealthLevel += mod->m_amount;
+        //m_target->m_stealthLevel += mod->m_amount;
 
         // hack fix for vanish stuff
         if (m_spellInfo->custom_NameHash == SPELL_HASH_VANISH && m_target->IsPlayer())	   // Vanish
@@ -2840,11 +2840,11 @@ void Aura::SpellAuraModStealth(bool apply)
     }
     else
     {
-        m_target->m_stealthLevel -= mod->m_amount;
+        //m_target->m_stealthLevel -= mod->m_amount;
 
         if (m_spellInfo->custom_NameHash != SPELL_HASH_VANISH)
         {
-            m_target->SetStealth(0);
+            //m_target->SetStealth(0);
             m_target->RemoveFlag(UNIT_FIELD_BYTES_2, 0x1E000000);
 
             m_target->RemoveFlag(UNIT_FIELD_BYTES_1, 0x020000);
@@ -2890,10 +2890,10 @@ void Aura::SpellAuraModDetect(bool apply)
     if (apply)
     {
         //SetPositive();
-        m_target->m_stealthDetectBonus += mod->m_amount;
+        m_target->m_stealthDetectBonus[STEALTH_FLAG_NORMAL] += mod->m_amount;
     }
     else
-        m_target->m_stealthDetectBonus -= mod->m_amount;
+        m_target->m_stealthDetectBonus[STEALTH_FLAG_NORMAL] -= mod->m_amount;
 }
 
 void Aura::SpellAuraModInvisibility(bool apply)
@@ -2904,8 +2904,8 @@ void Aura::SpellAuraModInvisibility(bool apply)
 
     if (apply)
     {
-        m_target->SetInvisibility(GetSpellId());
-        m_target->m_invisFlag = static_cast<uint8>(mod->m_miscValue);
+        //m_target->SetInvisibility(GetSpellId());
+        //m_target->m_invisFlag = static_cast<uint8>(mod->m_miscValue);
         if (m_target->IsPlayer())
         {
             if (GetSpellId() == 32612)
@@ -2916,7 +2916,7 @@ void Aura::SpellAuraModInvisibility(bool apply)
     }
     else
     {
-        m_target->m_invisFlag = INVIS_FLAG_NORMAL;
+        //m_target->m_invisFlag = INVIS_FLAG_NORMAL;
         if (m_target->IsPlayer())
         {
             if (GetSpellId() == 32612)
@@ -2924,7 +2924,7 @@ void Aura::SpellAuraModInvisibility(bool apply)
         }
     }
 
-    m_target->m_invisible = apply;
+    //m_target->m_invisible = apply;
     m_target->UpdateVisibility();
 }
 
@@ -3041,8 +3041,8 @@ void Aura::SpellAuraModResistance(bool apply)
     if (!IsPositive() && caster != NULL && m_target->IsCreature())
         m_target->GetAIInterface()->AttackReaction(caster, 1, GetSpellId());
 
-    if (GetSpellInfo()->custom_NameHash == SPELL_HASH_FAERIE_FIRE || GetSpellInfo()->custom_NameHash == SPELL_HASH_FAERIE_FIRE__FERAL_)
-        m_target->m_can_stealth = !apply;
+    //if (GetSpellInfo()->custom_NameHash == SPELL_HASH_FAERIE_FIRE || GetSpellInfo()->custom_NameHash == SPELL_HASH_FAERIE_FIRE__FERAL_)
+        //m_target->m_can_stealth = !apply;
 
     Player* plr = GetPlayerCaster();
     if (plr != NULL && GetSpellInfo()->custom_NameHash == SPELL_HASH_DEVOTION_AURA)
@@ -3087,7 +3087,7 @@ void Aura::SpellAuraPeriodicTriggerSpellWithValue(bool apply)
 {
     if (apply)
     {
-        SpellInfo* spe = sSpellCustomizations.GetSpellInfo(m_spellInfo->EffectTriggerSpell[mod->i]);
+        SpellInfo const* spe = sSpellCustomizations.GetSpellInfo(m_spellInfo->EffectTriggerSpell[mod->i]);
         if (spe == NULL)
             return;
 
@@ -3163,7 +3163,7 @@ void Aura::SpellAuraPeriodicTriggerSpell(bool apply)
 
     if (apply)
     {
-        SpellInfo* trigger = sSpellCustomizations.GetSpellInfo(GetSpellInfo()->EffectTriggerSpell[mod->i]);
+        SpellInfo const* trigger = sSpellCustomizations.GetSpellInfo(GetSpellInfo()->EffectTriggerSpell[mod->i]);
 
         if (trigger == NULL)
             return;
@@ -3185,7 +3185,7 @@ void Aura::SpellAuraPeriodicTriggerSpell(bool apply)
     }
 }
 
-void Aura::EventPeriodicTriggerSpell(SpellInfo* spellInfo, bool overridevalues, int32 overridevalue)
+void Aura::EventPeriodicTriggerSpell(SpellInfo const* spellInfo, bool overridevalues, int32 overridevalue)
 {
     Spell* spell = sSpellFactoryMgr.NewSpell(m_target, spellInfo, true, this);
     if (overridevalues)
@@ -3281,7 +3281,7 @@ void Aura::SpellAuraModRoot(bool apply)
         }
 
         if (GetSpellInfo()->School == SCHOOL_FROST && !m_target->asc_frozen++)
-            m_target->SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN);
+            m_target->modifyAuraState(AURASTATE_FLAG_FROZEN, true);
 
         ///\todo -Supalosa- TODO: Mobs will attack nearest enemy in range on aggro list when rooted. */
     }
@@ -3297,7 +3297,7 @@ void Aura::SpellAuraModRoot(bool apply)
             m_target->GetAIInterface()->AttackReaction(GetUnitCaster(), 1, 0);
 
         if (GetSpellInfo()->School == SCHOOL_FROST && !--m_target->asc_frozen)
-            m_target->RemoveFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_FROZEN);
+            m_target->modifyAuraState(AURASTATE_FLAG_FROZEN, false);
     }
 }
 
@@ -3682,12 +3682,12 @@ void Aura::SpellAuraModShapeshift(bool apply)
                 //turn back to mana
                 //m_target->SetBaseAttackTime(MELEE,oldap);
                 m_target->SetPowerType(POWER_TYPE_MANA);
-                if (m_target->m_stealth)
+                /*if (m_target->m_stealth)
                 {
                     uint32 sp = m_target->m_stealth;
                     m_target->m_stealth = 0;
                     m_target->RemoveAura(sp);//prowl
-                }
+                }*/
             }
         }
         break;
@@ -3727,7 +3727,7 @@ void Aura::SpellAuraModShapeshift(bool apply)
                     modelId = 2289;
 
                 //some say there is a second effect
-                SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(21178);
+                SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(21178);
 
                 Spell* sp = sSpellFactoryMgr.NewSpell(m_target, spellInfo, true, NULL);
                 SpellCastTargets tgt;
@@ -3798,8 +3798,8 @@ void Aura::SpellAuraModShapeshift(bool apply)
         case FORM_STEALTH:
         {
             // rogue
-            if (!m_target->m_can_stealth)
-                return;
+            /*if (!m_target->m_can_stealth)
+                return;*/
             //m_target->UpdateVisibility();
         }
         break;
@@ -3869,7 +3869,7 @@ void Aura::SpellAuraModShapeshift(bool apply)
 
                     if (furorSpell != 0)
                     {
-                        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(furorSpell);
+                        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(furorSpell);
 
                         Spell* sp = sSpellFactoryMgr.NewSpell(m_target, spellInfo, true, NULL);
                         SpellCastTargets tgt;
@@ -3900,7 +3900,7 @@ void Aura::SpellAuraModShapeshift(bool apply)
         if (spellId == 0)
             return;
 
-        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
+        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellId);
 
         Spell* sp = sSpellFactoryMgr.NewSpell(m_target, spellInfo, true, NULL);
         SpellCastTargets tgt;
@@ -4330,7 +4330,7 @@ void Aura::EventPeriodicLeech(uint32 amount)
     if (!(m_target->isAlive() && m_caster->isAlive()))
         return;
 
-    SpellInfo* sp = GetSpellInfo();
+    SpellInfo const* sp = GetSpellInfo();
 
     if (m_target->SchoolImmunityList[sp->School])
     {
@@ -5290,7 +5290,7 @@ void Aura::SpellAuraMounted(bool apply)
 
     /*Shady: Is it necessary? Stealth should be broken since all spells with Mounted SpellEffect don't have "does not break stealth" flag (except internal Video mount spell).
     So commented, cause we don't need useless checks and hackfixes*/
-    /* if (m_target->IsStealth())
+    /* if (m_target->isStealthed())
     {
     uint32 id = m_target->m_stealth;
     m_target->m_stealth = 0;
@@ -5859,7 +5859,7 @@ void Aura::SpellAuraGhost(bool apply)
 {
     if (p_target != NULL)
     {
-        m_target->m_invisible = apply;
+        //m_target->m_invisible = apply;
 
         if (apply)
         {
@@ -6076,9 +6076,9 @@ void Aura::SpellAuraAddPctMod(bool apply)
 {
     int32 val = apply ? mod->m_amount : -mod->m_amount;
 #if VERSION_STRING != Cata
-    uint32* AffectedGroups = GetSpellInfo()->EffectSpellClassMask[mod->i];
+    uint32 const* AffectedGroups = GetSpellInfo()->EffectSpellClassMask[mod->i];
 #else
-    uint32* AffectedGroups = GetSpellInfo()->EffectSpellClassMask;
+    uint32 const* AffectedGroups = GetSpellInfo()->EffectSpellClassMask;
 #endif
 
     switch (mod->m_miscValue)  //let's generate warnings for unknown types of modifiers
@@ -6186,7 +6186,7 @@ void Aura::SpellAuraAddPctMod(bool apply)
     }
 }
 
-void Aura::SendModifierLog(int32** m, int32 v, uint32* mask, uint8 type, bool pct)
+void Aura::SendModifierLog(int32** m, int32 v, uint32 const* mask, uint8 type, bool pct)
 {
     uint32 intbit = 0, groupnum = 0;
 
@@ -6237,13 +6237,13 @@ void Aura::SendModifierLog(int32** m, int32 v, uint32* mask, uint8 type, bool pc
     }
 }
 
-void Aura::SendDummyModifierLog(std::map< SpellInfo*, uint32 >* m, SpellInfo* spellInfo, uint32 i, bool apply, bool pct)
+void Aura::SendDummyModifierLog(std::map< SpellInfo const*, uint32 >* m, SpellInfo const* spellInfo, uint32 i, bool apply, bool pct)
 {
     int32 v = spellInfo->EffectBasePoints[i] + 1;
 #if VERSION_STRING != Cata
-    uint32* mask = spellInfo->EffectSpellClassMask[i];
+    uint32 const* mask = spellInfo->EffectSpellClassMask[i];
 #else
-    uint32* mask = spellInfo->EffectSpellClassMask;
+    uint32 const* mask = spellInfo->EffectSpellClassMask;
 #endif
     uint8 type = static_cast<uint8>(spellInfo->EffectMiscValue[i]);
 
@@ -6254,7 +6254,7 @@ void Aura::SendDummyModifierLog(std::map< SpellInfo*, uint32 >* m, SpellInfo* sp
     else
     {
         v = -v;
-        std::map<SpellInfo*, uint32>::iterator itr = m->find(spellInfo);
+        std::map<SpellInfo const*, uint32>::iterator itr = m->find(spellInfo);
         if (itr != m->end())
             m->erase(itr);
     }
@@ -6283,7 +6283,7 @@ void Aura::SpellAuraAddClassTargetTrigger(bool apply)
     {
         uint32 groupRelation[3], procClassMask[3];
         int charges;
-        SpellInfo* sp;
+        SpellInfo const* sp;
 
         // Find spell of effect to be triggered
         sp = sSpellCustomizations.GetSpellInfo(GetSpellInfo()->EffectTriggerSpell[mod->i]);
@@ -6400,7 +6400,7 @@ void Aura::SpellAuraOverrideClassScripts(bool apply)
                     break;
                 }
 
-                std::list<SpellInfo*>::iterator itrSE = itermap->second->begin();
+                std::list<SpellInfo const*>::iterator itrSE = itermap->second->begin();
 
                 SpellOverrideMap::iterator itr = plr->mSpellOverrideMap.find((*itrSE)->Id);
 
@@ -6449,7 +6449,7 @@ void Aura::SpellAuraOverrideClassScripts(bool apply)
                 SpellOverrideMap::iterator itr = plr->mSpellOverrideMap.begin(), itr2;
                 while (itr != plr->mSpellOverrideMap.end())
                 {
-                    std::list<SpellInfo*>::iterator itrSE = itermap->second->begin();
+                    std::list<SpellInfo const*>::iterator itrSE = itermap->second->begin();
                     for (; itrSE != itermap->second->end(); ++itrSE)
                     {
                         if (itr->first == (*itrSE)->Id)
@@ -7034,10 +7034,10 @@ void Aura::SpellAuraModStealthLevel(bool apply)
     if (apply)
     {
         SetPositive();
-        m_target->m_stealthLevel += mod->m_amount;
+        //m_target->m_stealthLevel += mod->m_amount;
     }
-    else
-        m_target->m_stealthLevel -= mod->m_amount;
+    //else
+        //m_target->m_stealthLevel -= mod->m_amount;
 }
 
 void Aura::SpellAuraModUnderwaterBreathing(bool apply)
@@ -7444,9 +7444,9 @@ void Aura::SpellAuraAddFlatModifier(bool apply)
 {
     int32 val = apply ? mod->m_amount : -mod->m_amount;
 #if VERSION_STRING != Cata
-    uint32* AffectedGroups = GetSpellInfo()->EffectSpellClassMask[mod->i];
+    uint32 const* AffectedGroups = GetSpellInfo()->EffectSpellClassMask[mod->i];
 #else
-    uint32* AffectedGroups = GetSpellInfo()->EffectSpellClassMask;
+    uint32 const* AffectedGroups = GetSpellInfo()->EffectSpellClassMask;
 #endif
 
     switch (mod->m_miscValue) //let's generate warnings for unknown types of modifiers
@@ -8236,10 +8236,10 @@ void Aura::SpellAuraModStealthDetection(bool apply)
 {
     if (apply)
     {
-        m_target->m_stealthDetectBonus += 9999;
+        //m_target->m_stealthDetectBonus += 9999;
     }
-    else
-        m_target->m_stealthDetectBonus -= 9999;
+    //else
+        //m_target->m_stealthDetectBonus -= 9999;
 }
 
 void Aura::SpellAuraReduceAOEDamageTaken(bool apply)
@@ -8280,7 +8280,7 @@ void Aura::SpellAuraSpiritOfRedemption(bool apply)
     {
         m_target->SetScale(0.5);
         m_target->SetHealth(1);
-        SpellInfo* sorInfo = sSpellCustomizations.GetSpellInfo(27792);
+        SpellInfo const* sorInfo = sSpellCustomizations.GetSpellInfo(27792);
         Spell* sor = sSpellFactoryMgr.NewSpell(m_target, sorInfo, true, NULL);
         SpellCastTargets targets;
         targets.m_unitTarget = m_target->GetGUID();
@@ -8624,27 +8624,14 @@ void Aura::SpellAuraAllowOnlyAbility(bool apply)
     // Generic
     if (apply)
     {
-        p_target->m_castFilterEnabled = true;
-        for (uint32 x = 0; x < 3; x++)
-#if VERSION_STRING != Cata
-            p_target->m_castFilter[x] |= m_spellInfo->EffectSpellClassMask[mod->i][x];
-#else
-            p_target->m_castFilter[x] |= m_spellInfo->EffectSpellClassMask[x];
-#endif
+        p_target->SetFlag(PLAYER_FLAGS, PLAYER_FLAG_ALLOW_ONLY_ABILITY);
     }
     else
     {
-        p_target->m_castFilterEnabled = false;	// check if we can turn it off
-        for (uint32 x = 0; x < 3; x++)
-        {
-#if VERSION_STRING != Cata
-            p_target->m_castFilter[x] &= ~m_spellInfo->EffectSpellClassMask[mod->i][x];
-#else
-            p_target->m_castFilter[x] &= ~m_spellInfo->EffectSpellClassMask[x];
-#endif
-            if (p_target->m_castFilter[x])
-                p_target->m_castFilterEnabled = true;
-        }
+        // Do not remove the flag if there is another aura active with this same type
+        if (p_target->hasAuraWithAuraType(SPELL_AURA_ALLOW_ONLY_ABILITY))
+            return;
+        p_target->RemoveFlag(PLAYER_FLAGS, PLAYER_FLAG_ALLOW_ONLY_ABILITY);
     }
 }
 
@@ -8854,7 +8841,7 @@ bool Aura::DotCanCrit()
     if (caster == nullptr)
         return false;
 
-    SpellInfo* spell_info = this->GetSpellInfo();
+    SpellInfo const* spell_info = this->GetSpellInfo();
     if (spell_info == nullptr)
         return false;
 
@@ -8872,7 +8859,7 @@ bool Aura::DotCanCrit()
     if (aura == nullptr)
         return false;
 
-    SpellInfo* aura_spell_info = aura->GetSpellInfo();
+    SpellInfo const* aura_spell_info = aura->GetSpellInfo();
 
     uint8 i = 0;
     if (aura_spell_info->EffectApplyAuraName[1] == SPELL_AURA_ALLOW_DOT_TO_CRIT)
@@ -8895,7 +8882,7 @@ bool Aura::DotCanCrit()
     if (caster == NULL)
         return false;
 
-    SpellInfo* sp = this->GetSpellInfo();
+    SpellInfo const* sp = this->GetSpellInfo();
     uint32 index = MAX_TOTAL_AURAS_START;
     Aura* aura;
     bool found = false;
@@ -8907,7 +8894,7 @@ bool Aura::DotCanCrit()
         if (aura == NULL)
             break;
 
-        SpellInfo* aura_sp = aura->GetSpellInfo();
+        SpellInfo const* aura_sp = aura->GetSpellInfo();
 
         uint8 i = 0;
         if (aura_sp->EffectApplyAuraName[1] == SPELL_AURA_ALLOW_DOT_TO_CRIT)
@@ -8949,7 +8936,7 @@ bool Aura::DotCanCrit()
 
 bool Aura::IsCombatStateAffecting()
 {
-    SpellInfo* sp = m_spellInfo;
+    SpellInfo const* sp = m_spellInfo;
 
     if (sp->appliesAreaAura(SPELL_AURA_PERIODIC_DAMAGE) ||
         sp->appliesAreaAura(SPELL_AURA_PERIODIC_DAMAGE_PERCENT) ||
@@ -8963,7 +8950,7 @@ bool Aura::IsCombatStateAffecting()
 
 bool Aura::IsAreaAura()
 {
-    SpellInfo* sp = m_spellInfo;
+    SpellInfo const* sp = m_spellInfo;
 
     if (sp->HasEffect(SPELL_EFFECT_APPLY_GROUP_AREA_AURA) ||
         sp->HasEffect(SPELL_EFFECT_APPLY_RAID_AREA_AURA) ||

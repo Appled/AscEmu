@@ -24,13 +24,22 @@
 class SERVER_DECL SpellCustomizations : public Singleton<SpellCustomizations>
 {
 public:
+    // APGL End
+    // MIT Start
+    /// TODO: this class should be reworked to only load spell dbcs into source (GetSpellInfo), remove all customizations and rename the class
+
+    // This function is only used to load scripts into spells, do not use this elsewhere! -Appled
+    SpellInfo* getSpellInfoUnsafe(uint32_t spell_id);
+
+    // MIT End
+    // APGL Start
     SpellCustomizations();
     ~SpellCustomizations();
 
     typedef std::unordered_map<uint32, SpellInfo> SpellInfoContainer;
 
     void LoadSpellInfoData();
-    SpellInfo* GetSpellInfo(uint32 spell_id);
+    SpellInfo const* GetSpellInfo(uint32 spell_id);
     SpellInfoContainer* GetSpellInfoStore();
 
     void StartSpellCustomization();
@@ -41,16 +50,16 @@ public:
     void LoadSpellCustomCoefFlags();
     void LoadSpellProcs();
 
-    void SetEffectAmplitude(SpellInfo* spell_entry);
-    void SetAuraFactoryFunc(SpellInfo* spell_entry);
+    void SetEffectAmplitude(SpellInfo const* spell_entry);
+    void SetAuraFactoryFunc(SpellInfo const* spell_entry);
 
-    void SetMeleeSpellBool(SpellInfo* spell_entry);
-    void SetRangedSpellBool(SpellInfo* spell_entry);
+    void SetMeleeSpellBool(SpellInfo const* spell_entry);
+    void SetRangedSpellBool(SpellInfo const* spell_entry);
 
-    void SetMissingCIsFlags(SpellInfo* spell_entry);
-    void SetCustomFlags(SpellInfo* spell_entry);
-    void SetOnShapeshiftChange(SpellInfo* spell_entry);
-    void SetAlwaysApply(SpellInfo* spell_entry);
+    void SetMissingCIsFlags(SpellInfo const* spell_entry);
+    void SetCustomFlags(SpellInfo const* spell_entry);
+    void SetOnShapeshiftChange(SpellInfo const* spell_entry);
+    void SetAlwaysApply(SpellInfo const* spell_entry);
 
     SpellInfoContainer _spellInfoContainerStore;
 };

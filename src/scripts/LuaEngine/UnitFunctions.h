@@ -3440,15 +3440,14 @@ class LuaUnit
     {
         if (!ptr) return 0;
         bool enabled = CHECK_BOOL(L, 1);
+        int32_t amount = 9999999;
         if (enabled)
         {
-            ptr->m_invisFlag = INVIS_FLAG_TOTAL;
-            ptr->m_invisible = true;
+            ptr->modInvisibilityLevel(INVIS_FLAG_NORMAL, amount);
         }
         else
         {
-            ptr->m_invisFlag = INVIS_FLAG_NORMAL;
-            ptr->m_invisible = false;
+            ptr->modInvisibilityLevel(INVIS_FLAG_NORMAL, -amount);
         }
         return 0;
     }
@@ -3998,21 +3997,22 @@ class LuaUnit
     {
         if (!ptr) return 0;
         uint32 stealthlevel = CHECK_ULONG(L, 1);
-        ptr->SetStealth(stealthlevel);
+        // Needs to be rewritten later...
+        //ptr->SetStealth(stealthlevel);
         return 0;
     }
 
     static int GetStealthLevel(lua_State* L, Unit* ptr)
     {
         if (!ptr) return 0;
-        lua_pushinteger(L, ptr->GetStealthLevel());
+        lua_pushinteger(L, ptr->getStealthLevel(STEALTH_FLAG_NORMAL));
         return 1;
     }
 
     static int IsStealthed(lua_State* L, Unit* ptr)
     {
         if (!ptr) return 0;
-        if (ptr->IsStealth())
+        if (ptr->isStealthed())
             lua_pushboolean(L, 1);
         else
             lua_pushboolean(L, 0);
@@ -4022,7 +4022,7 @@ class LuaUnit
     static int RemoveStealth(lua_State* L, Unit* ptr)
     {
         if (!ptr) return 0;
-        ptr->RemoveStealth();
+        ptr->removeAurasWithModType(SPELL_AURA_MOD_STEALTH);
         return 0;
     }
 

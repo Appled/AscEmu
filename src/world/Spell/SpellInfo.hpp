@@ -20,9 +20,9 @@ public:
     ~SpellInfo();
 
     // helper functions
-    bool HasEffect(uint32 effect) const;
-    bool HasEffectApplyAuraName(uint32_t aura_name);
-    bool HasCustomFlagForEffect(uint32 effect, uint32 flag);
+    bool HasEffect(uint32_t effect) const;
+    bool HasEffectApplyAuraName(uint32_t aura_name) const;
+    bool HasCustomFlagForEffect(uint32 effect, uint32 flag) const;
 
     bool isDamagingSpell() const;
     bool isHealingSpell() const;
@@ -35,7 +35,7 @@ public:
     bool isTargetingStealthed() const;
     bool isRequireCooldownSpell() const;
 
-    bool IsPassive();
+    bool IsPassive() const;
     bool IsProfession();
     bool IsPrimaryProfession();
     bool IsPrimaryProfessionSkill(uint32 skill_id);
@@ -43,7 +43,39 @@ public:
     bool isDeathPersistent() const;
 
     bool appliesAreaAura(uint32 aura) const;
-    uint32 GetAreaAuraEffectId();
+    uint32 GetAreaAuraEffectId() const;
+
+    // Checks does spell have the attribute
+    inline bool hasAttributes(SpellAttributes attribute) const { return (Attributes & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesEx attribute) const { return (AttributesEx & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesExB attribute) const { return (AttributesExB & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesExC attribute) const { return (AttributesExC & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesExD attribute) const { return (AttributesExD & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesExE attribute) const { return (AttributesExE & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesExF attribute) const { return (AttributesExF & attribute) != 0; }
+    inline bool hasAttributes(SpellAttributesExG attribute) const { return (AttributesExG & attribute) != 0; }
+
+    // Returns true if this spell is affected by spell's family
+    bool isAffectedBySpell(SpellInfo const* spellInfo) const
+    {
+        if (!spellInfo)
+            return false;
+        if (spellInfo->SpellFamilyName != SpellFamilyName)
+            return false;
+        for (int i = 0; i < MAX_SPELL_EFFECTS; ++i)
+        {
+            for (int u = 0; u < MAX_SPELL_EFFECTS; ++u)
+            {
+                if (spellInfo->EffectSpellClassMask[i][u] && !(spellInfo->EffectSpellClassMask[i][u] & SpellGroupType[u]))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    // Finds right rank of aura spell for level
+    // TODO: implement
+    SpellInfo const* getAuraRankForUnitLevel(uint32_t level) const;
 
 #if VERSION_STRING != Cata
         //////////////////////////////////////////////////////////////////////////////////////////
@@ -177,7 +209,7 @@ public:
         bool custom_always_apply;
         bool custom_is_melee_spell;
         bool custom_is_ranged_spell;
-	    bool CheckLocation(uint32 map_id, uint32 zone_id, uint32 area_id, Player* player = NULL);
+	    bool CheckLocation(uint32 map_id, uint32 zone_id, uint32 area_id, Player* player = NULL) const;
         uint32 custom_SchoolMask;
         uint32 CustomFlags;
         uint32 EffectCustomFlag[MAX_SPELL_EFFECTS];

@@ -432,12 +432,10 @@ Player::Player(uint32 guid)
     SetRangedAttackPowerMultiplier(0.0f);
 
     m_resist_critical[0] = m_resist_critical[1] = 0;
-    m_castFilterEnabled = false;
 
     for (i = 0; i < 3; i++)
     {
         m_attack_speed[i] = 1.0f;
-        m_castFilter[i] = 0;
     }
 
     for (i = 0; i < SCHOOL_COUNT; i++)
@@ -1373,10 +1371,9 @@ void Player::_EventAttack(bool offhand)
             }
         }
 
-        if (this->IsStealth())
+        if (this->isStealthed())
         {
-            RemoveAura(m_stealth);
-            SetStealth(0);
+            removeAurasWithModType(SPELL_AURA_MOD_STEALTH);
         }
 
         if ((GetOnMeleeSpell() == 0) || offhand)
@@ -1465,7 +1462,7 @@ void Player::_EventCharmAttack()
             }
             else
             {
-                SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(currentCharm->GetOnMeleeSpell());
+                SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(currentCharm->GetOnMeleeSpell());
                 currentCharm->SetOnMeleeSpell(0);
                 Spell* spell = sSpellFactoryMgr.NewSpell(currentCharm, spellInfo, true, NULL);
                 SpellCastTargets targets;
@@ -2195,7 +2192,7 @@ void Player::_SavePetSpells(QueryBuffer* buf)
 
 void Player::AddSummonSpell(uint32 Entry, uint32 SpellID)
 {
-    SpellInfo* sp = sSpellCustomizations.GetSpellInfo(SpellID);
+    SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(SpellID);
     std::map<uint32, std::set<uint32> >::iterator itr = SummonSpells.find(Entry);
     if (itr == SummonSpells.end())
         SummonSpells[Entry].insert(SpellID);
@@ -2389,7 +2386,7 @@ void Player::addSpell(uint32 spell_id)
 
     // Add the skill line for this spell if we don't already have it.
     auto skill_line_ability = objmgr.GetSpellSkill(spell_id);
-    SpellInfo* spell = sSpellCustomizations.GetSpellInfo(spell_id);
+    SpellInfo const* spell = sSpellCustomizations.GetSpellInfo(spell_id);
     if (skill_line_ability && !_HasSkillLine(skill_line_ability->skilline))
     {
         auto skill_line = sSkillLineStore.LookupEntry(skill_line_ability->skilline);
@@ -2998,7 +2995,7 @@ void Player::_SaveQuestLogEntry(QueryBuffer* buf)
     }
 }
 
-bool Player::canCast(SpellInfo* m_spellInfo)
+bool Player::canCast(SpellInfo const* m_spellInfo)
 {
     if (m_spellInfo->EquippedItemClass != 0)
     {
@@ -4355,7 +4352,7 @@ void Player::_ApplyItemMods(Item* item, int16 slot, bool apply, bool justdrokedo
                         if (Set->itemscount == item_set_entry->itemscount[x])
                         {
                             //cast new spell
-                            SpellInfo* info = sSpellCustomizations.GetSpellInfo(item_set_entry->SpellID[x]);
+                            SpellInfo const* info = sSpellCustomizations.GetSpellInfo(item_set_entry->SpellID[x]);
                             Spell* spell = sSpellFactoryMgr.NewSpell(this, info, true, NULL);
                             SpellCastTargets targets;
                             targets.m_unitTarget = this->GetGUID();
@@ -4623,7 +4620,7 @@ void Player::_ApplyItemMods(Item* item, int16 slot, bool apply, bool justdrokedo
         // Apply all enchantment bonuses
         item->ApplyEnchantmentBonuses();
 
-        SpellInfo* spells;
+        SpellInfo const* spells;
         for (uint8 k = 0; k < 5; ++k)
         {
             if (item->GetItemProperties()->Spells[k].Id == 0)
@@ -4662,7 +4659,7 @@ void Player::_ApplyItemMods(Item* item, int16 slot, bool apply, bool justdrokedo
         {
             if (item->GetItemProperties()->Spells[k].Trigger == ON_EQUIP)
             {
-                SpellInfo* spells = sSpellCustomizations.GetSpellInfo(item->GetItemProperties()->Spells[k].Id);
+                SpellInfo const* spells = sSpellCustomizations.GetSpellInfo(item->GetItemProperties()->Spells[k].Id);
                 if (spells != nullptr)
                 {
                     if (spells->RequiredShapeShift)
@@ -4710,13 +4707,13 @@ void Player::BuildPlayerRepop()
 
     if (getRace() == RACE_NIGHTELF)
     {
-        SpellInfo* inf = sSpellCustomizations.GetSpellInfo(9036);
+        SpellInfo const* inf = sSpellCustomizations.GetSpellInfo(9036);
         Spell* sp = sSpellFactoryMgr.NewSpell(this, inf, true, NULL);
         sp->prepare(&tgt);
     }
     else
     {
-        SpellInfo* inf = sSpellCustomizations.GetSpellInfo(8326);
+        SpellInfo const* inf = sSpellCustomizations.GetSpellInfo(8326);
         Spell* sp = sSpellFactoryMgr.NewSpell(this, inf, true, NULL);
         sp->prepare(&tgt);
     }
@@ -5891,195 +5888,6 @@ void Player::ApplyPlayerRestState(bool apply)
     UpdateRestState();
 }
 
-#define CORPSE_VIEW_DISTANCE 1600 // 40*40
-
-bool Player::CanSee(Object* obj) // * Invisibility & Stealth Detection - Partha *
-{
-    if (obj == this)
-        return true;
-
-    uint32 object_type = obj->GetTypeId();
-
-    if (getDeathState() == CORPSE) // we are dead and we have released our spirit
-    {
-        if (obj->IsPlayer())
-        {
-            Player* pObj = static_cast< Player* >(obj);
-
-            if (myCorpseInstanceId == GetInstanceID() && obj->getDistanceSq(myCorpseLocation) <= CORPSE_VIEW_DISTANCE)
-                return !pObj->m_isGmInvisible; // we can see all players within range of our corpse except invisible GMs
-
-            if (m_deathVision) // if we have arena death-vision we can see all players except invisible GMs
-                return !pObj->m_isGmInvisible;
-
-            return (pObj->getDeathState() == CORPSE); // we can only see players that are spirits
-        }
-
-        if (myCorpseInstanceId == GetInstanceID())
-        {
-            if (obj->IsCorpse() && static_cast< Corpse* >(obj)->GetOwner() == GetGUID())
-                return true;
-
-            if (obj->getDistanceSq(myCorpseLocation) <= CORPSE_VIEW_DISTANCE)
-                return true; // we can see everything within range of our corpse
-        }
-
-        if (m_deathVision) // if we have arena death-vision we can see everything
-            return true;
-
-        if (obj->IsCreature() && static_cast<Creature*>(obj)->isSpiritHealer())
-            return true; // we can see spirit healers
-
-        return false;
-    }
-    //------------------------------------------------------------------
-
-    if (!(m_phase & obj->m_phase))  //What you can't see, you can't see, no need to check things further.
-        return false;
-
-    switch (object_type) // we are alive or we haven't released our spirit yet
-    {
-        case TYPEID_PLAYER:
-        {
-            Player* pObj = static_cast< Player* >(obj);
-
-            if (pObj->m_invisible) // Invisibility - Detection of Players
-            {
-                if (pObj->getDeathState() == CORPSE)
-                    return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0); // only GM can see players that are spirits
-
-                if (GetGroup() && pObj->GetGroup() == GetGroup() // can see invisible group members except when dueling them
-                    && DuelingWith != pObj)
-                    return true;
-
-                if (pObj->stalkedby == GetGUID()) // Hunter's Mark / MindVision is visible to the caster
-                    return true;
-
-                if (m_invisDetect[INVIS_FLAG_NORMAL] < 1 // can't see invisible without proper detection
-                    || pObj->m_isGmInvisible) // can't see invisible GM
-                    return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0); // GM can see invisible players
-            }
-
-            if (m_invisible && pObj->m_invisDetect[m_invisFlag] < 1)   // Invisible - can see those that detect, but not others
-                return m_isGmInvisible;
-
-            if (pObj->IsStealth()) // Stealth Detection (I Hate Rogues :P)
-            {
-                if (GetGroup() && pObj->GetGroup() == GetGroup() // can see stealthed group members except when dueling them
-                    && DuelingWith != pObj)
-                    return true;
-
-                if (pObj->stalkedby == GetGUID()) // Hunter's Mark / MindVision is visible to the caster
-                    return true;
-
-                if (isInFront(pObj)) // stealthed player is in front of us
-                {
-                    // Detection Range = 5yds + (Detection Skill - Stealth Skill)/5
-                    detectRange = 5.0f + getLevel() + 0.2f * (float)(GetStealthDetectBonus() - pObj->GetStealthLevel());
-
-                    // Hehe... stealth skill is increased by 5 each level and detection skill is increased by 5 each level too.
-                    // This way, a level 70 should easily be able to detect a level 4 rogue (level 4 because that's when you get stealth)
-                    //    detectRange += 0.2f * (getLevel() - pObj->getLevel());
-                    if (detectRange < 1.0f)
-                        detectRange = 1.0f;     // Minimum Detection Range = 1yd
-                }
-                else // stealthed player is behind us
-                {
-                    if (GetStealthDetectBonus() > 1000)
-                        return true;            // immune to stealth
-                    else
-                        detectRange = 0.0f;
-                }
-
-                detectRange += GetBoundingRadius(); // adjust range for size of player
-                detectRange += pObj->GetBoundingRadius(); // adjust range for size of stealthed player
-                //LogDefault("Player::CanSee(%s): detect range = %f yards (%f ingame units), cansee = %s , distance = %f" , pObj->GetName() , detectRange , detectRange * detectRange , (GetDistance2dSq(pObj) > detectRange * detectRange) ? "yes" : "no" , getDistanceSq(pObj));
-                if (getDistanceSq(pObj) > detectRange * detectRange)
-                    return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0); // GM can see stealthed players
-            }
-
-            return !pObj->m_isGmInvisible;
-        }
-        //------------------------------------------------------------------
-
-        case TYPEID_UNIT:
-        {
-            Unit* uObj = static_cast< Unit* >(obj);
-
-            // can't see spirit-healers when alive
-            if (uObj->IsCreature() && static_cast<Creature*>(uObj)->isSpiritHealer())
-                return false;
-
-            // always see our units
-            if (GetGUID() == uObj->GetCreatedByGUID())
-                return true;
-
-            // unit is invisible
-            if (uObj->m_invisible)
-            {
-                // gms can see invisible units
-                /// \todo is invis detection missing here?
-                if (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM))
-                    return true;
-                else
-                    return false;
-            }
-
-            if (uObj->GetAIInterface()->faction_visibility == 1)
-                if (IsTeamHorde())
-                    return true;
-                else
-                    return false;
-
-            if (uObj->GetAIInterface()->faction_visibility == 2)
-                if (IsTeamHorde())
-                    return false;
-                else
-                    return true;
-
-
-            /*if (uObj->m_invisible  // Invisibility - Detection of Units
-                && m_invisDetect[uObj->m_invisFlag] < 1) // can't see invisible without proper detection
-                return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0); // GM can see invisible units
-
-            if (m_invisible && uObj->m_invisDetect[m_invisFlag] < 1)   // Invisible - can see those that detect, but not others
-                return m_isGmInvisible;*/
-
-            return true;
-        }
-        //------------------------------------------------------------------
-
-        case TYPEID_GAMEOBJECT:
-        {
-            GameObject* gObj = static_cast< GameObject* >(obj);
-
-            if (gObj->invisible) // Invisibility - Detection of GameObjects
-            {
-                uint64 owner = gObj->getUInt64Value(OBJECT_FIELD_CREATED_BY);
-
-                if (GetGUID() == owner) // the owner of an object can always see it
-                    return true;
-
-                if (GetGroup())
-                {
-                    PlayerInfo* inf = objmgr.GetPlayerInfo((uint32)owner);
-                    if (inf && GetGroup()->HasMember(inf))
-                        return true;
-                }
-
-                if (m_invisDetect[gObj->invisibilityFlag] < 1) // can't see invisible without proper detection
-                    return (HasFlag(PLAYER_FLAGS, PLAYER_FLAG_GM) != 0); // GM can see invisible objects
-            }
-
-            return true;
-        }
-        //------------------------------------------------------------------
-
-        default:
-            return true;
-    }
-}
-
 void Player::AddInRangeObject(Object* pObj)
 {
     //Send taxi move if we're on a taxi
@@ -6288,133 +6096,6 @@ uint32 Player::CalcTalentResetCost(uint32 resetnum)
     }
 }
 
-int32 Player::CanShootRangedWeapon(uint32 spellid, Unit* target, bool autoshot)
-{
-    SpellInfo* spell_info = sSpellCustomizations.GetSpellInfo(spellid);
-    if (spell_info == nullptr)
-        return -1;
-
-    LogDebugFlag(LF_SPELL, "Canshootwithrangedweapon!?!? spell: [%u] %s" , spell_info->Id , spell_info->Name.c_str());
-
-    // Check if Morphed
-    if (polySpell > 0)
-        return SPELL_FAILED_NOT_SHAPESHIFT;
-
-    // Check ammo
-    auto item = GetItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
-    auto item_proto = sMySQLStore.getItemProperties(GetAmmoId());
-    if (item == nullptr || disarmed)           //Disarmed means disarmed, we shouldn't be able to cast Auto Shot while disarmed
-        return SPELL_FAILED_NO_AMMO;        //In proper language means "Requires Ranged Weapon to be equipped"
-
-    if (!m_requiresNoAmmo)                  //Thori'dal, Wild Quiver, but it still requires to have a weapon equipped
-    {
-        // Check ammo level
-        if (item_proto && getLevel() < item_proto->RequiredLevel)
-            return SPELL_FAILED_LOWLEVEL;
-
-        // Check ammo type
-        auto item_proto_ammo = sMySQLStore.getItemProperties(item->GetEntry());
-        if (item_proto && item_proto_ammo && item_proto->SubClass != item_proto_ammo->AmmoType)
-            return SPELL_FAILED_NEED_AMMO;
-    }
-
-    // Player has clicked off target. Fail spell.
-    if (m_curSelection != m_AutoShotTarget)
-        return SPELL_FAILED_INTERRUPTED;
-
-    // Check if target is already dead
-    if (target->IsDead())
-        return SPELL_FAILED_TARGETS_DEAD;
-
-    // Check if in line of sight (need collision detection).
-    if (worldConfig.terrainCollision.isCollisionEnabled)
-    {
-        VMAP::IVMapManager* mgr = VMAP::VMapFactory::createOrGetVMapManager();
-        bool isInLOS = mgr->isInLineOfSight(GetMapId(), GetPositionX(), GetPositionY(), GetPositionZ(), target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
-        if (GetMapId() == target->GetMapId() && !isInLOS)
-            return SPELL_FAILED_LINE_OF_SIGHT;
-    }
-
-    // Check if we aren't casting another spell already
-    if (GetCurrentSpell())
-        return -1;
-
-    // Supalosa - The hunter ability Auto Shot is using Shoot range, which is 5 yards shorter.
-    // So we'll use 114, which is the correct 35 yard range used by the other Hunter abilities (arcane shot, concussive shot...)
-    uint8 fail = 0;
-    uint32 rIndex = autoshot ? 114 : spell_info->rangeIndex;
-
-    auto spell_range = sSpellRangeStore.LookupEntry(rIndex);
-    float minrange = GetMinRange(spell_range);
-    float dist = CalcDistance(this, target);
-    float maxr = GetMaxRange(spell_range) + 2.52f;
-
-    spellModFlatFloatValue(this->SM_FRange, &maxr, spell_info->SpellGroupType);
-    spellModPercentageFloatValue(this->SM_PRange, &maxr, spell_info->SpellGroupType);
-
-    //float bonusRange = 0;
-    // another hackfix: bonus range from hunter talent hawk eye: +2/4/6 yard range to ranged weapons
-    //if (autoshot)
-    //spellModFlatFloatValue(SM_FRange, &bonusRange, sSpellCustomizations.GetSpellInfo(75)->SpellGroupType); // HORRIBLE hackfixes :P
-    // Partha: +2.52yds to max range, this matches the range the client is calculating.
-    // see extra/supalosa_range_research.txt for more info
-    //bonusRange = 2.52f;
-    //LogDefault("Bonus range = %f" , bonusRange);
-
-    // check if facing target
-    if (!isInFront(target))
-    {
-        fail = SPELL_FAILED_UNIT_NOT_INFRONT;
-    }
-
-    // Check ammo count
-    if (!m_requiresNoAmmo && item_proto && item->GetItemProperties()->SubClass != ITEM_SUBCLASS_WEAPON_WAND)
-    {
-        uint32 ammocount = GetItemInterface()->GetItemCount(item_proto->ItemId);
-        if (ammocount == 0)
-            fail = SPELL_FAILED_NO_AMMO;
-    }
-
-    // Check for too close
-    if (spellid != SPELL_RANGED_WAND)  //no min limit for wands
-        if (minrange > dist)
-            fail = SPELL_FAILED_TOO_CLOSE;
-
-    VMAP::IVMapManager* mgr = VMAP::VMapFactory::createOrGetVMapManager();
-    bool isInLOS = mgr->isInLineOfSight(GetMapId(), GetPositionX(), GetPositionY(), GetPositionZ(), target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
-
-    if (worldConfig.terrainCollision.isCollisionEnabled && GetMapId() == target->GetMapId() && !isInLOS)
-        fail = SPELL_FAILED_LINE_OF_SIGHT;
-
-    if (dist > maxr)
-    {
-        LogDebug("Auto shot failed: out of range (Maxr: %f, Dist: %f)" , maxr , dist);
-        fail = SPELL_FAILED_OUT_OF_RANGE;
-    }
-
-    if (spellid == SPELL_RANGED_THROW)
-    {
-        if (GetItemInterface()->GetItemCount(item->GetItemProperties()->ItemId) == 0)
-            fail = SPELL_FAILED_NO_AMMO;
-    }
-
-    if (fail > 0)  // && fail != SPELL_FAILED_OUT_OF_RANGE)
-    {
-        SendCastResult(autoshot ? 75 : spellid, fail, 0, 0);
-
-        if (fail != SPELL_FAILED_OUT_OF_RANGE)
-        {
-            uint32 spellid2 = autoshot ? 75 : spellid;
-            m_session->OutPacket(SMSG_CANCEL_AUTO_REPEAT, 4, &spellid2);
-        }
-        //LogDefault("Result for CanShootWIthRangedWeapon: %u" , fail);
-        //LOG_DEBUG("Can't shoot with ranged weapon: %u (Timer: %u)" , fail , m_AutoShotAttackTimer);
-        return fail;
-    }
-
-    return 0;
-}
-
 /*! \returns True if player's current battleground was queued for as a random battleground
  *  \sa Player::SetQueuedForRbg */
 bool Player::QueuedForRbg()
@@ -6468,36 +6149,15 @@ void Player::EventRepeatSpell()
         return;
     }
 
-    int32 f = this->CanShootRangedWeapon(m_AutoShotSpell->Id, target, true);
+    m_AutoShotAttackTimer = m_AutoShotDuration;
 
-    if (f != 0)
-    {
-        if (f != SPELL_FAILED_OUT_OF_RANGE)
-        {
-            m_AutoShotAttackTimer = 0;
-            m_onAutoShot = false;
-        }
-        else if (m_isMoving)
-        {
-            m_AutoShotAttackTimer = 100;
-        }
-        else
-        {
-            m_AutoShotAttackTimer = m_AutoShotDuration;//avoid flooding client with error messages
-        }
-        return;
-    }
-    else
-    {
-        m_AutoShotAttackTimer = m_AutoShotDuration;
-
-        ARCEMU_ASSERT(m_AutoShotSpell != NULL);
-        Spell* sp = sSpellFactoryMgr.NewSpell(this, m_AutoShotSpell, true, NULL);
-        SpellCastTargets tgt;
-        tgt.m_unitTarget = m_curSelection;
-        tgt.m_targetMask = TARGET_FLAG_UNIT;
-        sp->prepare(&tgt);
-    }
+    // TODO: old check ammo and spell range moved into Spell::CanCast and assertion commented out for now, recheck this
+    //ARCEMU_ASSERT(m_AutoShotSpell != NULL);
+    Spell* sp = sSpellFactoryMgr.NewSpell(this, m_AutoShotSpell, true, NULL);
+    SpellCastTargets tgt;
+    tgt.m_unitTarget = m_curSelection;
+    tgt.m_targetMask = TARGET_FLAG_UNIT;
+    sp->prepare(&tgt);
 }
 
 bool Player::HasSpell(uint32 spell)
@@ -6512,7 +6172,7 @@ bool Player::HasSpellwithNameHash(uint32 hash)
     {
         it = iter++;
         uint32 SpellID = *it;
-        SpellInfo* e = sSpellCustomizations.GetSpellInfo(SpellID);
+        SpellInfo const* e = sSpellCustomizations.GetSpellInfo(SpellID);
         if (e->custom_NameHash == hash)
             return true;
     }
@@ -6532,7 +6192,7 @@ void Player::removeSpellByHashName(uint32 hash)
     {
         it = iter++;
         uint32 SpellID = *it;
-        SpellInfo* e = sSpellCustomizations.GetSpellInfo(SpellID);
+        SpellInfo const* e = sSpellCustomizations.GetSpellInfo(SpellID);
         if (e->custom_NameHash == hash)
         {
             if (info->spell_list.find(e->Id) != info->spell_list.end())
@@ -6550,7 +6210,7 @@ void Player::removeSpellByHashName(uint32 hash)
     {
         it = iter++;
         uint32 SpellID = *it;
-        SpellInfo* e = sSpellCustomizations.GetSpellInfo(SpellID);
+        SpellInfo const* e = sSpellCustomizations.GetSpellInfo(SpellID);
         if (e->custom_NameHash == hash)
         {
             if (info->spell_list.find(e->Id) != info->spell_list.end())
@@ -6706,8 +6366,8 @@ void Player::ResetDualWield2H()
 void Player::Reset_Talents()
 {
     uint8 playerClass = getClass();
-    SpellInfo* spellInfo;
-    SpellInfo* spellInfo2;
+    SpellInfo const* spellInfo;
+    SpellInfo const* spellInfo2;
 
     // Loop through all talents.
     for (uint32 i = 0; i < sTalentStore.GetNumRows(); ++i)
@@ -7582,7 +7242,7 @@ void Player::ClearCooldownForSpell(uint32 spell_id)
     data << uint64_t(GetGUID());
     GetSession()->SendPacket(&data);
 
-    SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spell_id);
+    SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spell_id);
     if (spellInfo == nullptr)
     {
         return;
@@ -9469,7 +9129,7 @@ void Player::CompleteLoading()
 {
     // cast passive initial spells      -- grep note: these shouldn't require plyr to be in world
     SpellSet::iterator itr;
-    SpellInfo* info;
+    SpellInfo const* info;
     SpellCastTargets targets;
     targets.m_unitTarget = this->GetGUID();
     targets.m_targetMask = TARGET_FLAG_UNIT;
@@ -9504,7 +9164,7 @@ void Player::CompleteLoading()
 
     for (; i != loginauras.end(); ++i)
     {
-        SpellInfo* sp = sSpellCustomizations.GetSpellInfo((*i).id);
+        SpellInfo const* sp = sSpellCustomizations.GetSpellInfo((*i).id);
 
         if (sp->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_WITH_PET)
             continue; //do not load auras that only exist while pet exist. We should recast these when pet is created anyway
@@ -9517,7 +9177,7 @@ void Player::CompleteLoading()
         {
             if (sp->Effect[x] == SPELL_EFFECT_APPLY_AURA)
             {
-                aura->AddMod(sp->EffectApplyAuraName[x], sp->EffectBasePoints[x] + 1, sp->EffectMiscValue[x], x);
+                aura->AddMod(AuraModTypes(sp->EffectApplyAuraName[x]), sp->EffectBasePoints[x] + 1, sp->EffectMiscValue[x], x);
             }
         }
 
@@ -10020,7 +9680,7 @@ void Player::SetShapeShift(uint8 ss)
 
     // apply any talents/spells we have that apply only in this form.
     std::set<uint32>::iterator itr;
-    SpellInfo* sp;
+    SpellInfo const* sp;
     Spell* spe;
     SpellCastTargets t(GetGUID());
 
@@ -10674,7 +10334,7 @@ void Player::_AdvanceSkillLine(uint32 SkillLine, uint32 Count /* = 1 */)
 
 void Player::_LearnSkillSpells(uint32 SkillLine, uint32 curr_sk)
 {
-    SpellInfo* sp;
+    SpellInfo const* sp;
     uint32 removeSpellId = 0;
     for (uint32 idx = 0; idx < sSkillLineAbilityStore.GetNumRows(); ++idx)
     {
@@ -10690,7 +10350,7 @@ void Player::_LearnSkillSpells(uint32 SkillLine, uint32 curr_sk)
             {
                 // Player is able to learn this spell; check if they already have it, or a higher rank (shouldn't, but just in case)
                 bool addThisSpell = true;
-                SpellInfo* se;
+                SpellInfo const* se;
                 for (SpellSet::iterator itr = mSpells.begin(); itr != mSpells.end(); ++itr)
                 {
                     se = sSpellCustomizations.GetSpellInfo(*itr);
@@ -11163,7 +10823,7 @@ void Player::EventSummonPet(Pet* new_pet)
     {
         it = iter++;
         uint32 SpellID = *it;
-        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(SpellID);
+        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(SpellID);
         if (spellInfo->custom_c_is_flags & SPELL_FLAG_IS_CASTED_ON_PET_SUMMON_PET_OWNER)
         {
             this->RemoveAllAuras(SpellID, this->GetGUID());   //this is required since unit::addaura does not check for talent stacking
@@ -11199,7 +10859,7 @@ void Player::EventDismissPet()
 
 void Player::AddShapeShiftSpell(uint32 id)
 {
-    SpellInfo* sp = sSpellCustomizations.GetSpellInfo(id);
+    SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(id);
     mShapeShiftSpells.insert(id);
 
     if (sp->RequiredShapeShift && ((uint32)1 << (GetShapeShift() - 1)) & sp->RequiredShapeShift)
@@ -11229,7 +10889,7 @@ void Player::UpdatePotionCooldown()
         {
             if (proto->Spells[i].Id && proto->Spells[i].Trigger == USE)
             {
-                SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(proto->Spells[i].Id);
+                SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(proto->Spells[i].Id);
                 if (spellInfo != NULL)
                 {
                     Cooldown_AddItem(proto, i);
@@ -11246,7 +10906,7 @@ bool Player::HasSpellWithAuraNameAndBasePoints(uint32 auraname, uint32 basepoint
 {
     for (SpellSet::iterator itr = mSpells.begin(); itr != mSpells.end(); ++itr)
     {
-        SpellInfo *sp = sSpellCustomizations.GetSpellInfo(*itr);
+        SpellInfo const*sp = sSpellCustomizations.GetSpellInfo(*itr);
 
         for (uint8 i = 0; i < 3; ++i)
         {
@@ -11312,7 +10972,7 @@ void Player::_Cooldown_Add(uint32 Type, uint32 Misc, uint32 Time, uint32 SpellId
     LogDebugFlag(LF_SPELL, "Cooldown added cooldown for type %u misc %u time %u item %u spell %u", Type, Misc, Time - getMSTime(), ItemId, SpellId);
 }
 
-void Player::Cooldown_Add(SpellInfo* pSpell, Item* pItemCaster)
+void Player::Cooldown_Add(SpellInfo const* pSpell, Item* pItemCaster)
 {
     uint32 mstime = getMSTime();
     int32 cool_time;
@@ -11338,7 +10998,7 @@ void Player::Cooldown_Add(SpellInfo* pSpell, Item* pItemCaster)
     }
 }
 
-void Player::Cooldown_AddStart(SpellInfo* pSpell)
+void Player::Cooldown_AddStart(SpellInfo const* pSpell)
 {
     if (pSpell->StartRecoveryTime == 0)
         return;
@@ -11369,7 +11029,7 @@ void Player::Cooldown_AddStart(SpellInfo* pSpell)
     }
 }
 
-bool Player::Cooldown_CanCast(SpellInfo* pSpell)
+bool Player::Cooldown_CanCast(SpellInfo const* pSpell)
 {
     PlayerCooldownMap::iterator itr;
     uint32 mstime = getMSTime();
@@ -12162,7 +11822,7 @@ void Player::CalcExpertise()
 {
     int32 modifier = 0;
     int32 val = 0;
-    SpellInfo* entry = NULL;
+    SpellInfo const* entry = NULL;
 
 #if VERSION_STRING != Classic
     setUInt32Value(PLAYER_EXPERTISE, 0);
@@ -12535,7 +12195,7 @@ void Player::LearnTalent(uint32 talentid, uint32 rank, bool isPreviewed)
         {
             addSpell(spellid);
 
-            SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellid);
+            SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellid);
 
             if (rank > 0)
             {
@@ -12694,7 +12354,7 @@ void Player::LearnTalent(uint32 talentid, uint32 rank, bool isPreviewed)
         {
             addSpell(spellid);
 
-            SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(spellid);
+            SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(spellid);
             if (spellInfo == nullptr)
             {
                 LOG_ERROR("Your table `spells` miss skill spell %u!", spellid);
@@ -12712,7 +12372,7 @@ void Player::LearnTalent(uint32 talentid, uint32 rank, bool isPreviewed)
                     removeSpell(respellid, false, false, 0);
                     RemoveAura(respellid);
 
-                    SpellInfo* spellInfoReq = sSpellCustomizations.GetSpellInfo(respellid);
+                    SpellInfo const* spellInfoReq = sSpellCustomizations.GetSpellInfo(respellid);
                     if (spellInfoReq == nullptr)
                     {
                         LOG_ERROR("Your table `spells` miss skill spell %u!", spellid);
@@ -12789,7 +12449,7 @@ void Player::SendPreventSchoolCast(uint32 SpellSchool, uint32 unTimeMs)
     {
         uint32 SpellId = (*sitr);
 
-        SpellInfo* spellInfo = sSpellCustomizations.GetSpellInfo(SpellId);
+        SpellInfo const* spellInfo = sSpellCustomizations.GetSpellInfo(SpellId);
 
         if (!spellInfo)
         {
@@ -13031,7 +12691,7 @@ void Player::DealDamage(Unit* pVictim, uint32 damage, uint32 targetEvent, uint32
     ///////////////////////////////////////////////////// Hackatlon ///////////////////////////////////////////////////////////
 
     //the black sheep , no actually it is paladin : Ardent Defender
-    if (DamageTakenPctModOnHP35 && HasFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_HEALTH35))
+    if (DamageTakenPctModOnHP35 && hasAuraState(AURASTATE_FLAG_HEALTH35))
         damage = damage - float2int32(damage * DamageTakenPctModOnHP35) / 100;
 
     if (pVictim->IsCreature() && pVictim->IsTaggable())
@@ -13104,7 +12764,7 @@ void Player::DealDamage(Unit* pVictim, uint32 damage, uint32 targetEvent, uint32
 
             if (setAurastateFlag)
             {
-                SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_LASTKILLWITHHONOR);
+                modifyAuraState(AURASTATE_FLAG_LASTKILLWITHHONOR, true);
 
                 if (!sEventMgr.HasEvent(this, EVENT_LASTKILLWITHHONOR_FLAG_EXPIRE))
                     sEventMgr.AddEvent(static_cast<Unit*>(this), &Unit::EventAurastateExpire, static_cast<uint32>(AURASTATE_FLAG_LASTKILLWITHHONOR), EVENT_LASTKILLWITHHONOR_FLAG_EXPIRE, 20000, 1, 0);
@@ -13199,7 +12859,7 @@ void Player::DealDamage(Unit* pVictim, uint32 damage, uint32 targetEvent, uint32
                         {
                             player_tagger->GiveXP(xp, pVictim->GetGUID(), true);
 
-                            SetFlag(UNIT_FIELD_AURASTATE, AURASTATE_FLAG_LASTKILLWITHHONOR);
+                            modifyAuraState(AURASTATE_FLAG_LASTKILLWITHHONOR, true);
 
                             if (!sEventMgr.HasEvent(this, EVENT_LASTKILLWITHHONOR_FLAG_EXPIRE))
                                 sEventMgr.AddEvent(static_cast<Unit*>(this), &Unit::EventAurastateExpire, (uint32)AURASTATE_FLAG_LASTKILLWITHHONOR, EVENT_LASTKILLWITHHONOR_FLAG_EXPIRE, 20000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
@@ -13364,7 +13024,7 @@ void Player::Die(Unit* pAttacker, uint32 damage, uint32 spellid)
 
     // on die and an target die proc
     {
-        SpellInfo* killerspell;
+        SpellInfo const* killerspell;
         if (spellid)
             killerspell = sSpellCustomizations.GetSpellInfo(spellid);
         else killerspell = NULL;
@@ -13431,7 +13091,7 @@ void Player::Die(Unit* pAttacker, uint32 damage, uint32 spellid)
 
             if (self_res_spell == 0 && bReincarnation)
             {
-                SpellInfo* m_reincarnSpellInfo = sSpellCustomizations.GetSpellInfo(20608);
+                SpellInfo const* m_reincarnSpellInfo = sSpellCustomizations.GetSpellInfo(20608);
                 if (Cooldown_CanCast(m_reincarnSpellInfo))
                 {
 
@@ -13463,7 +13123,7 @@ void Player::Die(Unit* pAttacker, uint32 damage, uint32 spellid)
     //check for spirit of Redemption
     if (HasSpell(20711))
     {
-        SpellInfo* sorInfo = sSpellCustomizations.GetSpellInfo(27827);
+        SpellInfo const* sorInfo = sSpellCustomizations.GetSpellInfo(27827);
 
         if (sorInfo != NULL)
         {
@@ -13967,7 +13627,7 @@ bool Player::LoadSpells(QueryResult* result)
 
         uint32 spellid = fields[0].GetUInt32();
 
-        SpellInfo* sp = sSpellCustomizations.GetSpellInfo(spellid);
+        SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(spellid);
         if (sp != NULL)
             mSpells.insert(spellid);
 
@@ -14026,7 +13686,7 @@ bool Player::LoadDeletedSpells(QueryResult* result)
 
         uint32 spellid = fields[0].GetUInt32();
 
-        SpellInfo* sp = sSpellCustomizations.GetSpellInfo(spellid);
+        SpellInfo const* sp = sSpellCustomizations.GetSpellInfo(spellid);
         if (sp != NULL)
             mDeletedSpells.insert(spellid);
 

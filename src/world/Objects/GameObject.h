@@ -377,6 +377,20 @@ enum GameObjectTypes
 class SERVER_DECL GameObject : public Object
 {
     public:
+        // AGPL End
+        // MIT Start
+
+        // Stealthed Gameobjects
+        bool isStealthed;
+        int32_t stealthValue;
+
+        // Invisible Gameobjects
+        // TODO: implement
+        bool isInvisible;
+        int32_t invisibilityValue;
+
+        // MIT End
+        // AGPL Start
 
         GameObject(uint64 guid);
         ~GameObject();
@@ -393,7 +407,7 @@ class SERVER_DECL GameObject : public Object
         virtual bool IsLootable() { return false; }
 
         virtual void Use(uint64 GUID) {}
-        void CastSpell(uint64 TargetGUID, SpellInfo* sp);
+        void CastSpell(uint64 TargetGUID, SpellInfo const* sp);
         void CastSpell(uint64 TargetGUID, uint32 SpellID);
 
         void Update(unsigned long time_passed);
@@ -424,8 +438,6 @@ class SERVER_DECL GameObject : public Object
 
         virtual void InitAI();
 
-        bool invisible;     // invisible
-        uint8 invisibilityFlag;
         Unit* m_summoner;
 
         void CallScriptUpdate();
@@ -584,7 +596,7 @@ class GameObject_Button : public GameObject
 
     private:
 
-        SpellInfo* spell;
+        SpellInfo const* spell;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -692,7 +704,7 @@ class GameObject_Chest : public GameObject_Lootable
 
     private:
 
-        SpellInfo* spell;
+        SpellInfo const* spell;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -710,7 +722,7 @@ class GameObject_Trap : public GameObject
 
     private:
         
-        SpellInfo* spell;
+        SpellInfo const* spell;
         uint32 targetupdatetimer;
         float maxdistance;
         uint32 cooldown;
@@ -751,7 +763,7 @@ class GameObject_Goober : public GameObject
         void Close();
 
     private:
-        SpellInfo* spell;
+        SpellInfo const* spell;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -821,7 +833,7 @@ class GameObject_SpellCaster : public GameObject
 
     private:
 
-        SpellInfo* spell;
+        SpellInfo const* spell;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////

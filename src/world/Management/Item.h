@@ -181,6 +181,14 @@ enum RandomEnchantmentTypes
 class SERVER_DECL Item : public Object
 {
     public:
+        // APGL End
+        // MIT Start
+
+        bool fitsToSpellRequirements(SpellInfo const* spellInfo) const;
+
+        // MIT End
+        // APGL Start
+
         Item();
         void Init(uint32 high, uint32 low);
         virtual ~Item();

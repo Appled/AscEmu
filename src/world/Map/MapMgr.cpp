@@ -747,7 +747,7 @@ void MapMgr::UpdateInRangeSet(Object* obj, Player* plObj, MapCell* cell, ByteBuf
                 {
                     plObj2 = static_cast<Player*>(curObj);
 
-                    if (plObj2->CanSee(obj) && !plObj2->IsVisible(obj->GetGUID()))
+                    if (plObj2->canSeeOrDetect(obj) && !plObj2->IsVisible(obj->GetGUID()))
                     {
                         CHECK_BUF;
                         count = obj->BuildCreateUpdateBlockForPlayer(*buf, plObj2);
@@ -759,7 +759,7 @@ void MapMgr::UpdateInRangeSet(Object* obj, Player* plObj, MapCell* cell, ByteBuf
 
                 if (plObj != nullptr)
                 {
-                    if (plObj->CanSee(curObj) && !plObj->IsVisible(curObj->GetGUID()))
+                    if (plObj->canSeeOrDetect(curObj) && !plObj->IsVisible(curObj->GetGUID()))
                     {
                         CHECK_BUF;
                         count = curObj->BuildCreateUpdateBlockForPlayer(*buf, plObj);
@@ -775,7 +775,7 @@ void MapMgr::UpdateInRangeSet(Object* obj, Player* plObj, MapCell* cell, ByteBuf
                 if (curObj->IsPlayer())
                 {
                     plObj2 = static_cast<Player*>(curObj);
-                    cansee = plObj2->CanSee(obj);
+                    cansee = plObj2->canSeeOrDetect(obj);
                     isvisible = plObj2->IsVisible(obj->GetGUID());
                     if (!cansee && isvisible)
                     {
@@ -794,7 +794,7 @@ void MapMgr::UpdateInRangeSet(Object* obj, Player* plObj, MapCell* cell, ByteBuf
 
                 if (plObj != nullptr)
                 {
-                    cansee = plObj->CanSee(curObj);
+                    cansee = plObj->canSeeOrDetect(curObj);
                     isvisible = plObj->IsVisible(curObj->GetGUID());
                     if (!cansee && isvisible)
                     {
@@ -1157,7 +1157,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, DynamicObject* farsight)
         // We're clearing.
         for (ObjectSet::iterator itr = plr->m_visibleFarsightObjects.begin(); itr != plr->m_visibleFarsightObjects.end(); ++itr)
         {
-            if (plr->IsVisible((*itr)->GetGUID()) && !plr->CanSee((*itr)))
+            if (plr->IsVisible((*itr)->GetGUID()) && !plr->canSeeOrDetect((*itr)))
             {
                 plr->PushOutOfRange((*itr)->GetNewGUID());      // Send destroy
             }
@@ -1186,7 +1186,7 @@ void MapMgr::ChangeFarsightLocation(Player* plr, DynamicObject* farsight)
                         if (obj == nullptr)
                             continue;
 
-                        if (!plr->IsVisible(obj->GetGUID()) && plr->CanSee(obj) && farsight->GetDistance2dSq(obj) <= m_UpdateDistance)
+                        if (!plr->IsVisible(obj->GetGUID()) && plr->canSeeOrDetect(obj) && farsight->GetDistance2dSq(obj) <= m_UpdateDistance)
                         {
                             ByteBuffer buf;
                             uint32 count = obj->BuildCreateUpdateBlockForPlayer(&buf, plr);

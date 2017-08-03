@@ -436,7 +436,16 @@ void SpellCustomizations::LoadSpellInfoData()
 #endif
 }
 
-SpellInfo* SpellCustomizations::GetSpellInfo(uint32 spell_id)
+SpellInfo const* SpellCustomizations::GetSpellInfo(uint32 spell_id)
+{
+    SpellInfoContainer::const_iterator itr = _spellInfoContainerStore.find(spell_id);
+    if (itr != _spellInfoContainerStore.end())
+        return const_cast<SpellInfo*>(&itr->second);
+
+    return nullptr;
+}
+
+SpellInfo* SpellCustomizations::getSpellInfoUnsafe(uint32_t spell_id)
 {
     SpellInfoContainer::const_iterator itr = _spellInfoContainerStore.find(spell_id);
     if (itr != _spellInfoContainerStore.end())
@@ -485,7 +494,8 @@ void SpellCustomizations::StartSpellCustomization()
 
 void SpellCustomizations::LoadSpellRanks()
 {
-    uint32 spell_rank_count = 0;
+    LogError("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_RANKS TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED OR REMOVED");
+    /*uint32 spell_rank_count = 0;
 
     if (QueryResult* result = WorldDatabase.Query("SELECT spell_id, rank FROM spell_ranks"))
     {
@@ -494,7 +504,7 @@ void SpellCustomizations::LoadSpellRanks()
             uint32 spell_id = result->Fetch()[0].GetUInt32();
             uint32 pRank = result->Fetch()[1].GetUInt32();
 
-            SpellInfo* spell_entry = GetSpellInfo(spell_id);
+            SpellInfo const* spell_entry = GetSpellInfo(spell_id);
             if (spell_entry != nullptr)
             {
                 spell_entry->custom_RankNumber = pRank;
@@ -518,12 +528,13 @@ void SpellCustomizations::LoadSpellRanks()
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::LoadSpellRanks : Your spell_ranks table is empty!");
     }
-
+    */
 }
 
 void SpellCustomizations::LoadSpellCustomAssign()
 {
-    uint32 spell_custom_assign_count = 0;
+    LogError("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_CUSTOM_ASSIGN TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED OR REMOVED");
+    /*uint32 spell_custom_assign_count = 0;
 
     if (QueryResult* result = WorldDatabase.Query("SELECT spell_id, on_target_flag, from_caster_on_self_flag, self_cast_only, c_is_flag FROM spell_custom_assign"))
     {
@@ -535,7 +546,7 @@ void SpellCustomizations::LoadSpellCustomAssign()
             bool self_cast_only = result->Fetch()[3].GetBool();
             uint32 c_is_flag = result->Fetch()[4].GetUInt32();
 
-            SpellInfo* spell_entry = GetSpellInfo(spell_id);
+            SpellInfo const* spell_entry = GetSpellInfo(spell_id);
             if (spell_entry != nullptr)
             {
                 spell_entry->custom_BGR_one_buff_on_target = on_target;
@@ -562,12 +573,13 @@ void SpellCustomizations::LoadSpellCustomAssign()
     else
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::LoadSpellCustomAssign", "Your spell_custom_assign table is empty!");
-    }
+    }*/
 }
 
 void SpellCustomizations::LoadSpellCustomCoefFlags()
 {
-    uint32 spell_custom_coef_flags_count = 0;
+    LogError("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_COEF_FLAGS TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED OR REMOVED");
+    /*uint32 spell_custom_coef_flags_count = 0;
 
     if (QueryResult* result = WorldDatabase.Query("SELECT spell_id, spell_coef_flags FROM spell_coef_flags"))
     {
@@ -576,7 +588,7 @@ void SpellCustomizations::LoadSpellCustomCoefFlags()
             uint32 spell_id = result->Fetch()[0].GetUInt32();
             uint32 coef_flags = result->Fetch()[1].GetUInt32();
 
-            SpellInfo* spell_entry = GetSpellInfo(spell_id);
+            SpellInfo const* spell_entry = GetSpellInfo(spell_id);
             if (spell_entry != nullptr)
             {
                 spell_entry->custom_spell_coef_flags = coef_flags;
@@ -599,12 +611,13 @@ void SpellCustomizations::LoadSpellCustomCoefFlags()
     else
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::LoadSpellCustomCoefFlags : Your spell_coef_flags table is empty!");
-    }
+    }*/
 }
 
 void SpellCustomizations::LoadSpellProcs()
 {
-    uint32 spell_procs_count = 0;
+    LogError("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_PROC TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED OR REMOVED");
+    /*uint32 spell_procs_count = 0;
 
     if (QueryResult* result = WorldDatabase.Query("SELECT spell_id, proc_on_name_hash, proc_flags, target_self, proc_chance, proc_charges, proc_interval, effect_trigger_spell_0, effect_trigger_spell_1, effect_trigger_spell_2, description FROM spell_proc"))
     {
@@ -669,13 +682,15 @@ void SpellCustomizations::LoadSpellProcs()
     else
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::LoadSpellProcs : Your spell_proc table is empty!");
-    }
+    }*/
 }
 
 ///Fix if it is a periodic trigger with amplitude = 0, to avoid division by zero
-void SpellCustomizations::SetEffectAmplitude(SpellInfo* spell_entry)
+void SpellCustomizations::SetEffectAmplitude(SpellInfo const* spell_entry)
 {
-    for (uint8 y = 0; y < 3; y++)
+    /// WTF is this?? -Appled
+
+    /*for (uint8 y = 0; y < 3; y++)
     {
         if (spell_entry->Effect[y] != SPELL_EFFECT_APPLY_AURA)
         {
@@ -690,12 +705,14 @@ void SpellCustomizations::SetEffectAmplitude(SpellInfo* spell_entry)
                 LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::SetEffectAmplitude : EffectAmplitude applied Spell - %s (%u)", spell_entry->Name.c_str(), spell_entry->Id);
             }
         }
-    }
+    }*/
 }
 
-void SpellCustomizations::SetAuraFactoryFunc(SpellInfo* spell_entry)
+void SpellCustomizations::SetAuraFactoryFunc(SpellInfo const* spell_entry)
 {
-    bool spell_aura_factory_functions_loaded = false;
+    /// Not sure if needed -Appled
+
+    /*bool spell_aura_factory_functions_loaded = false;
 
     for (uint8 y = 0; y < 3; y++)
     {
@@ -717,12 +734,14 @@ void SpellCustomizations::SetAuraFactoryFunc(SpellInfo* spell_entry)
     if (spell_aura_factory_functions_loaded)
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::SetAuraFactoryFunc : AuraFactoryFunc definitions applied to Spell - %s (%u)", spell_entry->Name.c_str(), spell_entry->Id);
-    }
+    }*/
 }
 
-void SpellCustomizations::SetMeleeSpellBool(SpellInfo* spell_entry)
+void SpellCustomizations::SetMeleeSpellBool(SpellInfo const* spell_entry)
 {
-    for (uint8 z = 0; z < 3; z++)
+    /// Will be removed -Appled
+
+    /*for (uint8 z = 0; z < 3; z++)
     {
         if (spell_entry->Effect[z] == SPELL_EFFECT_SCHOOL_DAMAGE && spell_entry->Spell_Dmg_Type == SPELL_DMG_TYPE_MELEE)
         {
@@ -747,12 +766,14 @@ void SpellCustomizations::SetMeleeSpellBool(SpellInfo* spell_entry)
     if (spell_entry->custom_is_melee_spell)
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::SetMeleeSpellBool : custom_is_melee_spell = true for Spell - %s (%u)", spell_entry->Name.c_str(), spell_entry->Id);
-    }
+    }*/
 }
 
-void SpellCustomizations::SetRangedSpellBool(SpellInfo* spell_entry)
+void SpellCustomizations::SetRangedSpellBool(SpellInfo const* spell_entry)
 {
-    for (uint8 z = 0; z < 3; z++)
+    /// Will be removed -Appled
+
+    /*for (uint8 z = 0; z < 3; z++)
     {
         if (spell_entry->Effect[z] == SPELL_EFFECT_SCHOOL_DAMAGE && spell_entry->Spell_Dmg_Type == SPELL_DMG_TYPE_RANGED)
         {
@@ -763,11 +784,13 @@ void SpellCustomizations::SetRangedSpellBool(SpellInfo* spell_entry)
     if (spell_entry->custom_is_ranged_spell)
     {
         LogDebugFlag(LF_DB_TABLES, "SpellCustomizations::SetRangedSpellBool : custom_is_ranged_spell = true for Spell - %s (%u)", spell_entry->Name.c_str(), spell_entry->Id);
-    }
+    }*/
 }
 
-void SpellCustomizations::SetMissingCIsFlags(SpellInfo* spell_entry)
+void SpellCustomizations::SetMissingCIsFlags(SpellInfo const* spell_entry)
 {
+    /// Will be removed -Appled
+    /*
     // Zyres: Special cases, not handled in spell_custom_assign!
     if (spell_entry->isDamagingSpell())
         spell_entry->custom_c_is_flags |= SPELL_FLAG_IS_DAMAGING;
@@ -776,22 +799,27 @@ void SpellCustomizations::SetMissingCIsFlags(SpellInfo* spell_entry)
     if (spell_entry->isTargetingStealthed())
         spell_entry->custom_c_is_flags |= SPELL_FLAG_IS_TARGETINGSTEALTHED;
     if (spell_entry->isRequireCooldownSpell())
-        spell_entry->custom_c_is_flags |= SPELL_FLAG_IS_REQUIRECOOLDOWNUPDATE;
+        spell_entry->custom_c_is_flags |= SPELL_FLAG_IS_REQUIRECOOLDOWNUPDATE;*/
 }
 
-void SpellCustomizations::SetCustomFlags(SpellInfo* spell_entry)
+void SpellCustomizations::SetCustomFlags(SpellInfo const* spell_entry)
 {
-    // Currently only set for 781 Disengage
+    /// Will be removed -Appled
+
+    /* Currently only set for 781 Disengage
     if (spell_entry->Id != 781)
     {
         return;
     }
 
-    spell_entry->CustomFlags = CUSTOM_FLAG_SPELL_REQUIRES_COMBAT;
+    spell_entry->CustomFlags = CUSTOM_FLAG_SPELL_REQUIRES_COMBAT;*/
 }
 
-void SpellCustomizations::SetOnShapeshiftChange(SpellInfo* spell_entry)
+void SpellCustomizations::SetOnShapeshiftChange(SpellInfo const* spell_entry)
 {
+    /// Need some workaround but will be removed -Appled
+
+    /*
     // Currently only for spell Track Humanoids
     if (spell_entry->Id != 5225 && spell_entry->Id != 19883)
     {
@@ -800,11 +828,14 @@ void SpellCustomizations::SetOnShapeshiftChange(SpellInfo* spell_entry)
     else
     {
         spell_entry->custom_apply_on_shapeshift_change = true;
-    }
+    }*/
 }
 
-void SpellCustomizations::SetAlwaysApply(SpellInfo* spell_entry)
+void SpellCustomizations::SetAlwaysApply(SpellInfo const* spell_entry)
 {
+    /// There are indeed some spells with 100% hit chance, maybe this will be saved and reworked, maybe removed. -Appled
+
+    /*
     switch (spell_entry->Id)
     {
         // SPELL_HASH_BLOOD_FURY
@@ -840,5 +871,5 @@ void SpellCustomizations::SetAlwaysApply(SpellInfo* spell_entry)
         } break;
         default:
             break;
-    }
+    }*/
 }
