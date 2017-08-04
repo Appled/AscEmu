@@ -1394,7 +1394,7 @@ void ObjectMgr::LoadAIThreatToSpellId()
 // Permanently disable this. TODO: convert changes from here to source and drop table
 void ObjectMgr::LoadSpellEffectsOverride()
 {
-    LogDefault("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_EFFECTS_OVERRIDE TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED");
+    LogError("DEV NOTE: SPELL SYSTEM REWRITE - SPELL_EFFECTS_OVERRIDE TABLE IS NOT LOADED - REMOVE THIS WHEN IMPLEMENTED OR REMOVED");
     /*QueryResult* result = WorldDatabase.Query("SELECT * FROM spell_effects_override");
     if (result)
     {
