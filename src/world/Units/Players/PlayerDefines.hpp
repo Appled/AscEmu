@@ -92,7 +92,9 @@ enum Classes
     HUNTER          = 3,
     ROGUE           = 4,
     PRIEST          = 5,
+#if VERSION_STRING >= WotLK
     DEATHKNIGHT     = 6,
+#endif
     SHAMAN          = 7,
     MAGE            = 8,
     WARLOCK         = 9,
@@ -110,17 +112,17 @@ enum Races
     RACE_TAUREN     = 6,
     RACE_GNOME      = 7,
     RACE_TROLL      = 8,
-#if VERSION_STRING == Cata
+#if VERSION_STRING >= Cata
     RACE_GOBLIN     = 9,
 #endif
+#if VERSION_STRING >= TBC
     RACE_BLOODELF   = 10,
     RACE_DRAENEI    = 11,
-#if VERSION_STRING != Cata
-    NUM_RACES
-#else
-    RACE_WORGEN     = 22,
-    NUM_RACES
 #endif
+#if VERSION_STRING >= Cata
+    RACE_WORGEN     = 22,
+#endif
+    NUM_RACES
 };
 
 enum PlayerStatus

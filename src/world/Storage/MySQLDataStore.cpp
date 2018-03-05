@@ -2259,7 +2259,7 @@ void MySQLDataStore::loadPlayerCreateInfoTable()
         playerCreateInfo.orientation = fields[9].GetFloat();
         playerCreateInfo.displayId = fields[10].GetUInt16();
         playerCreateInfo.strength = fields[11].GetUInt8();
-        playerCreateInfo.ability = fields[12].GetUInt8();
+        playerCreateInfo.agility = fields[12].GetUInt8();
         playerCreateInfo.stamina = fields[13].GetUInt8();
         playerCreateInfo.intellect = fields[14].GetUInt8();
         playerCreateInfo.spirit = fields[15].GetUInt8();

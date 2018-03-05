@@ -9,6 +9,7 @@ This file is released under the MIT license. See README-MIT for more information
 #include "Server/Packets/Opcode.h"
 #include "Chat/ChatDefines.hpp"
 #include "Server/World.h"
+#include "Spell/Definitions/PowerType.h"
 #include "Spell/Spell.h"
 #include "Spell/SpellMgr.h"
 #include "Spell/SpellFailure.h"
@@ -18,6 +19,127 @@ This file is released under the MIT license. See README-MIT for more information
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Data
+bool Player::createPlayer(WorldPacket& playerCreateData)
+{
+    // TODO: move race checks and class checks and char limits to characterhandler from legacy player create
+    // need to rewrite char create opcode as well then
+
+    uint8_t race, _class, gender, skinColor, face, outfitId, hairStyle, hairColor, facialHair;
+
+    playerCreateData >> m_name >> race >> _class >> gender >> skinColor >> face >> hairStyle >> hairColor >> facialHair >> outfitId;
+    Util::CapitalizeString(m_name);
+
+    // Load player create info
+    info = sMySQLStore.getPlayerCreateInfo(race, _class);
+    if (info == nullptr)
+    {
+        LOG_ERROR("Player::createPlayer Account Id %u tried to create a character with invalid race/class combination. If this is intended, please update your playercreateinfo table.", m_session->GetAccountId());
+        return false;
+    }
+
+    // Set position
+    SetMapId(info->mapId);
+    SetZoneId(info->zoneId);
+    m_position.ChangeCoords(info->positionX, info->positionY, info->positionZ);
+    m_bind_pos_x = info->positionX, m_bind_pos_y = info->positionY, m_bind_pos_z = info->positionZ, m_bind_mapid = info->mapId, m_bind_zoneid = info->zoneId;
+
+    // Load DBC data for race and class
+    myRace = sChrRacesStore.LookupEntry(race);
+    myClass = sChrClassesStore.LookupEntry(_class);
+    if (myRace == nullptr || myClass == nullptr)
+    {
+        LOG_ERROR("Player::createPlayer Account Id %u tried to create a character with invalid race or class.", m_session->GetAccountId());
+        return false;
+    }
+
+    // Faction, race and class
+    if (myRace->team_id == 7)
+        m_team = 0; // Alliance
+    else
+        m_team = 1; // Horde
+    setRace(race);
+    setClass(_class);
+    setGender(gender);
+    SetFaction(myRace->faction_id);
+    setScaleX(1.0f);
+    m_cache->SetUInt32Value(CACHE_PLAYER_INITIALTEAM, m_team);
+    if (race != RACE_BLOODELF)
+    {
+        SetDisplayId(info->displayId + gender);
+        SetNativeDisplayId(info->displayId + gender);
+    }
+    else
+    {
+        SetDisplayId(info->displayId - gender);
+        SetNativeDisplayId(info->displayId - gender);
+    }
+
+    uint8_t powerType = static_cast<uint8_t>(myClass->power_type);
+    setPowerType(powerType);
+
+    // Starting level and talent points
+    uint32_t startLevel = worldConfig.player.playerStartingLevel;
+    uint32_t talentPoints = startLevel >= 10 ? startLevel - 9 : 0;
+#if VERSION_STRING >= WotLK
+    if (_class == DEATHKNIGHT)
+    {
+        startLevel = std::max(55, worldConfig.player.playerStartingLevel);
+        talentPoints = worldConfig.player.deathKnightStartTalentPoints;
+    }
+#endif
+    setLevel(startLevel);
+    SetTalentPointsForAllSpec(talentPoints);
+
+#if VERSION_STRING >= TBC
+    write(playerData()->field_max_level, worldConfig.player.playerLevelCap);
+#endif
+    SetCastSpeedMod(1.0f);
+    // Load stats from level info
+    LevelInfo const* levelInfo = objmgr.GetLevelInfo(race, _class, startLevel);
+    if (levelInfo == nullptr)
+    {
+        LOG_ERROR("Player::createPlayer Account Id %u tried to create a character but level stats for race %u, class %u and level %u could not be found.", m_session->GetAccountId(), race, _class, startLevel);
+        return false;
+    }
+    // Initial stats
+    for (uint8_t i = 0; i < 5; ++i)
+    {
+        SetStat(STAT_STRENGTH + i, levelInfo->Stat[i]);
+    }
+    setBaseHealth(levelInfo->HP);
+    setBaseMana(levelInfo->Mana);
+    SetMaxPower(POWER_TYPE_MANA, levelInfo->Mana);
+    SetMaxPower(POWER_TYPE_RAGE, 1000);
+    // TODO: in cata hunters use focus instead of mana?
+    //SetMaxPower(POWER_TYPE_FOCUS, ???);
+    SetMaxPower(POWER_TYPE_ENERGY, 100);
+    setMaxHealth(levelInfo->HP);
+
+    // Apply health and power
+    setHealth(GetMaxHealth());
+    SetPower(POWER_TYPE_MANA, GetMaxPower(POWER_TYPE_MANA));
+    SetPower(POWER_TYPE_ENERGY, GetMaxPower(POWER_TYPE_ENERGY));
+    SetPower(POWER_TYPE_RAGE, 0);
+    //SetPower(POWER_TYPE_FOCUS, ???);
+#if VERSION_STRING >= WotLK
+    if (getPowerType() == POWER_TYPE_RUNIC_POWER)
+    {
+        SetMaxPower(POWER_TYPE_RUNES, 8);
+        SetMaxPower(POWER_TYPE_RUNIC_POWER, 1000);
+        SetPower(POWER_TYPE_RUNES, 8);
+        SetPower(POWER_TYPE_RUNIC_POWER, 0);
+    }
+#endif
+
+    setPvpFlags(getPvpFlags() | U_FIELD_BYTES_FLAG_PVP);
+    addUnitFlags(UNIT_FLAG_PVP_ATTACKABLE);
+    addUnitFlags2(UNIT_FLAG2_ENABLE_POWER_REGEN);
+
+    // todo: confirm level data in Stats.cpp GainStat()
+
+    return true;
+}
+
 void Player::setAttackPowerMultiplier(float val)
 {
     write(playerData()->attack_power_multiplier, val);

@@ -307,8 +307,6 @@ Player::Player(uint32 guid)
     setGuidLow(guid);
     m_wowGuid.Init(getGuid());
 #if VERSION_STRING >= WotLK
-    addUnitFlags2(UNIT_FLAG2_ENABLE_POWER_REGEN);
-
     setFloatValue(PLAYER_RUNE_REGEN_1, 0.100000f);
     setFloatValue(PLAYER_RUNE_REGEN_1 + 1, 0.100000f);
     setFloatValue(PLAYER_RUNE_REGEN_1 + 2, 0.100000f);
@@ -884,14 +882,6 @@ bool Player::Create(WorldPacket& data)
         return false;
     }
 
-    m_mapId = info->mapId;
-    SetZoneId(info->zoneId);
-    m_position.ChangeCoords(info->positionX, info->positionY, info->positionZ, info->orientation);
-    m_bind_pos_x = info->positionX;
-    m_bind_pos_y = info->positionY;
-    m_bind_pos_z = info->positionZ;
-    m_bind_mapid = info->mapId;
-    m_bind_zoneid = info->zoneId;
     m_isResting = 0;
     m_restAmount = 0;
     m_restState = 0;
@@ -899,86 +889,16 @@ bool Player::Create(WorldPacket& data)
     // set race dbc
     myRace = sChrRacesStore.LookupEntry(race);
     myClass = sChrClassesStore.LookupEntry(class_);
-    if (!myRace || !myClass)
-    {
-        // information not found
-        sCheatLog.writefromsession(m_session, "tried to create invalid player with race %u and class %u, dbc info not found", race, class_);
-        m_session->Disconnect();
-        return false;
-    }
-
-    if (myRace->team_id == 7)
-        m_team = 0;
-    else
-        m_team = 1;
-    m_cache->SetUInt32Value(CACHE_PLAYER_INITIALTEAM, m_team);
-
-    uint8 powertype = static_cast<uint8>(myClass->power_type);
 
     // Automatically add the race's taxi hub to the character's taximask at creation time (1 << (taxi_node_id-1))
     // this is defined in table playercreateinfo, field taximask
     memcpy(m_taximask, info->taximask, sizeof(m_taximask));
-
-    // Set Starting stats for char
-    //SetScale( ((race==RACE_TAUREN)?1.3f:1.0f));
-    SetScale(1.0f);
-    setHealth(info->health);
-    SetPower(POWER_TYPE_MANA, info->mana);
-    SetPower(POWER_TYPE_RAGE, 0);
-    SetPower(POWER_TYPE_FOCUS, info->focus); // focus
-    SetPower(POWER_TYPE_ENERGY, info->energy);
-
-    setMaxHealth(info->health);
-    SetMaxPower(POWER_TYPE_MANA, info->mana);
-    SetMaxPower(POWER_TYPE_RAGE, info->rage);
-    SetMaxPower(POWER_TYPE_FOCUS, info->focus);
-    SetMaxPower(POWER_TYPE_ENERGY, info->energy);
-
-#if VERSION_STRING >= WotLK
-    SetPower(POWER_TYPE_RUNES, 8);
-    SetMaxPower(POWER_TYPE_RUNES, 8);
-    SetMaxPower(POWER_TYPE_RUNIC_POWER, 1000);
-#endif
-
-    //THIS IS NEEDED
-    setBaseHealth(info->health);
-    setBaseMana(info->mana);
-    SetFaction(info->factiontemplate);
-
-    if (class_ == DEATHKNIGHT)
-        SetTalentPointsForAllSpec(worldConfig.player.deathKnightStartTalentPoints); // Default is 0 in case you do not want to modify it
-    else
-        SetTalentPointsForAllSpec(0);
-    if (class_ != DEATHKNIGHT || worldConfig.player.playerStartingLevel > 55)
-    {
-        setLevel(worldConfig.player.playerStartingLevel);
-        if (worldConfig.player.playerStartingLevel >= 10 && class_ != DEATHKNIGHT)
-            SetTalentPointsForAllSpec(worldConfig.player.playerStartingLevel - 9);
-    }
-    else
-    {
-        setLevel(55);
-        setNextLevelXp(148200);
-    }
 
 #if VERSION_STRING > TBC
     UpdateGlyphs();
 #endif
 
     SetPrimaryProfessionPoints(worldConfig.player.maxProfessions);
-
-    setRace(race);
-    setClass(class_);
-    setGender(gender);
-    setPowerType(powertype);
-
-#if VERSION_STRING != Cata
-    setPvpFlags(getPvpFlags() | U_FIELD_BYTES_FLAG_PVP);
-#else
-    setPvpFlags(getPvpFlags() | U_FIELD_BYTES_FLAG_PVP);
-    addUnitFlags(UNIT_FLAG_PVP_ATTACKABLE);
-    addUnitFlags2(UNIT_FLAG2_ENABLE_POWER_REGEN);
-#endif
 
     if (class_ == WARRIOR)
         SetShapeShift(FORM_BATTLESTANCE);
@@ -987,23 +907,9 @@ bool Player::Create(WorldPacket& data)
     addUnitFlags(UNIT_FLAG_PVP_ATTACKABLE);
 #endif
 
-    SetStat(STAT_STRENGTH, info->strength);
-    SetStat(STAT_AGILITY, info->ability);
-    SetStat(STAT_STAMINA, info->stamina);
-    SetStat(STAT_INTELLECT, info->intellect);
-    SetStat(STAT_SPIRIT, info->spirit);
     SetBoundingRadius(0.388999998569489f);
     SetCombatReach(1.5f);
-    if (race != RACE_BLOODELF)
-    {
-        SetDisplayId(info->displayId + gender);
-        SetNativeDisplayId(info->displayId + gender);
-    }
-    else
-    {
-        SetDisplayId(info->displayId - gender);
-        SetNativeDisplayId(info->displayId - gender);
-    }
+    
     EventModelChange();
     //SetMinDamage(info->mindmg);
     //SetMaxDamage(info->maxdmg);
@@ -1034,12 +940,7 @@ bool Player::Create(WorldPacket& data)
     setByteValue(PLAYER_BYTES_3, 2, 0);  // unknown
     setByteValue(PLAYER_BYTES_3, 3, GetPVPRank());  // pvp rank
 #endif
-    setNextLevelXp(400);
     setUInt32Value(PLAYER_FIELD_BYTES, 0x08);
-    SetCastSpeedMod(1.0f);
-#if VERSION_STRING != Classic
-    setUInt32Value(PLAYER_FIELD_MAX_LEVEL, worldConfig.player.playerLevelCap);
-#endif
 
     // Gold Starting Amount
     SetGold(worldConfig.player.startGoldAmount);
@@ -5049,9 +4950,6 @@ void Player::OnPushToWorld()
 #else
 void Player::OnPushToWorld()
 {
-    uint8 class_ = getClass();
-    uint8 startlevel = 1;
-
     // Process create packet
     ProcessPendingUpdates();
 
@@ -5081,13 +4979,7 @@ void Player::OnPushToWorld()
 
     if (m_FirstLogin)
     {
-        if (class_ == DEATHKNIGHT)
-            startlevel = static_cast<uint8>(std::max(55, worldConfig.player.playerStartingLevel));
-        else startlevel = static_cast<uint8>(worldConfig.player.playerStartingLevel);
-
         sHookInterface.OnFirstEnterWorld(this);
-        LevelInfo* Info = objmgr.GetLevelInfo(getRace(), getClass(), startlevel);
-        ApplyLevelInfo(Info, startlevel);
         m_FirstLogin = false;
     }
 
@@ -13235,7 +13127,7 @@ void Player::RemovePvPFlag()
 
 bool Player::IsFFAPvPFlagged()
 {
-    return getPvpFlags() & U_FIELD_BYTES_FLAG_FFA_PVP;
+    return (getPvpFlags() & U_FIELD_BYTES_FLAG_FFA_PVP) != 0;
 }
 
 void Player::SetFFAPvPFlag()
@@ -13272,7 +13164,7 @@ void Player::RemoveFFAPvPFlag()
 
 bool Player::IsSanctuaryFlagged()
 {
-    return getPvpFlags() & U_FIELD_BYTES_FLAG_SANCTUARY;
+    return (getPvpFlags() & U_FIELD_BYTES_FLAG_SANCTUARY) != 0;
 }
 
 void Player::SetSanctuaryFlag()

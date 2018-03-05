@@ -117,7 +117,7 @@ struct PlayerCreateInfo
     float orientation;
     uint16 displayId;
     uint8 strength;
-    uint8 ability;
+    uint8 agility;
     uint8 stamina;
     uint8 intellect;
     uint8 spirit;
@@ -418,6 +418,7 @@ public:
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // Data
+    bool createPlayer(WorldPacket& data);
     void setAttackPowerMultiplier(float val);
     void setRangedAttackPowerMultiplier(float val);
     void setExploredZone(uint32_t idx, uint32_t data);

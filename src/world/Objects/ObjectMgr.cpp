@@ -2109,7 +2109,7 @@ void ObjectMgr::GenerateLevelUpInfo()
             lastlvl.HP = PCI->health;
             lastlvl.Mana = PCI->mana;
             lastlvl.Stat[0] = PCI->strength;
-            lastlvl.Stat[1] = PCI->ability;
+            lastlvl.Stat[1] = PCI->agility;
             lastlvl.Stat[2] = PCI->stamina;
             lastlvl.Stat[3] = PCI->intellect;
             lastlvl.Stat[4] = PCI->spirit;

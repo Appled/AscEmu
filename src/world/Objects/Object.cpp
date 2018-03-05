@@ -761,10 +761,13 @@ void Object::interruptSpellWithSpellType(CurrentSpellType spellType, bool /*chec
     {
         if (spellType == CURRENT_AUTOREPEAT_SPELL)
         {
-            if (IsPlayer() && IsInWorld())
+            if (IsInWorld())
             {
                 // Send server-side cancel message
-                static_cast<Player*>(this)->GetSession()->OutPacket(SMSG_CANCEL_AUTO_REPEAT);
+                //static_cast<Player*>(this)->GetSession()->OutPacket(SMSG_CANCEL_AUTO_REPEAT);
+                WorldPacket data(SMSG_CANCEL_AUTO_REPEAT, getGuid());
+                data << getGuid();
+                SendMessageToSet(&data, true);
             }
         }
 
