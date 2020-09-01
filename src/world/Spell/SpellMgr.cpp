@@ -1290,7 +1290,7 @@ void SpellMgr::setSpellCoefficient(SpellInfo* sp)
             sp->spell_coeff_direct /= 2;
 
         // Spells below level 20 receive a significant penalty
-        if (sp->getBaseLevel() < 20)
+        if (sp->getBaseLevel() <= 20)
         {
             const auto penalty = 1.0f - ((20.0f - float(sp->getBaseLevel())) * 0.0375f);
             sp->spell_coeff_direct *= penalty;
@@ -1381,7 +1381,7 @@ void SpellMgr::setSpellCoefficient(SpellInfo* sp)
         }
 
         // Spells below level 20 receive a significant penalty
-        if (sp->getBaseLevel() < 20)
+        if (sp->getBaseLevel() <= 20)
         {
             const auto penalty = 1.0f - ((20.0f - float(sp->getBaseLevel())) * 0.0375f);
             sp->spell_coeff_direct *= penalty;
@@ -1443,7 +1443,7 @@ void SpellMgr::setSpellCoefficient(SpellInfo* sp)
             sp->spell_coeff_direct /= 2;
 
         // Spells below level 20 receive a significant penalty
-        if (sp->getBaseLevel() < 20)
+        if (sp->getBaseLevel() <= 20)
         {
             const auto penalty = 1.0f - ((20.0f - float(sp->getBaseLevel())) * 0.0375f);
             sp->spell_coeff_direct *= penalty;
@@ -1490,7 +1490,7 @@ void SpellMgr::setSpellCoefficient(SpellInfo* sp)
             sp->spell_coeff_overtime /= 2;
 
         // Spells below level 20 receive a significant penalty
-        if (sp->getBaseLevel() < 20)
+        if (sp->getBaseLevel() <= 20)
         {
             const auto penalty = 1.0f - ((20.0f - float(sp->getBaseLevel())) * 0.0375f);
             sp->spell_coeff_overtime *= penalty;

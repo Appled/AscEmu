@@ -493,6 +493,19 @@ void Spell::castMe(const bool doReCheck)
         }
     }
 
+    // If spell applies an aura, handle it to targets after all effects have been processed
+    if (!m_pendingAuras.empty())
+    {
+        // BIG TODO: crashes here because i forgot that HandleCastEffects (above) uses
+        // sEventMgr.... it delays shit and this shit happens too fast
+        // check how mangos or tc does this
+        /*for (auto [targetGuid, aur] : m_pendingAuras)
+        {
+            handleAddAura(targetGuid, aur);
+            //(*itr).second = nullptr;
+        }*/
+    }
+
     // Handle targets who did not get hit by this spell (miss/resist etc)
     auto targetMissed = false, targetDodged = false, targetParried = false;
     for (const auto& missedTarget : missedTargets)
@@ -776,6 +789,96 @@ void Spell::Update(unsigned long timePassed)
     }
 }
 
+void Spell::handleAddAura(uint64_t targetGuid, Aura* aur)
+{
+    if (aur == nullptr || event_GetInstanceID() == WORLD_INSTANCE)
+    {
+        delete aur;
+        DecRef();
+        return;
+    }
+
+    // Get aura target
+    Unit* target = nullptr;
+    if (u_caster != nullptr && u_caster->getGuid() == targetGuid)
+        target = u_caster;
+    else if (m_caster->IsInWorld())
+        target = m_caster->GetMapMgrUnit(targetGuid);
+
+    // Check for map corruption
+    if (target == nullptr || target->GetInstanceID() != m_caster->GetInstanceID())
+    {
+        delete aur;
+        DecRef();
+        return;
+    }
+
+    // Call creature script
+    //\ TODO: this hook is currently called here and also in ::finish
+    //\ maybe it should be called while handling successful effects
+    if (target->isCreature() && u_caster != nullptr)
+    {
+        const auto creature = static_cast<Creature*>(target);
+        if (creature->GetScript())
+            CALL_SCRIPT_EVENT(creature, OnHitBySpell)(getSpellInfo()->getId(), u_caster);
+    }
+
+    // Check if pvp flag needs to be enabled
+    // Applying an aura to a flagged target will cause the player to get flagged
+    if (target->getPlayerOwner() != nullptr && u_caster != nullptr && u_caster->getPlayerOwner() != nullptr)
+    {
+        if (target->getPlayerOwner()->isPvpFlagSet())
+        {
+            if (!u_caster->getPlayerOwner()->isPvpFlagSet())
+                u_caster->getPlayerOwner()->PvPToggle();
+            else
+                u_caster->getPlayerOwner()->setPvpFlag();
+        }
+    }
+
+    // Remove any auras with same type
+    //\ TODO: investigate this more
+    if (getSpellInfo()->custom_BGR_one_buff_on_target > 0)
+    {
+        target->RemoveAurasByBuffType(getSpellInfo()->custom_BGR_one_buff_on_target, m_caster->getGuid(), getSpellInfo()->getId());
+    }
+
+    // Call legacy HandleAddAura
+    HandleAddAura(target, aur);
+
+    // Add spell charges
+    //\ TODO: needs more work
+    auto spellCharges = m_charges;
+    if (spellCharges > 0)
+    {
+        // Apply spell modifiers to charge amount
+        if (u_caster != nullptr)
+        {
+            spellModFlatIntValue(u_caster->SM_FCharges, &spellCharges, aur->getSpellInfo()->getSpellFamilyFlags());
+            spellModPercentageIntValue(u_caster->SM_PCharges, &spellCharges, aur->getSpellInfo()->getSpellFamilyFlags());
+        }
+
+        for (uint8_t i = 0; i < (spellCharges - 1); ++i)
+        {
+            Aura* newCharge = sSpellMgr.newAura(aur->getSpellInfo(), aur->getTimeLeft(), aur->getCaster(), aur->getOwner(), m_triggeredSpell, i_caster);
+            target->addAura(newCharge);
+        }
+
+        if (!(aur->getSpellInfo()->getProcFlags() & PROC_REMOVEONUSE))
+        {
+            SpellCharge charge;
+            charge.count = spellCharges;
+            charge.spellId = aur->getSpellId();
+            charge.ProcFlag = aur->getSpellInfo()->getProcFlags();
+            charge.lastproc = 0;
+            target->m_chargeSpells.insert(std::make_pair(aur->getSpellId(), charge));
+        }
+    }
+
+    target->addAura(aur);
+    DecRef();
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // Spell cast checks
 SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uint32_t* parameter2)
@@ -876,28 +979,21 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
             return SPELL_FAILED_CASTER_AURASTATE;
 
         auto requireCombat = true;
-        if (u_caster->hasAuraWithAuraEffect(SPELL_AURA_IGNORE_TARGET_AURA_STATE))
+        for (const auto& aura : u_caster->getAuraListByEffect(SPELL_AURA_IGNORE_TARGET_AURA_STATE))
         {
-            for (const auto& aura : u_caster->m_auras)
+            if (aura->getSpellInfo()->isAuraEffectAffectingSpell(SPELL_AURA_IGNORE_TARGET_AURA_STATE, getSpellInfo()))
             {
-                if (aura == nullptr)
-                    continue;
-                if (!aura->GetSpellInfo()->hasEffectApplyAuraName(SPELL_AURA_IGNORE_TARGET_AURA_STATE))
-                    continue;
-                if (aura->GetSpellInfo()->isAffectingSpell(getSpellInfo()))
-                {
-                    // Warrior's Overpower uses "combo points" based on dbc data
-                    // This allows usage of Overpower if we have an affecting aura (i.e. Taste for Blood)
-                    m_requiresCP = false;
+                // Warrior's Overpower uses "combo points" based on dbc data
+                // This allows usage of Overpower if we have an affecting aura (i.e. Taste for Blood)
+                m_requiresCP = false;
 
-                    // All these aura effects use effect index 0
-                    // Allow Warrior's Charge to be casted on combat if caster has Juggernaut or Warbringer talent
-                    if (aura->GetSpellInfo()->getEffectMiscValue(0) == 1)
-                    {
-                        // TODO: currently not working, serverside everything was OK but client still gives "You are in combat" error
-                        requireCombat = false;
-                        break;
-                    }
+                // All these aura effects use effect index 0
+                // Allow Warrior's Charge to be casted on combat if caster has Juggernaut or Warbringer talent
+                if (aura->getSpellInfo()->getEffectMiscValue(0) == 1)
+                {
+                    // TODO: currently not working, serverside everything was OK but client still gives "You are in combat" error
+                    requireCombat = false;
+                    break;
                 }
             }
         }
@@ -936,15 +1032,11 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
             {
                 // Shapeshift check
                 auto hasIgnoreShapeshiftAura = false;
-                for (const auto& aura : u_caster->m_auras)
+                for (const auto& aura : u_caster->getAuraListByEffect(SPELL_AURA_IGNORE_SHAPESHIFT))
                 {
-                    if (aura == nullptr)
-                        continue;
                     // If aura has ignore shapeshift type, you can use spells regardless of stance / form
                     // Auras with this type: Shadow Dance, Metamorphosis, Warbringer (in 3.3.5a)
-                    if (!aura->GetSpellInfo()->hasEffectApplyAuraName(SPELL_AURA_IGNORE_SHAPESHIFT))
-                        continue;
-                    if (aura->GetSpellInfo()->isAffectingSpell(getSpellInfo()))
+                    if (aura->getSpellInfo()->isAuraEffectAffectingSpell(SPELL_AURA_IGNORE_SHAPESHIFT, getSpellInfo()))
                     {
                         hasIgnoreShapeshiftAura = true;
                         break;
@@ -3236,16 +3328,11 @@ SpellCastResult Spell::checkCasterState() const
         if (getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_USABLE_WHILE_STUNNED)
         {
             // Spell is usable while stunned, but there are some spells with stun effect which are not classified as normal stun spells
-            for (const auto& stunAura : u_caster->m_auras)
+            for (const auto& stunAura : u_caster->getAuraListByEffect(SPELL_AURA_MOD_STUN))
             {
-                if (stunAura == nullptr)
-                    continue;
-                if (!stunAura->GetSpellInfo()->hasEffectApplyAuraName(SPELL_AURA_MOD_STUN))
-                    continue;
-
                 // Frozen mechanic acts like stunned mechanic
-                if (!hasSpellMechanic(stunAura->GetSpellInfo(), MECHANIC_STUNNED)
-                    && !hasSpellMechanic(stunAura->GetSpellInfo(), MECHANIC_FROZEN))
+                if (!hasSpellMechanic(stunAura->getSpellInfo(), MECHANIC_STUNNED)
+                    && !hasSpellMechanic(stunAura->getSpellInfo(), MECHANIC_FROZEN))
                 {
                     // The stun aura has a stun effect but has no stun or frozen mechanic
                     // This is not a normal stun aura
@@ -3281,37 +3368,34 @@ SpellCastResult Spell::checkCasterState() const
         if (schoolImmunityMask > 0 || dispelImmunityMask > 0 || mechanicImmunityMask > 0)
         {
             // The spell cast is prevented by some state but check if the spell is unaffected by those states or grants immunity to those states
-            for (const auto& aur : u_caster->m_auras)
+            for (const auto& aur : u_caster->getAuraList())
             {
-                if (aur == nullptr)
-                    continue;
-
                 // Check if the spell, which is being casted, is unaffected by this aura due to school immunity
-                if (aur->GetSpellInfo()->getSchoolMask() & schoolImmunityMask && !(aur->GetSpellInfo()->getAttributesEx() & ATTRIBUTESEX_UNAFFECTED_BY_SCHOOL_IMMUNE))
+                if (aur->getSpellInfo()->getSchoolMask() & schoolImmunityMask && !(aur->getSpellInfo()->getAttributesEx() & ATTRIBUTESEX_UNAFFECTED_BY_SCHOOL_IMMUNE))
                     continue;
 
                 // Check if the spell, which is being casted, is unaffected by this aura due to dispel immunity
-                if ((1 << aur->GetSpellInfo()->getDispelType()) & dispelImmunityMask)
+                if ((1 << aur->getSpellInfo()->getDispelType()) & dispelImmunityMask)
                     continue;
 
                 for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
                 {
-                    if (aur->GetSpellInfo()->getEffectApplyAuraName(i) == 0)
+                    if (aur->getSpellInfo()->getEffectApplyAuraName(i) == 0)
                         continue;
 
                     // Get aura's mechanics in one mask
                     uint32_t mechanicMask = 0;
-                    if (aur->GetSpellInfo()->getMechanicsType() > 0)
-                        mechanicMask |= 1 << (aur->GetSpellInfo()->getMechanicsType() - 1);
-                    if (aur->GetSpellInfo()->getEffectMechanic(i) > 0)
-                        mechanicMask |= 1 << (aur->GetSpellInfo()->getEffectMechanic(i) - 1);
+                    if (aur->getSpellInfo()->getMechanicsType() > 0)
+                        mechanicMask |= 1 << (aur->getSpellInfo()->getMechanicsType() - 1);
+                    if (aur->getSpellInfo()->getEffectMechanic(i) > 0)
+                        mechanicMask |= 1 << (aur->getSpellInfo()->getEffectMechanic(i) - 1);
 
                     // Check if the spell, which is being casted, is unaffected by this aura due to mechanic immunity
                     if (mechanicMask & mechanicImmunityMask)
                         continue;
 
                     // Spell cast is prevented by this aura and by this effect index, return correct error message
-                    switch (aur->GetSpellInfo()->getEffectApplyAuraName(i))
+                    switch (aur->getSpellInfo()->getEffectApplyAuraName(i))
                     {
                         case SPELL_AURA_MOD_STUN:
                             if (!(getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_USABLE_WHILE_STUNNED) || !hasSpellMechanic(getSpellInfo(), MECHANIC_STUNNED))

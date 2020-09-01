@@ -2847,10 +2847,10 @@ void Player::cancelDuel()
     m_duelCountdownTimer = 0;
 
     // auras
-    for (auto i = MAX_NEGATIVE_AURAS_EXTEDED_START; i < MAX_NEGATIVE_AURAS_EXTEDED_END; ++i)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[i])
-            m_auras[i]->Remove();
+        if (aur->isNegative())
+            aur->removeAura();
     }
 
     // summons

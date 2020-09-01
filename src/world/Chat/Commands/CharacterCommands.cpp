@@ -336,10 +336,10 @@ bool ChatHandler::HandleCharRemoveAurasCommand(const char* /*args*/, WorldSessio
         return true;
 
     BlueSystemMessage(m_session, "Removing all auras...");
-    for (uint32 i = MAX_REMOVABLE_AURAS_START; i < MAX_REMOVABLE_AURAS_END; ++i)
+    for (const auto& aur : player_target->getAuraList())
     {
-        if (player_target->m_auras[i] != 0)
-            player_target->m_auras[i]->Remove();
+        if (!aur->IsPassive())
+            aur->removeAura();
     }
 
     if (player_target != m_session->GetPlayer())

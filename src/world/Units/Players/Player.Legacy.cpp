@@ -359,11 +359,6 @@ Player::Player(uint32 guid)
 
     for (i = 0; i < 5; i++)
     {
-        for (j = 0; j < 7; j++)
-        {
-            SpellHealDoneByAttribute[i][j] = 0;
-        }
-
         FlatStatModPos[i] = 0;
         FlatStatModNeg[i] = 0;
         StatModPctPos[i] = 0;
@@ -1107,10 +1102,10 @@ void Player::Update(unsigned long time_passed)
                 // this is duplicated check, but some mount auras comes w/o this flag set, maybe due to spellfixes.cpp line:663
                 Dismount();
 
-                for (uint32 x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_POSITIVE_AURAS_EXTEDED_END; x++)
+                for (const auto& aur : getAuraList())
                 {
-                    if (m_auras[x] && m_auras[x]->GetSpellInfo()->getAttributes() & ATTRIBUTES_ONLY_OUTDOORS)
-                        RemoveAura(m_auras[x]);
+                    if (!aur->isNegative() && aur->getSpellInfo()->getAttributes() & ATTRIBUTES_ONLY_OUTDOORS)
+                        RemoveAura(aur);
                 }
             }
             m_indoorCheckTimer = mstime + COLLISION_INDOOR_CHECK_INTERVAL;
@@ -3795,7 +3790,7 @@ void Player::OnPushToWorld()
     }
 
     m_changingMaps = false;
-    SendFullAuraUpdate();
+    sendFullAuraUpdate();
 
     getItemInterface()->HandleItemDurations();
 
@@ -4262,11 +4257,10 @@ void Player::_ApplyItemMods(Item* item, int16 slot, bool apply, bool justdrokedo
 
     if (!apply)   // force remove auras added by using this item
     {
-        for (uint32 k = MAX_POSITIVE_AURAS_EXTEDED_START; k < MAX_POSITIVE_AURAS_EXTEDED_END; ++k)
+        for (const auto& m_aura : getAuraList())
         {
-            Aura* m_aura = this->m_auras[k];
-            if (m_aura != nullptr && m_aura->m_castedItemId && m_aura->m_castedItemId == proto->ItemId)
-                m_aura->Remove();
+            if (!m_aura->isNegative() && m_aura->m_castedItemId && m_aura->m_castedItemId == proto->ItemId)
+                m_aura->removeAura();
         }
     }
 
@@ -5242,13 +5236,13 @@ void Player::UpdateStats()
     }
 
     // Dynamic aura application, auras 212, 268
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraListByEffect(SPELL_AURA_MOD_ATTACK_POWER_BY_STAT_PCT))
     {
-        if (m_auras[x] != nullptr)
-        {
-            if (m_auras[x]->HasModType(SPELL_AURA_MOD_ATTACK_POWER_BY_STAT_PCT) || m_auras[x]->HasModType(SPELL_AURA_MOD_RANGED_ATTACK_POWER_BY_STAT_PCT))
-                m_auras[x]->UpdateModifiers();
-        }
+        aur->updateModifiers();
+    }
+    for (const auto& aur : getAuraListByEffect(SPELL_AURA_MOD_RANGED_ATTACK_POWER_BY_STAT_PCT))
+    {
+        aur->updateModifiers();
     }
 
     UpdateChances();
@@ -5434,7 +5428,7 @@ void Player::EventCannibalize(uint32 amount)
     if (cannibalizeCount == 5)
         setEmoteState(EMOTE_ONESHOT_NONE);
 
-    SendPeriodicAuraLog(GetNewGUID(), GetNewGUID(), 20577, 0, amt, 0, 0, false, 8, 0);
+    sendPeriodicAuraLog(GetNewGUID(), GetNewGUID(), sSpellMgr.getSpellInfo(20577), amt, 0, 0, 0, SPELL_AURA_PERIODIC_HEAL_PCT, false);
 }
 
 // The player sobers by 256 every 10 seconds
@@ -5711,12 +5705,13 @@ void Player::CalcResistance(uint8_t type)
         res += getStat(STAT_AGILITY) * 2; //fix armor from agi
 
     // Dynamic aura 285 application, removing bonus
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraListByEffect(SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR))
     {
-        if (m_auras[x] != nullptr)
+        for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
         {
-            if (m_auras[x]->HasModType(SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR))
-                m_auras[x]->SpellAuraModAttackPowerOfArmor(false);
+            auto aurEff = aur->getAuraEffect(i);
+            if (aurEff.mAuraEffect == SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR)
+                aur->SpellAuraModAttackPowerOfArmor(&aurEff, false);
         }
     }
 
@@ -5734,12 +5729,13 @@ void Player::CalcResistance(uint8_t type)
         (*itr)->CalcResistance(type);  //Re-calculate pet's too.
 
     // Dynamic aura 285 application, adding bonus
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraListByEffect(SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR))
     {
-        if (m_auras[x] != nullptr)
+        for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
         {
-            if (m_auras[x]->HasModType(SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR))
-                m_auras[x]->SpellAuraModAttackPowerOfArmor(true);
+            auto aurEff = aur->getAuraEffect(i);
+            if (aurEff.mAuraEffect == SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR)
+                aur->SpellAuraModAttackPowerOfArmor(&aurEff, true);
         }
     }
 }
@@ -6956,13 +6952,13 @@ void Player::EndDuel(uint8 WinCondition)
     sEventMgr.RemoveEvents(this, EVENT_PLAYER_DUEL_COUNTDOWN);
     sEventMgr.RemoveEvents(this, EVENT_PLAYER_DUEL_BOUNDARY_CHECK);
 
-    for (uint32 x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_POSITIVE_AURAS_EXTEDED_END; ++x)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] == nullptr)
+        if (!aur->isNegative())
             continue;
 
-        if (m_auras[x]->WasCastInDuel())
-            m_auras[x]->Remove();
+        if (aur->WasCastInDuel())
+            aur->removeAura();
     }
 
     m_duelState = DUEL_STATE_FINISHED;
@@ -6973,12 +6969,12 @@ void Player::EndDuel(uint8 WinCondition)
     sEventMgr.RemoveEvents(DuelingWith, EVENT_PLAYER_DUEL_BOUNDARY_CHECK);
     sEventMgr.RemoveEvents(DuelingWith, EVENT_PLAYER_DUEL_COUNTDOWN);
 
-    for (uint32 x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_POSITIVE_AURAS_EXTEDED_END; ++x)
+    for (const auto& aur : DuelingWith->getAuraList())
     {
-        if (DuelingWith->m_auras[x] == nullptr)
+        if (aur->isNegative())
             continue;
-        if (DuelingWith->m_auras[x]->WasCastInDuel())
-            DuelingWith->m_auras[x]->Remove();
+        if (aur->WasCastInDuel())
+            aur->removeAura();
     }
 
     DuelingWith->m_duelState = DUEL_STATE_FINISHED;
@@ -7036,17 +7032,20 @@ void Player::EndDuel(uint8 WinCondition)
     /*RemoveNegativeAuras(); NOT NEEDED. External targets can always gank both duelers with DoTs. :D
     DuelingWith->RemoveNegativeAuras();*/
     //Same as above only cleaner.
-    for (uint32 x = MAX_NEGATIVE_AURAS_EXTEDED_START; x < MAX_REMOVABLE_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (DuelingWith->m_auras[x])
+        if (aur->isNegative())
         {
-            if (DuelingWith->m_auras[x]->WasCastInDuel())
-                DuelingWith->m_auras[x]->Remove();
+            if (aur->WasCastInDuel())
+                aur->removeAura();
         }
-        if (m_auras[x])
+    }
+    for (const auto& aur : DuelingWith->getAuraList())
+    {
+        if (aur->isNegative())
         {
-            if (m_auras[x]->WasCastInDuel())
-                m_auras[x]->Remove();
+            if (aur->WasCastInDuel())
+                aur->removeAura();
         }
     }
 
@@ -7828,7 +7827,7 @@ void Player::CompleteLoading()
         {
             if (sp->getEffect(x) == SPELL_EFFECT_APPLY_AURA)
             {
-                aura->AddMod(sp->getEffectApplyAuraName(x), sp->getEffectBasePoints(x) + 1, sp->getEffectMiscValue(x), x);
+                aura->addAuraEffect(static_cast<AuraEffect>(sp->getEffectApplyAuraName(x)), sp->getEffectBasePoints(x) + 1, sp->getEffectMiscValue(x), x);
             }
         }
 
@@ -7837,7 +7836,7 @@ void Player::CompleteLoading()
             for (uint32 x = 0; x < (*i).charges - 1; x++)
             {
                 Aura* a = sSpellMgr.newAura(sp, (*i).dur, this, this, false);
-                this->AddAura(a);
+                this->addAura(a);
             }
             if (m_chargeSpells.find(sp->getId()) == m_chargeSpells.end() && !(sp->getProcFlags() & PROC_REMOVEONUSE))
             {
@@ -7854,7 +7853,7 @@ void Player::CompleteLoading()
                 m_chargeSpells.insert(std::make_pair(sp->getId(), charge));
             }
         }
-        this->AddAura(aura);
+        this->addAura(aura);
     }
 
     // this needs to be after the cast of passive spells, because it will cast ghost form, after the remove making it in ghost alive, if no corpse.
@@ -8235,14 +8234,13 @@ void Player::SaveAuras(std::stringstream & ss)
     ss << "'";
     uint32 charges = 0, prevX = 0;
     //cebernic: save all auras why only just positive?
-    for (uint32 x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_NEGATIVE_AURAS_EXTEDED_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] != nullptr && m_auras[x]->GetTimeLeft() > 3000)
+        if (!aur->IsPassive() && aur->getTimeLeft() > 3000)
         {
-            Aura* aur = m_auras[x];
             for (uint8 i = 0; i < 3; ++i)
             {
-                if (aur->m_spellInfo->getEffect(i) == SPELL_EFFECT_APPLY_GROUP_AREA_AURA || aur->m_spellInfo->getEffect(i) == SPELL_EFFECT_APPLY_RAID_AREA_AURA || aur->m_spellInfo->getEffect(i) == SPELL_EFFECT_ADD_FARSIGHT)
+                if (aur->getSpellInfo()->getEffect(i) == SPELL_EFFECT_APPLY_GROUP_AREA_AURA || aur->getSpellInfo()->getEffect(i) == SPELL_EFFECT_APPLY_RAID_AREA_AURA || aur->getSpellInfo()->getEffect(i) == SPELL_EFFECT_ADD_FARSIGHT)
                 {
                     continue;
                 }
@@ -8251,34 +8249,25 @@ void Player::SaveAuras(std::stringstream & ss)
             if (aur->pSpellId)
                 continue; //these auras were gained due to some proc. We do not save these either to avoid exploits of not removing them
 
-            if (aur->m_spellInfo->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_WITH_PET)
+            if (aur->getSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_WITH_PET)
                 continue;
 
             //we are going to cast passive spells anyway on login so no need to save auras for them
-            if (aur->IsPassive() && !(aur->GetSpellInfo()->getAttributesEx() & ATTRIBUTESEX_NO_INITIAL_AGGRO))
+            if (aur->IsPassive() && !(aur->getSpellInfo()->getAttributesEx() & ATTRIBUTESEX_NO_INITIAL_AGGRO))
                 continue;
 
-            if (charges > 0 && aur->GetSpellId() != m_auras[prevX]->GetSpellId())
+            if (charges > 0)
             {
-                ss << m_auras[prevX]->GetSpellId() << "," << m_auras[prevX]->GetTimeLeft() << "," << m_auras[prevX]->IsPositive() << "," << charges << ",";
+                ss << aur->getSpellId() << "," << aur->getTimeLeft() << "," << !aur->isNegative() << "," << charges << ",";
                 charges = 0;
             }
 
-            if (aur->GetSpellInfo()->getProcCharges() == 0)
-                ss << aur->GetSpellId() << "," << aur->GetTimeLeft() << "," << aur->IsPositive() << "," << uint32_t(0) << ",";
+            if (aur->getSpellInfo()->getProcCharges() == 0)
+                ss << aur->getSpellId() << "," << aur->getTimeLeft() << "," << !aur->isNegative() << "," << uint32_t(0) << ",";
             else
                 charges++;
-
-            prevX = x;
         }
     }
-
-    if (charges > 0 && m_auras[prevX] != nullptr)
-    {
-        ss << m_auras[prevX]->GetSpellId() << "," << m_auras[prevX]->GetTimeLeft() << "," << m_auras[prevX]->IsPositive() << "," << charges << ",";
-    }
-
-    ss << "'";
 }
 
 void Player::SetShapeShift(uint8 ss)
@@ -8287,40 +8276,37 @@ void Player::SetShapeShift(uint8 ss)
     setShapeShiftForm(ss);
 
     //remove auras that we should not have
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] != nullptr)
+        uint32 reqss = aur->getSpellInfo()->getRequiredShapeShift();
+        if (reqss != 0 && !aur->isNegative())
         {
-            uint32 reqss = m_auras[x]->GetSpellInfo()->getRequiredShapeShift();
-            if (reqss != 0 && m_auras[x]->IsPositive())
+            if (old_ss > 0
+                && old_ss != FORM_SHADOW
+                && old_ss != FORM_STEALTH)
             {
-                if (old_ss > 0
-                    && old_ss != FORM_SHADOW
-                    && old_ss != FORM_STEALTH)
+                if ((((uint32)1 << (old_ss - 1)) & reqss) &&        // we were in the form that required it
+                    !(((uint32)1 << (ss - 1) & reqss)))            // new form doesn't have the right form
                 {
-                    if ((((uint32)1 << (old_ss - 1)) & reqss) &&        // we were in the form that required it
-                        !(((uint32)1 << (ss - 1) & reqss)))            // new form doesn't have the right form
-                    {
-                        m_auras[x]->Remove();
-                        continue;
-                    }
+                    aur->removeAura();
+                    continue;
                 }
             }
+        }
 
-            if (this->getClass() == DRUID)
+        if (this->getClass() == DRUID)
+        {
+            switch (aur->getSpellInfo()->getMechanicsType())
             {
-                switch (m_auras[x]->GetSpellInfo()->getMechanicsType())
-                {
-                    case MECHANIC_ROOTED: //Rooted
-                    case MECHANIC_ENSNARED: //Movement speed
-                    case MECHANIC_POLYMORPHED:  //Polymorphed
-                    {
-                        m_auras[x]->Remove();
-                    }
-                    break;
-                    default:
-                        break;
-                }
+            case MECHANIC_ROOTED: //Rooted
+            case MECHANIC_ENSNARED: //Movement speed
+            case MECHANIC_POLYMORPHED:  //Polymorphed
+            {
+                aur->removeAura();
+            }
+            break;
+            default:
+                break;
             }
         }
     }
@@ -8640,7 +8626,7 @@ void Player::EventPortToGM(Player* p)
 
 void Player::AddComboPoints(uint64 target, int8 count)
 {
-    // GetTimeLeft() checked in SpellAura, so we won't lose points
+    // getTimeLeft() checked in SpellAura, so we won't lose points
     RemoveAllAuraType(SPELL_AURA_RETAIN_COMBO_POINTS);
 
     if (m_comboTarget == target)
@@ -9548,9 +9534,9 @@ void Player::EventSummonPet(Pet* new_pet)
     }
 
     //there are talents that stop working after you gain pet
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->GetSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_ON_PET)
-            m_auras[x]->Remove();
+    for (const auto& aur : getAuraList())
+        if (aur->getSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_ON_PET)
+            aur->removeAura();
     //pet should inherit some of the talents from caster
     //new_pet->InheritSMMods(); //not required yet. We cast full spell to have visual effect too
 }
@@ -9559,10 +9545,9 @@ void Player::EventSummonPet(Pet* new_pet)
 //!! note function might get called multiple times :P
 void Player::EventDismissPet()
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x])
-            if (m_auras[x]->GetSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_WITH_PET)
-                m_auras[x]->Remove();
+    for (const auto& aur : getAuraList())
+        if (aur->getSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_EXPIREING_WITH_PET)
+            aur->removeAura();  
 }
 
 void Player::AddShapeShiftSpell(uint32 id)
@@ -10332,31 +10317,28 @@ void Player::CalcExpertise()
     setOffHandExpertise(0);
 #endif
 
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
+    for (const auto& aur : getAuraListByEffect(SPELL_AURA_EXPERTISE))
     {
-        if (m_auras[x] != nullptr && m_auras[x]->HasModType(SPELL_AURA_EXPERTISE))
+        SpellInfo const* entry = aur->getSpellInfo();
+        int32 val = aur->getEffectDamageByEffect(SPELL_AURA_EXPERTISE);
+
+        if (entry->getEquippedItemSubClass() != 0)
         {
-            SpellInfo const* entry = m_auras[x]->m_spellInfo;
-            int32 val = m_auras[x]->GetModAmountByMod();
+            auto item_mainhand = getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_MAINHAND);
+            auto item_offhand = getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_OFFHAND);
+            uint32 reqskillMH = 0;
+            uint32 reqskillOH = 0;
 
-            if (entry->getEquippedItemSubClass() != 0)
-            {
-                auto item_mainhand = getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_MAINHAND);
-                auto item_offhand = getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_OFFHAND);
-                uint32 reqskillMH = 0;
-                uint32 reqskillOH = 0;
+            if (item_mainhand)
+                reqskillMH = entry->getEquippedItemSubClass() & (((uint32)1) << item_mainhand->getItemProperties()->SubClass);
+            if (item_offhand)
+                reqskillOH = entry->getEquippedItemSubClass() & (((uint32)1) << item_offhand->getItemProperties()->SubClass);
 
-                if (item_mainhand)
-                    reqskillMH = entry->getEquippedItemSubClass() & (((uint32)1) << item_mainhand->getItemProperties()->SubClass);
-                if (item_offhand)
-                    reqskillOH = entry->getEquippedItemSubClass() & (((uint32)1) << item_offhand->getItemProperties()->SubClass);
-
-                if (reqskillMH != 0 || reqskillOH != 0)
-                    modifier = +val;
-            }
-            else
-                modifier += val;
+            if (reqskillMH != 0 || reqskillOH != 0)
+                modifier = +val;
         }
+        else
+            modifier += val;
     }
 
 #if VERSION_STRING != Classic
@@ -11961,16 +11943,13 @@ void Player::CastSpellArea()
 
 
     //Remove of Spells
-    for (uint32 i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[i] != nullptr)
+        if (sSpellMgr.checkLocation(aur->getSpellInfo(), ZoneId, AreaId, this) == false)
         {
-            if (sSpellMgr.checkLocation(m_auras[i]->GetSpellInfo(), ZoneId, AreaId, this) == false)
-            {
-                SpellAreaMapBounds sab = sSpellMgr.getSpellAreaMapBounds(m_auras[i]->GetSpellId());
-                if (sab.first != sab.second)
-                    RemoveAura(m_auras[i]->GetSpellId());
-            }
+            SpellAreaMapBounds sab = sSpellMgr.getSpellAreaMapBounds(aur->getSpellId());
+            if (sab.first != sab.second)
+                RemoveAura(aur->getSpellId());
         }
     }
 }

@@ -260,6 +260,8 @@ public:CombatStatusHandler() : m_Unit(nullptr), m_lastStatus(false), m_primaryAt
 };
 // AGPL End
 
+typedef std::unordered_set<Aura*> AuraList;
+
 // MIT Start
 struct WoWUnit;
 class SERVER_DECL Unit : public Object
@@ -629,17 +631,31 @@ public:
     void castSpell(uint64_t targetGuid, SpellInfo const* spellInfo, uint32_t forcedBasepoints, bool triggered);
     void castSpell(Unit* target, SpellInfo const* spellInfo, uint32_t forcedBasepoints, bool triggered);
 
+    float_t getSpellDamageBonus(SpellInfo const* spellInfo, int32_t baseDmg, bool isPeriodic, Aura* aur = nullptr);
+    float_t getSpellHealingBonus(SpellInfo const* spellInfo, int32_t baseHeal, bool isPeriodic, Aura* aur = nullptr);
+
+    float_t getCriticalChanceForDamageSpell(SpellInfo const* spellInfo, Unit* victim) const;
+    float_t getCriticalChanceForHealSpell(SpellInfo const* spellInfo) const;
+
+    // Sends packet for damage immune
+    void sendSpellOrDamageImmune(uint64_t casterGuid, Unit* target, uint32_t spellId);
+
 private:
     bool m_canDualWield;
 
 public:
     //////////////////////////////////////////////////////////////////////////////////////////
     // Aura
+    void addAura(Aura* aur);
+    void _removeAura(Aura* aur);
+
+    AuraList const& getAuraList() const;
+    AuraList const& getAuraListByEffect(AuraEffect auraEffect) const;
+
     Aura* getAuraWithId(uint32_t spell_id);
     Aura* getAuraWithId(uint32_t* auraId);
     Aura* getAuraWithIdForGuid(uint32_t* auraId, uint64 guid);
     Aura* getAuraWithIdForGuid(uint32_t spell_id, uint64_t target_guid);
-    Aura* getAuraWithAuraEffect(AuraEffect aura_effect);
 
     bool hasAurasWithId(uint32_t auraId);
     bool hasAurasWithId(uint32_t* auraId);
@@ -670,6 +686,22 @@ public:
     void setAuraSlotLevel(uint32_t slot, bool positive);
 #endif
 
+    // Sends packet for new or removed aura
+    void sendAuraUpdate(Aura* aur, bool remove);
+    void sendFullAuraUpdate();
+    // Sends packet for periodic aura log
+    void sendPeriodicAuraLog(const WoWGuid& casterGuid, const WoWGuid& targetGuid, SpellInfo const* spellInfo, uint32_t amount, uint32_t overKillOrOverHeal, uint32_t absorbed, uint32_t resisted, AuraEffect auraEffect, bool isCritical, uint32_t miscValue = 0, float gainMultiplier = 0.0f);
+
+private:
+    void _addAura(Aura* aur);
+
+    // Primary aura list which contains all auras
+    AuraList mAuraList;
+
+    // Helper lists for faster access
+    AuraList mAuraListByEffect[TOTAL_SPELL_AURAS];
+
+public:
     //////////////////////////////////////////////////////////////////////////////////////////
     // Visibility system
     bool canSee(Object* const obj);
@@ -960,11 +992,6 @@ public:
     void GiveGroupXP(Unit* pVictim, Player* PlayerInGroup);
 
     void OnDamageTaken();
-
-    //caller is the caster
-    int32 GetSpellDmgBonus(Unit* pVictim, SpellInfo const* spellInfo, int32 base_dmg, bool isdot);
-
-    float CalcSpellDamageReduction(Unit* victim, SpellInfo const* spell, float res);
 
     uint32 m_addDmgOnce;
     uint32 m_ObjectSlots[4];
@@ -1278,8 +1305,6 @@ public:
 
     bool m_can_stealth;
 
-    Aura* m_auras[MAX_TOTAL_AURAS_END];
-
     int32 m_modlanguage;
 
     uint32 GetCharmTempVal() { return m_charmtemp; }
@@ -1321,8 +1346,6 @@ public:
     //! returns: aura stack count
     uint8 m_auraStackCount[MAX_NEGATIVE_VISUAL_AURAS_END];
 
-    void SendFullAuraUpdate();
-    void SendAuraUpdate(uint32 AuraSlot, bool remove);
     void ModVisualAuraStackCount(Aura* aur, int32 count);
     uint8 FindVisualSlot(uint32 SpellId, bool IsPos);
     uint32 m_auravisuals[MAX_NEGATIVE_VISUAL_AURAS_END];
@@ -1348,8 +1371,6 @@ public:
 
     void EventStrikeWithAbility(uint64 guid, SpellInfo const* sp, uint32 damage);
     void DispelAll(bool positive);
-
-    void SendPeriodicAuraLog(const WoWGuid & CasterGUID, const WoWGuid & casterGUID, uint32 SpellID, uint32 School, uint32 Amount, uint32 abs_dmg, uint32 resisted_damage, bool is_critical, uint32_t mod, int32_t misc, uint32 over_healed = 0);
 
     void EventModelChange();
     inline float GetModelHalfSize() { return m_modelhalfsize * getScale(); }

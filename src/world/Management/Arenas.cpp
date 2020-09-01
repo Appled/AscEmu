@@ -200,15 +200,15 @@ void Arena::OnAddPlayer(Player* plr)
     plr->m_deathVision = true;
 
     // remove all buffs (exclude talents, include flasks)
-    for (uint32 x = MAX_REMOVABLE_AURAS_START; x < MAX_REMOVABLE_AURAS_END; x++)
+    for (const auto& aur : plr->getAuraList())
     {
-        if (plr->m_auras[x])
+        if (!aur->IsPassive())
         {
-            if (plr->m_auras[x] && !plr->m_auras[x]->GetSpellInfo()->getDurationIndex() && plr->m_auras[x]->GetSpellInfo()->getAttributesExC() & ATTRIBUTESEXC_CAN_PERSIST_AND_CASTED_WHILE_DEAD)
+            if (!aur->getSpellInfo()->getDurationIndex() && aur->getSpellInfo()->getAttributesExC() & ATTRIBUTESEXC_CAN_PERSIST_AND_CASTED_WHILE_DEAD)
                 continue;
             else
             {
-                plr->m_auras[x]->Remove();
+                aur->removeAura();
             }
         }
     }
@@ -237,7 +237,7 @@ void Arena::OnAddPlayer(Player* plr)
 
     // Add the green/gold team flag
     Aura* aura = sSpellMgr.newAura(sSpellMgr.getSpellInfo((plr->getInitialTeam()) ? 35775 - plr->getBgTeam() : 32725 - plr->getBgTeam()), -1, plr, plr, true);
-    plr->AddAura(aura);
+    plr->addAura(aura);
 
     plr->setFfaPvpFlag();
 

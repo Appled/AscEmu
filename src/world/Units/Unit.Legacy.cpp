@@ -707,7 +707,6 @@ Unit::Unit() :
     trackStealth = false;
 
     m_threatModifyer = 0;
-    memset(m_auras, 0, (MAX_TOTAL_AURAS_END)*sizeof(Aura*));
 
     // diminishing return stuff
     memset(m_diminishAuraCount, 0, DIMINISHING_GROUP_COUNT);
@@ -3090,7 +3089,7 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo const* CastingSpell
                     Spell* spell = sSpellMgr.newSpell(this, spellInfo, true, NULL);
                     spell->SetUnitTarget(this);
                     if (ospinfo)
-                        spell->Heal(amount * (ospinfo->getEffectBasePoints(0) + 1) / 100);
+                        doSpellHealing(this, spellId, amount * (ospinfo->getEffectBasePoints(0) + 1) / 100, false);
                     delete spell;
                     spell = NULL;
                     continue;
@@ -4622,7 +4621,7 @@ uint32 Unit::HandleProc(uint32 flag, Unit* victim, SpellInfo const* CastingSpell
                     {
                         int tdmg = abs * (ospinfo->getEffectBasePoints(0) + 1) / 100;
                         //somehow we should make this not caused any threat (to be done)
-                        SpellNonMeleeDamageLog(victim, power_word_id, tdmg, false, true);
+                        doSpellDamage(victim, power_word_id, tdmg, false, true);
                     }
                     continue;
                 }
@@ -7737,7 +7736,7 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo const* abi
                 dmg.full_damage += float2int32(dmg.full_damage * pVictim->DamageTakenPctMod[dmg.school_type]);
 
                 if (dmg.school_type != SCHOOL_NORMAL)
-                    dmg.full_damage += float2int32(dmg.full_damage * (GetDamageDonePctMod(dmg.school_type) - 1));
+                    dmg.full_damage += float2int32(dmg.full_damage * (GetDamageDonePctMod(static_cast<uint16_t>(dmg.school_type)) - 1));
 
                 if (ability != NULL)
                 {
@@ -8089,7 +8088,7 @@ void Unit::Strike(Unit* pVictim, uint32 weapon_damage_type, SpellInfo const* abi
                 if (range != 0)
                     dmg2 += Util::getRandomUInt(range);
 
-                SpellNonMeleeDamageLog(pVictim, itr->second.spellid, dmg2, true);
+                doSpellDamage(pVictim, itr->second.spellid, dmg2);
             }
         }
 
@@ -8426,7 +8425,7 @@ void Unit::AddAura(Aura* aur)
     if (aur == NULL)
         return;
 
-    if (!(isAlive() || (aur->GetSpellInfo()->isDeathPersistent())))
+    if (!(isAlive() || (aur->getSpellInfo()->isDeathPersistent())))
     {
         delete aur;
         return;
@@ -8437,7 +8436,7 @@ void Unit::AddAura(Aura* aur)
     {
         for (uint8 i = 0; i < 3; ++i)
         {
-            if (aur->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_ENABLE_FLIGHT_WITH_UNMOUNTED_SPEED || aur->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_ENABLE_FLIGHT2)
+            if (aur->getSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_ENABLE_FLIGHT_WITH_UNMOUNTED_SPEED || aur->getSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_ENABLE_FLIGHT2)
             {
                 delete aur;
                 return;
@@ -8445,14 +8444,14 @@ void Unit::AddAura(Aura* aur)
         }
     }
 
-    if (aur->GetSpellInfo()->getFirstSchoolFromSchoolMask() && SchoolImmunityList[aur->GetSpellInfo()->getFirstSchoolFromSchoolMask()])
+    if (aur->getSpellInfo()->getFirstSchoolFromSchoolMask() && SchoolImmunityList[aur->getSpellInfo()->getFirstSchoolFromSchoolMask()])
     {
         delete aur;
         return;
     }
 
     // If this aura can only affect one target at a time
-    if (aur->GetSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_SINGLE_TARGET_AURA)
+    if (aur->getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_SINGLE_TARGET_AURA)
     {
         // remove aura from the previous applied target
         Unit* caster = aur->GetUnitCaster();
@@ -8460,13 +8459,13 @@ void Unit::AddAura(Aura* aur)
 
         if (caster != NULL)
         {
-            prev_target_guid = caster->getSingleTargetGuidForAura(aur->GetSpellInfo()->getId());
+            prev_target_guid = caster->getSingleTargetGuidForAura(aur->getSpellInfo()->getId());
 
-            if (prev_target_guid && prev_target_guid != aur->GetTarget()->getGuid())
+            if (prev_target_guid && prev_target_guid != aur->getOwner()->getGuid())
             {
                 Unit* prev_target = this->GetMapMgr()->GetUnit(prev_target_guid);
                 if (prev_target != NULL)
-                    prev_target->removeAllAurasById(aur->GetSpellInfo()->getId());
+                    prev_target->removeAllAurasById(aur->getSpellInfo()->getId());
             }
         }
 
@@ -8476,8 +8475,8 @@ void Unit::AddAura(Aura* aur)
         //  2) attacker B cast on target B
         //  3) attacker A cast on target B, and aura is removed from target A
         //  4) attacker B cast on target A, and aura is not removed from target B, because caster A is now the one that casted on target B
-        if (prev_target_guid && prev_target_guid != aur->GetTarget()->getGuid())
-            removeAllAurasById(aur->GetSpellInfo()->getId());
+        if (prev_target_guid && prev_target_guid != aur->getOwner()->getGuid())
+            removeAllAurasById(aur->getSpellInfo()->getId());
     }
 
     uint16 AuraSlot = 0xFFFF;
@@ -8496,26 +8495,26 @@ void Unit::AddAura(Aura* aur)
             CheckLimit = MAX_NEGATIVE_AURAS_EXTEDED_END;
         }
         // Nasty check for Blood Fury debuff (spell system based on namehashes is bs anyways)
-        if (!sSpellMgr.isAlwaysApply(aur->GetSpellInfo()))
+        if (!sSpellMgr.isAlwaysApply(aur->getSpellInfo()))
         {
             //uint32 aurName = aur->GetSpellProto()->Name;
             //uint32 aurRank = aur->GetSpellProto()->Rank;
-            uint32 maxStack = aur->GetSpellInfo()->getMaxstack();
-            if (aur->GetSpellInfo()->getProcCharges() > 0)
+            uint32 maxStack = aur->getSpellInfo()->getMaxstack();
+            if (aur->getSpellInfo()->getProcCharges() > 0)
             {
-                int charges = aur->GetSpellInfo()->getProcCharges();
+                int charges = aur->getSpellInfo()->getProcCharges();
                 Unit* ucaster = aur->GetUnitCaster();
                 if (ucaster != nullptr)
                 {
-                    spellModFlatIntValue(ucaster->SM_FCharges, &charges, aur->GetSpellInfo()->getSpellFamilyFlags());
-                    spellModPercentageIntValue(ucaster->SM_PCharges, &charges, aur->GetSpellInfo()->getSpellFamilyFlags());
+                    spellModFlatIntValue(ucaster->SM_FCharges, &charges, aur->getSpellInfo()->getSpellFamilyFlags());
+                    spellModPercentageIntValue(ucaster->SM_PCharges, &charges, aur->getSpellInfo()->getSpellFamilyFlags());
                 }
                 maxStack = charges;
             }
             if (isPlayer() && static_cast<Player*>(this)->m_cheats.AuraStackCheat)
                 maxStack = 999;
 
-            SpellInfo const* info = aur->GetSpellInfo();
+            SpellInfo const* info = aur->getSpellInfo();
             //uint32 flag3 = aur->GetSpellProto()->Flags3;
 
             AuraCheckResponse acr;
@@ -8527,11 +8526,11 @@ void Unit::AddAura(Aura* aur)
             {
                 if (m_auras[x])
                 {
-                    if (m_auras[x]->GetSpellId() == aur->GetSpellId())
+                    if (m_auras[x]->getSpellId() == aur->getSpellId())
                     {
                         if (!aur->IsPositive()
-                            && m_auras[x]->m_casterGuid != aur->m_casterGuid
-                            && (m_auras[x]->GetSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_MAXSTACK_FOR_DEBUFF) == 0
+                            && m_auras[x]->getCasterGuid() != aur->getCasterGuid()
+                            && (m_auras[x]->getSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_MAXSTACK_FOR_DEBUFF) == 0
                             )
                         {
                             continue;
@@ -8543,13 +8542,13 @@ void Unit::AddAura(Aura* aur)
 #else
                         if (AlreadyApplied == 1)
                         {
-                            m_auras[x]->SetDuration(aur->GetDuration());
-                            sEventMgr.ModifyEventTimeLeft(m_auras[x], EVENT_AURA_REMOVE, aur->GetDuration());
+                            m_auras[x]->SetDuration(aur->getTimeLeft());
+                            sEventMgr.ModifyEventTimeLeft(m_auras[x], EVENT_AURA_REMOVE, aur->getTimeLeft());
                             if (isPlayer())
                             {
                                 AscEmu::Packets::SmsgUpdateAuraDuration aura_duration_packet;
                                 aura_duration_packet.slot = m_auras[x]->m_visualSlot;
-                                aura_duration_packet.duration = aur->GetDuration();
+                                aura_duration_packet.duration = aur->getTimeLeft();
                                 reinterpret_cast<Player*>(this)->SendPacket(aura_duration_packet.serialise().get());
                             }
 
@@ -8557,9 +8556,9 @@ void Unit::AddAura(Aura* aur)
                             auto my_guid = GetNewGUID();
                             extra_aura_packet.guid = &my_guid;
                             extra_aura_packet.aura_slot = m_auras[x]->m_visualSlot;
-                            extra_aura_packet.spell_id = m_auras[x]->GetSpellInfo()->getId();
-                            extra_aura_packet.duration = aur->GetDuration();
-                            extra_aura_packet.max_duration = aur->GetDuration();
+                            extra_aura_packet.spell_id = m_auras[x]->getSpellInfo()->getId();
+                            extra_aura_packet.duration = aur->getTimeLeft();
+                            extra_aura_packet.max_duration = aur->getTimeLeft();
                             SendMessageToSet(extra_aura_packet.serialise().get(), false);
                         }
 #endif
@@ -8573,17 +8572,17 @@ void Unit::AddAura(Aura* aur)
                             break;
                         }
                     }
-                    else if ((aur->pSpellId != m_auras[x]->GetSpellInfo()->getId()))     // if this is a proc spell then it should not remove it's mother : test with combustion later
+                    else if ((aur->pSpellId != m_auras[x]->getSpellInfo()->getId()))     // if this is a proc spell then it should not remove it's mother : test with combustion later
                     {
                         // Check for auras by specific type.
-                        if (info->custom_BGR_one_buff_on_target > 0 && m_auras[x]->GetSpellInfo()->custom_BGR_one_buff_on_target & info->custom_BGR_one_buff_on_target && maxStack == 0)
+                        if (info->custom_BGR_one_buff_on_target > 0 && m_auras[x]->getSpellInfo()->custom_BGR_one_buff_on_target & info->custom_BGR_one_buff_on_target && maxStack == 0)
                         {
-                            deleteAur = HasAurasOfBuffType(info->custom_BGR_one_buff_on_target, aur->m_casterGuid, 0);
+                            deleteAur = HasAurasOfBuffType(info->custom_BGR_one_buff_on_target, aur->getCasterGuid(), 0);
                         }
                         // Check for auras with the same name and a different rank.
                         else
                         {
-                            acr = AuraCheck(info, m_auras[x], aur->GetCaster());
+                            acr = AuraCheck(info, m_auras[x], aur->getCaster());
                             if (acr.Error == AURA_CHECK_RESULT_HIGHER_BUFF_PRESENT)
                             {
                                 deleteAur = true;
@@ -8591,7 +8590,7 @@ void Unit::AddAura(Aura* aur)
                             else if (acr.Error == AURA_CHECK_RESULT_LOWER_BUFF_PRESENT)
                             {
                                 // remove the lower aura
-                                m_auras[x]->Remove();
+                                m_auras[x]->removeAura();
 
                                 // no more checks on bad ptr
                                 continue;
@@ -8851,9 +8850,9 @@ void Unit::AddAura(Aura* aur)
                                     if (mh_spell && oh_spell && mh_spell != oh_spell && is_mh_deadly_poison != is_oh_deadly_poison)
                                     {
                                         if (mh_spell != info->getId())
-                                            caster->castSpell(aur->GetTarget(), mh_spell, true);
+                                            caster->castSpell(aur->getOwner(), mh_spell, true);
                                         else
-                                            caster->castSpell(aur->GetTarget(), oh_spell, true);
+                                            caster->castSpell(aur->getOwner(), oh_spell, true);
                                     }
                                 }
 
@@ -8923,9 +8922,9 @@ void Unit::AddAura(Aura* aur)
     uint8 visualslot = 0xFF;
     //search for a visual slot
     aur->m_auraSlot = AuraSlot;
-    if (!aur->IsPassive() || (aur->m_spellInfo->getAttributesEx() & ATTRIBUTESEX_NO_INITIAL_AGGRO))
+    if (!aur->IsPassive() || (aur->getSpellInfo()->getAttributesEx() & ATTRIBUTESEX_NO_INITIAL_AGGRO))
         aur->addAuraVisual();
-        //visualslot = FindVisualSlot(aur->GetSpellId(), aur->IsPositive());
+        //visualslot = FindVisualSlot(aur->getSpellId(), aur->IsPositive());
 
     m_auras[AuraSlot] = aur;
     ModVisualAuraStackCount(aur, 1);
@@ -8934,9 +8933,9 @@ void Unit::AddAura(Aura* aur)
 
     // We add 500ms here to allow for the last tick in DoT spells. This is a dirty hack, but at least it doesn't crash like my other method.
     // - Burlex
-    if (aur->GetDuration() > 0)
+    if (aur->getTimeLeft() > 0)
     {
-        sEventMgr.AddEvent(aur, &Aura::Remove, EVENT_AURA_REMOVE, aur->GetDuration() + 500, 1,
+        sEventMgr.AddEvent(aur, &Aura::Remove, EVENT_AURA_REMOVE, aur->getTimeLeft() + 500, 1,
                            EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
     }
 
@@ -8952,11 +8951,11 @@ void Unit::AddAura(Aura* aur)
             pCaster->CombatStatus.OnDamageDealt(this);
 
             if (isCreature())
-                m_aiInterface->AttackReaction(pCaster, 1, aur->GetSpellId());
+                m_aiInterface->AttackReaction(pCaster, 1, aur->getSpellId());
         }
     }
 
-    if (aur->GetSpellInfo()->getAuraInterruptFlags() & AURA_INTERRUPT_ON_INVINCIBLE)
+    if (aur->getSpellInfo()->getAuraInterruptFlags() & AURA_INTERRUPT_ON_INVINCIBLE)
     {
         Unit* pCaster = aur->GetUnitCaster();
         if (pCaster)
@@ -9006,602 +9005,22 @@ void Unit::AddAura(Aura* aur)
     }
 
     // If this aura can only affect one target at a time, store this target GUID for future reference
-    if (aur->GetSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_SINGLE_TARGET_AURA)
+    if (aur->getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_SINGLE_TARGET_AURA)
     {
         Unit* caster = aur->GetUnitCaster();
         if (caster != NULL)
-            caster->setSingleTargetGuidForAura(aur->GetSpellInfo()->getId(), this->getGuid());
+            caster->setSingleTargetGuidForAura(aur->getSpellInfo()->getId(), this->getGuid());
     }
 
     /* Set aurastates */
-    if (aur->GetSpellInfo()->getMechanicsType() == MECHANIC_ENRAGED && !asc_enraged++)
+    if (aur->getSpellInfo()->getMechanicsType() == MECHANIC_ENRAGED && !asc_enraged++)
         addAuraStateAndAuras(AURASTATE_FLAG_ENRAGED);
-    else if (aur->GetSpellInfo()->getMechanicsType() == MECHANIC_BLEEDING && !asc_bleed++)
+    else if (aur->getSpellInfo()->getMechanicsType() == MECHANIC_BLEEDING && !asc_bleed++)
         addAuraStateAndAuras(AURASTATE_FLAG_BLEED);
-    if (aur->GetSpellInfo()->custom_BGR_one_buff_on_target & SPELL_TYPE_SEAL && !asc_seal++)
+    if (aur->getSpellInfo()->custom_BGR_one_buff_on_target & SPELL_TYPE_SEAL && !asc_seal++)
         addAuraStateAndAuras(AURASTATE_FLAG_JUDGEMENT);
 }
 #else
-void Unit::AddAura(Aura* aur)
-{
-    if (aur == NULL)
-        return;
-
-    if (!(isAlive() || (aur->GetSpellInfo()->isDeathPersistent())))
-    {
-        delete aur;
-        return;
-    }
-
-    if (m_mapId != 530 && (m_mapId != 571 || (isPlayer() && !static_cast<Player*>(this)->HasSpell(54197) && static_cast<Player*>(this)->getDeathState() == ALIVE)))
-        // can't use flying auras in non-outlands or non-northrend (northrend requires cold weather flying)
-    {
-        for (uint8 i = 0; i < 3; ++i)
-        {
-            if (aur->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_ENABLE_FLIGHT_WITH_UNMOUNTED_SPEED || aur->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_ENABLE_FLIGHT2)
-            {
-                delete aur;
-                return;
-            }
-        }
-    }
-
-    if (aur->GetSpellInfo()->getFirstSchoolFromSchoolMask() && SchoolImmunityList[aur->GetSpellInfo()->getFirstSchoolFromSchoolMask()])
-    {
-        delete aur;
-        return;
-    }
-
-    // If this aura can only affect one target at a time
-    if (aur->GetSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_SINGLE_TARGET_AURA)
-    {
-        // remove aura from the previous applied target
-        Unit* caster = aur->GetUnitCaster();
-        uint64 prev_target_guid = 0;
-
-        if (caster != NULL)
-        {
-            prev_target_guid = caster->getSingleTargetGuidForAura(aur->GetSpellInfo()->getId());
-
-            if (prev_target_guid && prev_target_guid != aur->GetTarget()->getGuid())
-            {
-                Unit* prev_target = this->GetMapMgr()->GetUnit(prev_target_guid);
-                if (prev_target != NULL)
-                    prev_target->removeAllAurasById(aur->GetSpellInfo()->getId());
-            }
-        }
-
-        // remove aura from this unit. other player/unit may have casted on this target
-        // this is necessary for the following case:
-        //  1) attacker A cast on target A
-        //  2) attacker B cast on target B
-        //  3) attacker A cast on target B, and aura is removed from target A
-        //  4) attacker B cast on target A, and aura is not removed from target B, because caster A is now the one that casted on target B
-        if (prev_target_guid && prev_target_guid != aur->GetTarget()->getGuid())
-            removeAllAurasById(aur->GetSpellInfo()->getId());
-    }
-
-    uint16 AuraSlot = 0xFFFF;
-    //all this code block is to try to find a valid slot for our new aura.
-    if (!aur->IsPassive())
-    {
-        uint32 AlreadyApplied = 0, CheckLimit, StartCheck;
-        if (aur->IsPositive())
-        {
-            StartCheck = MAX_POSITIVE_AURAS_EXTEDED_START; //also check talents to make sure they will not stack. Maybe not required ?
-            CheckLimit = MAX_POSITIVE_AURAS_EXTEDED_END;
-        }
-        else
-        {
-            StartCheck = MAX_NEGATIVE_AURAS_EXTEDED_START;
-            CheckLimit = MAX_NEGATIVE_AURAS_EXTEDED_END;
-        }
-        // Nasty check for Blood Fury debuff (spell system based on namehashes is bs anyways)
-        if (!sSpellMgr.isAlwaysApply(aur->GetSpellInfo()))
-        {
-            //uint32 aurName = aur->GetSpellProto()->Name;
-            //uint32 aurRank = aur->GetSpellProto()->Rank;
-            uint32 maxStack = aur->GetSpellInfo()->getMaxstack();
-            if (aur->GetSpellInfo()->getProcCharges() > 0)
-            {
-                int charges = aur->GetSpellInfo()->getProcCharges();
-                Unit* ucaster = aur->GetUnitCaster();
-                if (ucaster != nullptr)
-                {
-                    spellModFlatIntValue(ucaster->SM_FCharges, &charges, aur->GetSpellInfo()->getSpellFamilyFlags());
-                    spellModPercentageIntValue(ucaster->SM_PCharges, &charges, aur->GetSpellInfo()->getSpellFamilyFlags());
-                }
-                maxStack = charges;
-            }
-            if (isPlayer() && static_cast<Player*>(this)->m_cheats.AuraStackCheat)
-                maxStack = 999;
-
-            SpellInfo const* info = aur->GetSpellInfo();
-            //uint32 flag3 = aur->GetSpellProto()->Flags3;
-
-            bool deleteAur = false;
-
-            //check if we already have this aura by this caster -> update duration
-            for (uint32 x = StartCheck; x < CheckLimit; x++)
-            {
-                if (m_auras[x])
-                {
-                    if (m_auras[x]->GetSpellId() == aur->GetSpellId())
-                    {
-                        if (!aur->IsPositive()
-                            && m_auras[x]->m_casterGuid != aur->m_casterGuid
-                            && (m_auras[x]->GetSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_MAXSTACK_FOR_DEBUFF) == 0
-                            )
-                        {
-                            continue;
-                        }
-                        AlreadyApplied++;
-                        //update duration,the same aura (update the whole stack whenever we cast a new one)
-                        m_auras[x]->ResetDuration();
-
-                        if (maxStack <= AlreadyApplied)
-                        {
-                            ModVisualAuraStackCount(m_auras[x], 0);
-                            if (AlreadyApplied == 1)
-                                m_auras[x]->UpdateModifiers();
-                            deleteAur = true;
-                            break;
-                        }
-                    }
-                    else if ((aur->pSpellId != m_auras[x]->GetSpellInfo()->getId()))     // if this is a proc spell then it should not remove it's mother : test with combustion later
-                    {
-                        // Check for auras by specific type.
-                        if (info->custom_BGR_one_buff_on_target > 0 && m_auras[x]->GetSpellInfo()->custom_BGR_one_buff_on_target & info->custom_BGR_one_buff_on_target && maxStack == 0)
-                        {
-                            deleteAur = HasAurasOfBuffType(info->custom_BGR_one_buff_on_target, aur->m_casterGuid, 0);
-                        }
-                        // Check for auras with the same name and a different rank.
-                        else
-                        {
-                            AuraCheckResponse acr = AuraCheck(info, m_auras[x], aur->GetCaster());
-                            if (acr.Error == AURA_CHECK_RESULT_HIGHER_BUFF_PRESENT)
-                            {
-                                deleteAur = true;
-                            }
-                            else if (acr.Error == AURA_CHECK_RESULT_LOWER_BUFF_PRESENT)
-                            {
-                                // remove the lower aura
-                                m_auras[x]->Remove();
-
-                                // no more checks on bad ptr
-                                continue;
-                            }
-                        }
-                    }
-                }
-                else if (AuraSlot == 0xFFFF)
-                {
-                    AuraSlot = static_cast<uint16>(x);
-                }
-            }
-
-            if (deleteAur)
-            {
-                sEventMgr.RemoveEvents(aur);
-
-                // Once stacked 5 times, each application of Deadly poison also causes the poison on the Rogue's other weapon to apply
-                // http://www.wowhead.com/?item=43233#comments
-                if (AlreadyApplied >= maxStack && info->custom_c_is_flags & SPELL_FLAG_IS_POISON)
-                {
-                    Player* caster = aur->GetPlayerCaster();
-                    if (caster != NULL)
-                    {
-                        switch (info->getId())
-                        {
-                            // SPELL_HASH_DEADLY_POISON_IX:
-                            case 57970:
-                            case 57973:
-                                // SPELL_HASH_DEADLY_POISON_VIII:
-                            case 57969:
-                            case 57972:
-                                // SPELL_HASH_DEADLY_POISON_VII:
-                            case 27186:
-                            case 27187:
-                                // SPELL_HASH_DEADLY_POISON_VI:
-                            case 26967:
-                            case 26968:
-                                // SPELL_HASH_DEADLY_POISON_V:
-                            case 25349:
-                            case 25351:
-                                // SPELL_HASH_DEADLY_POISON_IV:
-                            case 11354:
-                            case 11356:
-                                // SPELL_HASH_DEADLY_POISON_III:
-                            case 11353:
-                            case 11355:
-                                // SPELL_HASH_DEADLY_POISON_II:
-                            case 2819:
-                            case 2824:
-                                // SPELL_HASH_DEADLY_POISON:
-                            case 2818:
-                            case 2823:
-                            case 3583:
-                            case 10022:
-                            case 13582:
-                            case 21787:
-                            case 21788:
-                            case 32970:
-                            case 32971:
-                            case 34616:
-                            case 34655:
-                            case 34657:
-                            case 36872:
-                            case 38519:
-                            case 38520:
-                            case 41191:
-                            case 41192:
-                            case 41485:
-                            case 43580:
-                            case 43581:
-                            case 56145:
-                            case 56149:
-                            case 59479:
-                            case 59482:
-                            case 63755:
-                            case 63756:
-                            case 67710:
-                            case 67711:
-                            case 68315:
-                            case 72329:
-                            case 72330:
-                            {
-                                Item* mh = caster->getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_MAINHAND);
-                                Item* oh = caster->getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_OFFHAND);
-
-                                if (mh != NULL && oh != NULL)
-                                {
-                                    uint32 mh_spell = 0;
-                                    uint32 oh_spell = 0;
-                                    bool is_mh_deadly_poison = false;
-                                    bool is_oh_deadly_poison = false;
-
-                                    // Find mainhand enchantment
-                                    EnchantmentInstance* ench = mh->GetEnchantment(TEMP_ENCHANTMENT_SLOT);
-                                    if (ench)
-                                    {
-                                        DBC::Structures::SpellItemEnchantmentEntry const* Entry = ench->Enchantment;
-                                        for (uint8 c = 0; c < 3; c++)
-                                        {
-                                            if (Entry->type[c] && Entry->spell[c])
-                                            {
-                                                SpellInfo const* sp = sSpellMgr.getSpellInfo(Entry->spell[c]);
-                                                if (sp && sp->custom_c_is_flags & SPELL_FLAG_IS_POISON)
-                                                {
-                                                    switch (sp->getId())
-                                                    {
-                                                        // SPELL_HASH_DEADLY_POISON_IX:
-                                                        case 57970:
-                                                        case 57973:
-                                                            // SPELL_HASH_DEADLY_POISON_VIII:
-                                                        case 57969:
-                                                        case 57972:
-                                                            // SPELL_HASH_DEADLY_POISON_VII:
-                                                        case 27186:
-                                                        case 27187:
-                                                            // SPELL_HASH_DEADLY_POISON_VI:
-                                                        case 26967:
-                                                        case 26968:
-                                                            // SPELL_HASH_DEADLY_POISON_V:
-                                                        case 25349:
-                                                        case 25351:
-                                                            // SPELL_HASH_DEADLY_POISON_IV:
-                                                        case 11354:
-                                                        case 11356:
-                                                            // SPELL_HASH_DEADLY_POISON_III:
-                                                        case 11353:
-                                                        case 11355:
-                                                            // SPELL_HASH_DEADLY_POISON_II:
-                                                        case 2819:
-                                                        case 2824:
-                                                            // SPELL_HASH_DEADLY_POISON:
-                                                        case 2818:
-                                                        case 2823:
-                                                        case 3583:
-                                                        case 10022:
-                                                        case 13582:
-                                                        case 21787:
-                                                        case 21788:
-                                                        case 32970:
-                                                        case 32971:
-                                                        case 34616:
-                                                        case 34655:
-                                                        case 34657:
-                                                        case 36872:
-                                                        case 38519:
-                                                        case 38520:
-                                                        case 41191:
-                                                        case 41192:
-                                                        case 41485:
-                                                        case 43580:
-                                                        case 43581:
-                                                        case 56145:
-                                                        case 56149:
-                                                        case 59479:
-                                                        case 59482:
-                                                        case 63755:
-                                                        case 63756:
-                                                        case 67710:
-                                                        case 67711:
-                                                        case 68315:
-                                                        case 72329:
-                                                        case 72330:
-                                                            is_mh_deadly_poison = true;
-                                                            break;
-                                                    }
-
-                                                    mh_spell = Entry->spell[c];
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        // Find offhand enchantment
-                                        ench = oh->GetEnchantment(TEMP_ENCHANTMENT_SLOT);
-                                        if (ench)
-                                        {
-                                            DBC::Structures::SpellItemEnchantmentEntry const* itemEntry = ench->Enchantment;
-                                            for (uint8 c = 0; c < 3; c++)
-                                            {
-                                                if (Entry->type[c] && Entry->spell[c])
-                                                {
-                                                    SpellInfo const* sp = sSpellMgr.getSpellInfo(Entry->spell[c]);
-                                                    if (sp && sp->custom_c_is_flags & SPELL_FLAG_IS_POISON)
-                                                    {
-                                                        switch (sp->getId())
-                                                        {
-                                                            // SPELL_HASH_DEADLY_POISON_IX:
-                                                            case 57970:
-                                                            case 57973:
-                                                                // SPELL_HASH_DEADLY_POISON_VIII:
-                                                            case 57969:
-                                                            case 57972:
-                                                                // SPELL_HASH_DEADLY_POISON_VII:
-                                                            case 27186:
-                                                            case 27187:
-                                                                // SPELL_HASH_DEADLY_POISON_VI:
-                                                            case 26967:
-                                                            case 26968:
-                                                                // SPELL_HASH_DEADLY_POISON_V:
-                                                            case 25349:
-                                                            case 25351:
-                                                                // SPELL_HASH_DEADLY_POISON_IV:
-                                                            case 11354:
-                                                            case 11356:
-                                                                // SPELL_HASH_DEADLY_POISON_III:
-                                                            case 11353:
-                                                            case 11355:
-                                                                // SPELL_HASH_DEADLY_POISON_II:
-                                                            case 2819:
-                                                            case 2824:
-                                                                // SPELL_HASH_DEADLY_POISON:
-                                                            case 2818:
-                                                            case 2823:
-                                                            case 3583:
-                                                            case 10022:
-                                                            case 13582:
-                                                            case 21787:
-                                                            case 21788:
-                                                            case 32970:
-                                                            case 32971:
-                                                            case 34616:
-                                                            case 34655:
-                                                            case 34657:
-                                                            case 36872:
-                                                            case 38519:
-                                                            case 38520:
-                                                            case 41191:
-                                                            case 41192:
-                                                            case 41485:
-                                                            case 43580:
-                                                            case 43581:
-                                                            case 56145:
-                                                            case 56149:
-                                                            case 59479:
-                                                            case 59482:
-                                                            case 63755:
-                                                            case 63756:
-                                                            case 67710:
-                                                            case 67711:
-                                                            case 68315:
-                                                            case 72329:
-                                                            case 72330:
-                                                                is_oh_deadly_poison = true;
-                                                                break;
-                                                        }
-
-                                                        oh_spell = itemEntry->spell[c];
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // Only apply if both weapons are enchanted and enchantment is poison and enchantment type is different
-                                    if (mh_spell && oh_spell && mh_spell != oh_spell && is_mh_deadly_poison != is_oh_deadly_poison)
-                                    {
-                                        if (mh_spell != info->getId())
-                                            caster->castSpell(aur->GetTarget(), mh_spell, true);
-                                        else
-                                            caster->castSpell(aur->GetTarget(), oh_spell, true);
-                                    }
-                                }
-
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                delete aur;
-                return;
-            }
-        }
-        else
-        {
-            //these auras stack to infinite and with anything. Don't ask me why there is no better solution for them :P
-            for (uint32 x = StartCheck; x < CheckLimit; x++)
-            {
-                if (!m_auras[x])
-                {
-                    AuraSlot = static_cast<uint16>(x);
-                    break;
-                }
-            }
-        }
-    }
-    else
-    {
-        //talents just get applied always. Maybe we should check stack for these as well?
-        for (uint32 x = MAX_PASSIVE_AURAS_START; x < MAX_PASSIVE_AURAS_END; x++)
-        {
-            if (!m_auras[x])
-            {
-                AuraSlot = static_cast<uint16>(x);
-                break;
-            }
-        }
-        // else if (m_auras[x]->GetID()==aur->GetID()) printf("OMG stacking talents ?\n");
-    }
-
-
-    //check if we can store this aura in some empty slot
-    if (AuraSlot == 0xFFFF)
-    {
-        LOG_ERROR("Aura error in active aura. ");
-        sEventMgr.RemoveEvents(aur);
-        delete aur;
-        /*
-                if (aur != NULL)
-                {
-                delete [] aur;
-                aur = NULL;
-                }
-                */
-        return;
-    }
-
-    //Zack : if all mods were resisted it means we did not apply anything and we do not need to delete this spell either
-    if (aur->TargetWasImuneToMods())
-    {
-        ///\todo notify client that we are immune to this spell
-        sEventMgr.RemoveEvents(aur);
-        delete aur;
-        return;
-    }
-
-    uint8 visualslot = 0xFF;
-    //search for a visual slot
-    if (!aur->IsPassive() || (aur->m_spellInfo->getAttributesEx() & ATTRIBUTESEX_NO_INITIAL_AGGRO))
-        visualslot = FindVisualSlot(aur->GetSpellId(), aur->IsPositive());
-    aur->m_visualSlot = visualslot;
-
-    // Zack : No idea how a new aura can already have a slot. Leaving it for compatibility
-    if (aur->m_auraSlot != 0xffff)
-        m_auras[aur->m_auraSlot] = NULL;
-
-    aur->m_auraSlot = AuraSlot;
-
-    m_auras[AuraSlot] = aur;
-    UpdateAuraForGroup(visualslot);
-    ModVisualAuraStackCount(aur, 1);
-
-    aur->ApplyModifiers(true);
-
-    // We add 500ms here to allow for the last tick in DoT spells. This is a dirty hack, but at least it doesn't crash like my other method.
-    // - Burlex
-    if (aur->GetDuration() > 0)
-    {
-        sEventMgr.AddEvent(aur, &Aura::Remove, EVENT_AURA_REMOVE, aur->GetDuration() + 500, 1,
-                           EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
-    }
-
-    // have to hate these relocate events. They run in a separate thread :P
-    aur->RelocateEvents();
-
-    // Reaction from enemy AI
-    if (!aur->IsPositive() && aur->IsCombatStateAffecting()) // Creature
-    {
-        Unit* pCaster = aur->GetUnitCaster();
-        if (pCaster && pCaster->isAlive() && this->isAlive())
-        {
-            pCaster->CombatStatus.OnDamageDealt(this);
-
-            if (isCreature())
-                m_aiInterface->AttackReaction(pCaster, 1, aur->GetSpellId());
-        }
-    }
-
-    if (aur->GetSpellInfo()->getAuraInterruptFlags() & AURA_INTERRUPT_ON_INVINCIBLE)
-    {
-        Unit* pCaster = aur->GetUnitCaster();
-        if (pCaster)
-        {
-            pCaster->removeAllAurasByAuraEffect(SPELL_AURA_MOD_STEALTH);
-            pCaster->removeAllAurasByAuraEffect(SPELL_AURA_MOD_INVISIBILITY);
-
-            uint32 iceBlock[] =
-            {
-                //SPELL_HASH_ICE_BLOCK
-                27619,
-                36911,
-                41590,
-                45438,
-                45776,
-                46604,
-                46882,
-                56124,
-                56644,
-                62766,
-                65802,
-                69924,
-                0
-            };
-            pCaster->removeAllAurasById(iceBlock);
-
-            uint32 divineShield[] =
-            {
-                //SPELL_HASH_DIVINE_SHIELD
-                642,
-                13874,
-                29382,
-                33581,
-                40733,
-                41367,
-                54322,
-                63148,
-                66010,
-                67251,
-                71550,
-                0
-            };
-            pCaster->removeAllAurasById(divineShield);
-            //SPELL_HASH_BLESSING_OF_PROTECTION
-            pCaster->removeAllAurasById(41450);
-        }
-    }
-
-    // If this aura can only affect one target at a time, store this target GUID for future reference
-    if (aur->GetSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_SINGLE_TARGET_AURA)
-    {
-        Unit* caster = aur->GetUnitCaster();
-        if (caster != NULL)
-            caster->setSingleTargetGuidForAura(aur->GetSpellInfo()->getId(), this->getGuid());
-    }
-
-    /* Set aurastates */
-    if (aur->GetSpellInfo()->getMechanicsType() == MECHANIC_ENRAGED && !asc_enraged++)
-        addAuraStateAndAuras(AURASTATE_FLAG_ENRAGED);
-    else if (aur->GetSpellInfo()->getMechanicsType() == MECHANIC_BLEEDING && !asc_bleed++)
-        addAuraStateAndAuras(AURASTATE_FLAG_BLEED);
-    if (aur->GetSpellInfo()->custom_BGR_one_buff_on_target & SPELL_TYPE_SEAL && !asc_seal++)
-        addAuraStateAndAuras(AURASTATE_FLAG_JUDGEMENT);
-}
 #endif
 
 bool Unit::RemoveAura(Aura* aur)
@@ -9609,18 +9028,17 @@ bool Unit::RemoveAura(Aura* aur)
     if (aur == NULL)
         return false;
 
-    aur->Remove();
+    aur->removeAura();
     return true;
 }
 
 bool Unit::RemoveAura(uint32 spellId)
 {
-    //this can be speed up, if we know passive \pos neg
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] && m_auras[x]->GetSpellId() == spellId)
+        if (aur->getSpellId() == spellId)
         {
-            m_auras[x]->Remove();
+            aur->removeAura();
             return true;  // sky: yes, only one, see bug charges/auras queues
         }
     }
@@ -9633,17 +9051,14 @@ bool Unit::RemoveAuras(uint32* SpellIds)
         return false;
 
     bool res = false;
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
+        for (uint32 y = 0; SpellIds[y] != 0; y++)
         {
-            for (uint32 y = 0; SpellIds[y] != 0; y++)
+            if (aur->getSpellId() == SpellIds[y])
             {
-                if (m_auras[x] && m_auras[x]->GetSpellId() == SpellIds[y])
-                {
-                    m_auras[x]->Remove();
-                    res = true;
-                }
+                aur->removeAura();
+                res = true;
             }
         }
     }
@@ -9653,45 +9068,42 @@ bool Unit::RemoveAuras(uint32* SpellIds)
 bool Unit::RemoveAurasByHeal()
 {
     bool res = false;
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
+        switch (aur->getSpellId())
         {
-            switch (m_auras[x]->GetSpellId())
+            // remove after heal
+            case 35321:
+            case 38363:
+            case 39215:
             {
-                // remove after heal
-                case 35321:
-                case 38363:
-                case 39215:
+                aur->removeAura();
+                res = true;
+            }
+            break;
+            // remove when healed to 100%
+            case 31956:
+            case 38801:
+            case 43093:
+            {
+                if (getHealth() == getMaxHealth())
                 {
-                    m_auras[x]->Remove();
+                    aur->removeAura();
                     res = true;
                 }
-                break;
-                // remove when healed to 100%
-                case 31956:
-                case 38801:
-                case 43093:
-                {
-                    if (getHealth() == getMaxHealth())
-                    {
-                        m_auras[x]->Remove();
-                        res = true;
-                    }
-                }
-                break;
-                // remove at p% health
-                case 38772:
-                {
-                    uint32 p = m_auras[x]->GetSpellInfo()->getEffectBasePoints(1);
-                    if (getMaxHealth() * p <= getHealth() * 100)
-                    {
-                        m_auras[x]->Remove();
-                        res = true;
-                    }
-                }
-                break;
             }
+            break;
+            // remove at p% health
+            case 38772:
+            {
+                uint32 p = aur->getSpellInfo()->getEffectBasePoints(1);
+                if (getMaxHealth() * p <= getHealth() * 100)
+                {
+                    aur->removeAura();
+                    res = true;
+                }
+            }
+            break;
         }
     }
 
@@ -9702,12 +9114,8 @@ bool Unit::AuraActionIf(AuraAction* action, AuraCondition* condition)
 {
     bool done = false;
 
-    for (uint32 i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; i++)
+    for (const auto& aura : getAuraList())
     {
-        Aura* aura = m_auras[i];
-        if (aura == NULL)
-            continue;
-
         if ((*condition)(aura))
         {
             (*action)(aura);
@@ -9720,12 +9128,8 @@ bool Unit::AuraActionIf(AuraAction* action, AuraCondition* condition)
 
 void Unit::ClearAllAreaAuraTargets()
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& a : getAuraList())
     {
-        Aura* a = m_auras[x];
-        if (a == NULL)
-            continue;
-
         if (a->m_areaAura)   // This was not casted by us, so no removal
             continue;
 
@@ -9736,30 +9140,23 @@ void Unit::ClearAllAreaAuraTargets()
 
 void Unit::RemoveAllAreaAuraByOther()
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& a : getAuraList())
     {
-        Aura* a = m_auras[x];
-        if (a == NULL)   // empty slot
-            continue;
-
         if (!a->m_areaAura)   // not area aura, or we casted it
             continue;
 
-        a->Remove();
+        a->removeAura();
     }
 }
 
 bool Unit::RemoveAura(uint32 spellId, uint64 guid)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
+        if (aur->getSpellId() == spellId && aur->getCasterGuid() == guid)
         {
-            if (m_auras[x]->GetSpellId() == spellId && m_auras[x]->m_casterGuid == guid)
-            {
-                m_auras[x]->Remove();
-                return true;
-            }
+            aur->removeAura();
+            return true;
         }
     }
     return false;
@@ -9767,15 +9164,12 @@ bool Unit::RemoveAura(uint32 spellId, uint64 guid)
 
 bool Unit::RemoveAuraByItemGUID(uint32 spellId, uint64 guid)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
+        if (aur->getSpellId() == spellId && aur->itemCasterGUID == guid)
         {
-            if (m_auras[x]->GetSpellId() == spellId && m_auras[x]->itemCasterGUID == guid)
-            {
-                m_auras[x]->Remove();
-                return true;
-            }
+            aur->removeAura();
+            return true;
         }
     }
     return false;
@@ -9783,59 +9177,53 @@ bool Unit::RemoveAuraByItemGUID(uint32 spellId, uint64 guid)
 
 void Unit::RemoveNegativeAuras()
 {
-    for (uint32 x = MAX_NEGATIVE_AURAS_EXTEDED_START; x < MAX_REMOVABLE_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
+        if (!aur->IsPassive() && aur->isNegative())
         {
-            if (m_auras[x]->GetSpellInfo()->isDeathPersistent())
+            if (aur->getSpellInfo()->isDeathPersistent())
                 continue;
             else
-                m_auras[x]->Remove();
+                aur->removeAura();
         }
     }
 }
 
 void Unit::RemoveAllAuras()
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
-            m_auras[x]->Remove();
+        aur->removeAura();
     }
 }
 
 void Unit::RemoveAllNonPersistentAuras()
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
-        {
-            if (m_auras[x]->GetSpellInfo()->isDeathPersistent())
-                continue;
+        if (aur->getSpellInfo()->isDeathPersistent())
+            continue;
 
-            m_auras[x]->Remove();
-        }
+        aur->removeAura();
     }
 }
 
 //ex:to remove morph spells
 void Unit::RemoveAllAuraType(uint32 auratype)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->HasModType(auratype))
-            m_auras[x]->Remove();//remove all morph auras containing to this spell (like wolf morph also gives speed)
+    for (const auto& aur : getAuraListByEffect(static_cast<AuraEffect>(auratype)))
+        aur->removeAura();//remove all morph auras containing to this spell (like wolf morph also gives speed)
 }
 
 void Unit::RemoveAllAurasByRequiredShapeShift(uint32 mask)
 {
-    for (uint32 i = MAX_REMOVABLE_AURAS_START; i < MAX_REMOVABLE_AURAS_END; ++i)
+    for (const auto& aura : getAuraList())
     {
-        Aura* aura = m_auras[i];
-        if (aura == NULL || !aura->IsPositive())
+        if (aura->IsPassive() || aura->isNegative())
             continue;
 
-        if (aura->GetSpellInfo()->getRequiredShapeShift() & mask)
-            aura->Remove();
+        if (aura->getSpellInfo()->getRequiredShapeShift() & mask)
+            aura->removeAura();
     }
 }
 
@@ -9845,7 +9233,7 @@ bool Unit::SetAurDuration(uint32 spellId, Unit* caster, uint32 duration)
     Aura* aur = getAuraWithIdForGuid(spellId, caster->getGuid());
     if (!aur)
         return false;
-    aur->SetDuration(duration);
+    aur->setTimeLeft(duration);
     sEventMgr.ModifyEventTimeLeft(aur, EVENT_AURA_REMOVE, duration);
 
     return true;
@@ -9858,105 +9246,10 @@ bool Unit::SetAurDuration(uint32 spellId, uint32 duration)
         return false;
 
     LOG_DEBUG("setAurDuration2");
-    aur->SetDuration(duration);
+    aur->setTimeLeft(duration);
     sEventMgr.ModifyEventTimeLeft(aur, EVENT_AURA_REMOVE, duration);
 
     return true;
-}
-
-int32 Unit::GetSpellDmgBonus(Unit* pVictim, SpellInfo const* spellInfo, int32 base_dmg, bool isdot)
-{
-    float plus_damage = 0.0f;
-    Unit* caster = this;
-    uint32 school = spellInfo->getFirstSchoolFromSchoolMask();
-
-    if (spellInfo->custom_c_is_flags & SPELL_FLAG_IS_NOT_USING_DMG_BONUS)
-        return 0;
-
-    if (caster->isPlayer())
-    {
-        switch (static_cast<Player*>(this)->getClass())
-        {
-            case ROGUE:
-            case WARRIOR:
-#if VERSION_STRING > TBC
-            case DEATHKNIGHT:
-#endif
-            case HUNTER:
-                return 0;
-            default:
-                break;
-        }
-    }
-    //////////////////////////////////////////////////////////////////////////////////////////
-    //by school
-    plus_damage += static_cast<float>(caster->GetDamageDoneMod(school));
-    plus_damage += static_cast<float>(base_dmg * (caster->GetDamageDonePctMod(school) - 1)); //value is initialized with 1
-    //////////////////////////////////////////////////////////////////////////////////////////
-    //by victim type
-    if (!pVictim->isPlayer() && caster->isPlayer())
-        plus_damage += static_cast<float>(static_cast<Player*>(caster)->IncreaseDamageByType[static_cast<Creature*>(pVictim)->GetCreatureProperties()->Type]);
-
-    //////////////////////////////////////////////////////////////////////////////////////////
-    //Spell Damage Bonus Modifications
-    //////////////////////////////////////////////////////////////////////////////////////////
-    //by cast duration
-
-    // do not execute this if plus dmg is 0 or lower
-    if (plus_damage > 0.0f)
-    {
-        //Bonus to DD part
-        if (spellInfo->spell_coeff_direct > 0.0f && !isdot)
-            plus_damage = plus_damage * spellInfo->spell_coeff_direct;
-        //Bonus to DoT part
-        else if (spellInfo->spell_coeff_overtime > 0.0f && isdot)
-        {
-            plus_damage = plus_damage * spellInfo->spell_coeff_overtime;
-            if (caster->isPlayer())
-            {
-                int32 durmod = 0;
-                spellModFlatIntValue(caster->SM_FDur, &durmod, spellInfo->getSpellFamilyFlags());
-                plus_damage += static_cast<float>(plus_damage * durmod / 15000);
-            }
-        }
-
-        // Downranking penalty
-        if (spellInfo->getMaxLevel() > 0 && caster->isPlayer())
-        {
-            auto penalty = float(spellInfo->getMaxLevel() + 5.0f) / float(caster->getLevel());
-            if (penalty > 1 || penalty < 0)
-                penalty = 1.0f;
-            plus_damage *= penalty;
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////
-    //Bonus Adding To Main Damage
-    if ((pVictim->HasAuraWithMechanics(MECHANIC_ENSNARED) || pVictim->HasAuraWithMechanics(MECHANIC_DAZED)) && caster->isPlayer())
-        plus_damage += static_cast<float>(static_cast<Player*>(caster)->m_IncreaseDmgSnaredSlowed);
-
-
-        int32 bonus_damage = 0;
-        spellModFlatIntValue(caster->SM_FPenalty, &bonus_damage, spellInfo->getSpellFamilyFlags());
-        spellModFlatIntValue(caster->SM_FDamageBonus, &bonus_damage, spellInfo->getSpellFamilyFlags());
-
-        int32 dmg_bonus_pct = 0;
-        spellModFlatIntValue(caster->SM_PPenalty, &dmg_bonus_pct, spellInfo->getSpellFamilyFlags());
-        spellModFlatIntValue(caster->SM_PDamageBonus, &dmg_bonus_pct, spellInfo->getSpellFamilyFlags());
-
-        plus_damage += static_cast<float>((base_dmg + bonus_damage) * dmg_bonus_pct / 100);
-
-
-    return static_cast<int32>(plus_damage);
-}
-
-float Unit::CalcSpellDamageReduction(Unit* victim, SpellInfo const* spell, float res)
-{
-    float reduced_damage = 0;
-    reduced_damage += static_cast<float>(victim->DamageTakenMod[spell->getFirstSchoolFromSchoolMask()]);
-    reduced_damage += res * victim->DamageTakenPctMod[spell->getFirstSchoolFromSchoolMask()];
-    reduced_damage += res * victim->ModDamageTakenByMechPCT[spell->getMechanicsType()];
-    return reduced_damage;
 }
 
 void Unit::DeMorph()
@@ -10148,12 +9441,12 @@ uint32 Unit::AbsorbDamage(uint32 School, uint32* dmg)
         return 0;
 
     uint32 dmg_absorbed = 0;
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aura : getAuraList())
     {
-        if (m_auras[x] == NULL || !m_auras[x]->IsAbsorb())
+        if (!aura->IsAbsorb())
             continue;
 
-        AbsorbAura* aur = static_cast<AbsorbAura*>(m_auras[x]);
+        AbsorbAura* aur = static_cast<AbsorbAura*>(aura);
 
         dmg_absorbed += aur->AbsorbDamage(School, dmg);
     }
@@ -10217,17 +9510,12 @@ int32 Unit::getDetectRangeMod(uint64 guid)
 
 void Unit::RemoveAurasByInterruptFlag(uint32 flag)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& a : getAuraList())
     {
-        Aura* a = m_auras[x];
-        if (a == NULL)
-            continue;
-
         //some spells do not get removed all the time only at specific intervals
-        if ((a->m_spellInfo->getAuraInterruptFlags() & flag) && !(a->m_spellInfo->getProcFlags() & PROC_REMOVEONUSE))
+        if ((a->getSpellInfo()->getAuraInterruptFlags() & flag) && !(a->getSpellInfo()->getProcFlags() & PROC_REMOVEONUSE))
         {
-            a->Remove();
-            m_auras[x] = NULL;
+            a->removeAura();
         }
     }
 }
@@ -10235,8 +9523,8 @@ void Unit::RemoveAurasByInterruptFlag(uint32 flag)
 bool Unit::HasAuraVisual(uint32 visualid)
 {
     //passive auras do not have visual (at least when code was written)
-    for (uint32 x = MAX_REMOVABLE_AURAS_START; x < MAX_REMOVABLE_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->GetSpellInfo()->getSpellVisual(0) == visualid)
+    for (const auto& aur : getAuraList())
+        if (!aur->IsPassive() && aur->getSpellInfo()->getSpellVisual(0) == visualid)
             return true;
 
     return false;
@@ -10244,8 +9532,8 @@ bool Unit::HasAuraVisual(uint32 visualid)
 
 bool Unit::HasAura(uint32 spellid)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->GetSpellId() == spellid)
+    for (const auto& aur : getAuraList())
+        if (aur->getSpellId() == spellid)
             return true;
 
     return false;
@@ -10253,9 +9541,9 @@ bool Unit::HasAura(uint32 spellid)
 
 Aura* Unit::GetAuraWithSlot(uint32 slot)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->m_visualSlot == (uint16)slot)
-            return m_auras[x];
+    for (const auto& aur : getAuraList())
+        if (aur->m_visualSlot == (uint16)slot)
+            return aur;
 
     return NULL;
 }
@@ -10263,8 +9551,8 @@ Aura* Unit::GetAuraWithSlot(uint32 slot)
 uint16 Unit::GetAuraStackCount(uint32 spellid)
 {
     uint16 count = 0;
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
-        if (m_auras[x] && m_auras[x]->GetSpellId() == spellid)
+    for (const auto& aur : getAuraList())
+        if (aur->getSpellId() == spellid)
             count++;
 
     return count;
@@ -10272,14 +9560,14 @@ uint16 Unit::GetAuraStackCount(uint32 spellid)
 
 void Unit::DropAurasOnDeath()
 {
-    for (uint32 x = MAX_REMOVABLE_AURAS_START; x < MAX_REMOVABLE_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
+        if (!aur->IsPassive())
         {
-            if (m_auras[x] && m_auras[x]->GetSpellInfo()->isDeathPersistent())
+            if (aur->getSpellInfo()->isDeathPersistent())
                 continue;
 
-            m_auras[x]->Remove();
+            aur->removeAura();
         }
     }
 }
@@ -10318,8 +9606,8 @@ void Unit::UpdateSpeed()
 
 bool Unit::HasBuff(uint32 spellid) // cebernic:it does not check passive auras & must be visible auras
 {
-    for (uint32 x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_POSITIVE_AURAS_EXTEDED_END; x++)
-        if (m_auras[x] && m_auras[x]->GetSpellId() == spellid)
+    for (const auto& aur : getAuraList())
+        if (!aur->isNegative() && !aur->IsPassive() && aur->getSpellId() == spellid)
             return true;
 
     return false;
@@ -10327,8 +9615,8 @@ bool Unit::HasBuff(uint32 spellid) // cebernic:it does not check passive auras &
 
 bool Unit::HasBuff(uint32 spellid, uint64 guid)
 {
-    for (uint32 x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_POSITIVE_AURAS_EXTEDED_END; x++)
-        if (m_auras[x] && m_auras[x]->GetSpellId() == spellid && m_auras[x]->m_casterGuid == guid)
+    for (const auto& aur : getAuraList())
+        if (!aur->isNegative() && !aur->IsPassive() && aur->getSpellId() == spellid && aur->getCasterGuid() == guid)
             return true;
 
     return false;
@@ -10338,15 +9626,14 @@ void Unit::RemoveAurasByBuffType(uint32 buff_type, const uint64 & guid, uint32 s
 {
     uint64 sguid = buff_type >= SPELL_TYPE_BLESSING ? guid : 0;
 
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x]  //have aura
-            && (m_auras[x]->GetSpellInfo()->custom_BGR_one_buff_on_target & buff_type) // aura is in same group
-            && m_auras[x]->GetSpellId() != skip // make sure to not do self removes in case aura will stack
-            && (!sguid || (sguid && m_auras[x]->m_casterGuid == sguid)) // we either remove everything or just buffs from us
+        if ((aur->getSpellInfo()->custom_BGR_one_buff_on_target & buff_type) // aura is in same group
+            && aur->getSpellId() != skip // make sure to not do self removes in case aura will stack
+            && (!sguid || (sguid && aur->getCasterGuid() == sguid)) // we either remove everything or just buffs from us
             )
         {
-            m_auras[x]->Remove();
+            aur->removeAura();
         }
     }
 }
@@ -10355,10 +9642,10 @@ bool Unit::HasAurasOfBuffType(uint32 buff_type, const uint64 & guid, uint32 skip
 {
     uint64 sguid = (buff_type == SPELL_TYPE_BLESSING || buff_type == SPELL_TYPE_WARRIOR_SHOUT) ? guid : 0;
 
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] && m_auras[x]->GetSpellInfo()->custom_BGR_one_buff_on_target & buff_type && m_auras[x]->GetSpellId() != skip)
-            if (!sguid || (m_auras[x]->m_casterGuid == sguid))
+        if (aur->getSpellInfo()->custom_BGR_one_buff_on_target & buff_type && aur->getSpellId() != skip)
+            if (!sguid || (aur->getCasterGuid() == sguid))
                 return true;
     }
 
@@ -10377,14 +9664,13 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Object* /*caster*/)
     uint32 rank = proto->custom_RankNumber;
 
     // look for spells with same namehash
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& aura : getAuraList())
     {
-        Aura* aura = m_auras[x];
-        if (aura != NULL && aura->GetSpellInfo()->custom_NameHash == name_hash)
+        if (aura->getSpellInfo()->custom_NameHash == name_hash)
         {
             // we've got an aura with the same name as the one we're trying to apply
             // but first we check if it has the same effects
-            SpellInfo const* aura_sp = aura->GetSpellInfo();
+            SpellInfo const* aura_sp = aura->getSpellInfo();
 
             if ((aura_sp->getEffect(0) == proto->getEffect(0) && (aura_sp->getEffect(0) != SPELL_EFFECT_APPLY_AURA ||
                 aura_sp->getEffectApplyAuraName(0) == proto->getEffectApplyAuraName(0))) &&
@@ -10393,7 +9679,7 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Object* /*caster*/)
                 (aura_sp->getEffect(2) == proto->getEffect(2) && (aura_sp->getEffect(2) != SPELL_EFFECT_APPLY_AURA ||
                 aura_sp->getEffectApplyAuraName(2) == proto->getEffectApplyAuraName(2))))
             {
-                resp.Misc = aura->GetSpellInfo()->getId();
+                resp.Misc = aura->getSpellInfo()->getId();
 
                 // compare the rank to our applying spell
                 if (aura_sp->custom_RankNumber > rank)
@@ -10423,14 +9709,14 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Object* /*caster*/)
 AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Aura* aur, Object* /*caster*/)
 {
     AuraCheckResponse resp;
-    SpellInfo const* aura_sp = aur->GetSpellInfo();
+    SpellInfo const* aura_sp = aur->getSpellInfo();
 
     // no error for now
     resp.Error = AURA_CHECK_RESULT_NONE;
     resp.Misc = 0;
 
     // look for spells with same namehash
-    if (aur->GetSpellInfo()->custom_NameHash == proto->custom_NameHash)
+    if (aur->getSpellInfo()->custom_NameHash == proto->custom_NameHash)
     {
         // we've got an aura with the same name as the one we're trying to apply
         // but first we check if it has the same effects
@@ -10441,10 +9727,10 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Aura* aur, Object* /*c
             (aura_sp->getEffect(2) == proto->getEffect(2) &&
             (aura_sp->getEffect(2) != SPELL_EFFECT_APPLY_AURA || aura_sp->getEffectApplyAuraName(2) == proto->getEffectApplyAuraName(2))))
         {
-            resp.Misc = aur->GetSpellInfo()->getId();
+            resp.Misc = aur->getSpellInfo()->getId();
 
             // compare the rank to our applying spell
-            if (aur->GetSpellInfo()->custom_RankNumber > proto->custom_RankNumber)
+            if (aur->getSpellInfo()->custom_RankNumber > proto->custom_RankNumber)
                 resp.Error = AURA_CHECK_RESULT_HIGHER_BUFF_PRESENT;
             else
                 resp.Error = AURA_CHECK_RESULT_LOWER_BUFF_PRESENT;
@@ -10458,10 +9744,9 @@ AuraCheckResponse Unit::AuraCheck(SpellInfo const* proto, Aura* aur, Object* /*c
 void Unit::OnPushToWorld()
 {
     //Zack : we already relocated events on aura add ?
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] != 0)
-            m_auras[x]->RelocateEvents();
+        aur->RelocateEvents();
     }
 
 #if VERSION_STRING >= WotLK
@@ -10517,17 +9802,13 @@ void Unit::RemoveFromWorld(bool free_guid)
     Object::RemoveFromWorld(free_guid);
 
     //zack: should relocate new events to new eventmanager and not to -1
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] != 0)
+        if (aur->m_deleted)
         {
-            if (m_auras[x]->m_deleted)
-            {
-                m_auras[x] = NULL;
-                continue;
-            }
-            m_auras[x]->RelocateEvents();
+            continue;
         }
+        aur->RelocateEvents();
     }
 
     m_aiInterface->WipeReferences();
@@ -10541,19 +9822,15 @@ void Unit::Deactivate(MapMgr* mgr)
 
 void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; x++)
+    for (const auto& a : getAuraList())
     {
-        Aura* a = m_auras[x];
-        if (a == nullptr)
-            continue;
-
         //some spells do not get removed all the time only at specific intervals
-        if ((a->m_spellInfo->getAuraInterruptFlags() & flag) && (a->m_spellInfo->getId() != skip) && a->m_spellInfo->custom_proc_interval == 0)
+        if ((a->getSpellInfo()->getAuraInterruptFlags() & flag) && (a->getSpellInfo()->getId() != skip) && a->getSpellInfo()->custom_proc_interval == 0)
         {
             //the black sheep's of society
-            if (a->m_spellInfo->getAuraInterruptFlags() & AURA_INTERRUPT_ON_CAST_SPELL)
+            if (a->getSpellInfo()->getAuraInterruptFlags() & AURA_INTERRUPT_ON_CAST_SPELL)
             {
-                switch (a->GetSpellInfo()->getId())
+                switch (a->getSpellInfo()->getId())
                 {
                     //priest - surge of light
                     case 33151:
@@ -11006,7 +10283,7 @@ void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
                     {
                         if (getCurrentSpell(CURRENT_GENERIC_SPELL) != nullptr)
                         {
-                            switch (getCurrentSpell(CURRENT_GENERIC_SPELL)->m_spellInfo->getId())
+                            switch (getCurrentSpell(CURRENT_GENERIC_SPELL)->getSpellInfo()->getId())
                             {
                                 //SPELL_HASH_FLASH_OF_LIGHT
                                 case 19750:
@@ -11455,16 +10732,15 @@ void Unit::RemoveAurasByInterruptFlagButSkip(uint32 flag, uint32 skip)
                     break;
                 }
             }
-            a->Remove();
+            a->removeAura();
         }
     }
 }
 
 bool Unit::HasAuraWithName(uint32 name)
 {
-
-    for (uint32 i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
-        if (m_auras[i] != NULL && m_auras[i]->GetSpellInfo()->appliesAreaAura(name))
+    for (const auto& aur : getAuraList())
+        if (aur->getSpellInfo()->appliesAreaAura(name))
             return true;
 
     return false;
@@ -11474,8 +10750,8 @@ uint32 Unit::GetAuraCountWithName(uint32 name)
 {
     uint32 count = 0;
 
-    for (uint32 i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
-        if (m_auras[i] != NULL && m_auras[i]->GetSpellInfo()->appliesAreaAura(name))
+    for (const auto& aur : getAuraList())
+        if (aur->getSpellInfo()->appliesAreaAura(name))
             ++count;
 
     return count;
@@ -11483,9 +10759,9 @@ uint32 Unit::GetAuraCountWithName(uint32 name)
 
 bool Unit::HasAuraWithMechanics(uint32 mechanic)
 {
-    for (uint32 x = MAX_NEGATIVE_AURAS_EXTEDED_START; x < MAX_NEGATIVE_AURAS_EXTEDED_END; ++x)
-        if (m_auras[x] && m_auras[x]->m_spellInfo)
-            if (Spell::GetMechanic(m_auras[x]->m_spellInfo) == mechanic)
+    for (const auto& aur : getAuraList())
+        if (aur->isNegative() && aur->getSpellInfo())
+            if (Spell::GetMechanic(aur->getSpellInfo()) == mechanic)
                 return true;
 
     return false;
@@ -11493,124 +10769,11 @@ bool Unit::HasAuraWithMechanics(uint32 mechanic)
 
 bool Unit::IsPoisoned()
 {
-    for (uint32 x = MAX_NEGATIVE_AURAS_EXTEDED_START; x < MAX_NEGATIVE_AURAS_EXTEDED_END; ++x)
-        if (m_auras[x] && m_auras[x]->GetSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_POISON)
+    for (const auto& aur : getAuraList())
+        if (aur->isNegative() && aur->getSpellInfo()->custom_c_is_flags & SPELL_FLAG_IS_POISON)
             return true;
 
     return false;
-}
-
-void Unit::SendFullAuraUpdate()
-{
-#if VERSION_STRING > TBC
-
-    auto smsgAuraUpdateAll = SmsgAuraUpdateAll(GetNewGUID(), {});
-
-    uint32 Updates = 0;
-
-    for (uint32 i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
-    {
-        if (Aura* aur = m_auras[i])
-        {
-            SmsgAuraUpdateAll::AuraUpdate auraUpdate;
-
-            //\todo: investigate this.
-            auraUpdate.flags = (AFLAG_EFFECT_1 | AFLAG_EFFECT_2 | AFLAG_EFFECT_3);
-
-            if (aur->IsPositive())
-                auraUpdate.flags |= AFLAG_CANCELLABLE;
-            else
-                auraUpdate.flags |= AFLAG_NEGATIVE;
-
-            if (aur->GetDuration() > 0 && !(aur->GetSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_HIDE_DURATION))
-                auraUpdate.flags |= AFLAG_DURATION;
-
-            auraUpdate.visualSlot = aur->m_visualSlot;
-            auraUpdate.spellId = aur->GetSpellId();
-
-            auraUpdate.level = getLevel();
-            auraUpdate.stackCount = m_auraStackCount[aur->m_visualSlot];
-
-            if (!(auraUpdate.flags & AFLAG_NOT_CASTER))
-                auraUpdate.casterGuid = aur->GetCasterGUID();
-
-            if (auraUpdate.flags & AFLAG_DURATION)
-            {
-                auraUpdate.duration = aur->GetDuration();
-                auraUpdate.timeLeft = aur->GetTimeLeft();
-            }
-
-            smsgAuraUpdateAll.addAuraUpdate(auraUpdate);
-
-            ++Updates;
-        }
-    }
-    SendMessageToSet(smsgAuraUpdateAll.serialise().get(), true);
-
-    LOG_DEBUG("Full Aura Update: GUID: " I64FMT " - Updates: %u", getGuid(), Updates);
-#endif
-}
-
-void Unit::SendAuraUpdate(uint32 AuraSlot, bool remove)
-{
-#if VERSION_STRING > TBC
-    if (Aura* aur = m_auras[AuraSlot])
-    {
-        SmsgAuraUpdate::AuraUpdate auraUpdate;
-
-        auraUpdate.flags = (AFLAG_EFFECT_1 | AFLAG_EFFECT_2 | AFLAG_EFFECT_3);
-
-        if (aur->IsPositive())
-            auraUpdate.flags |= AFLAG_CANCELLABLE;
-        else
-            auraUpdate.flags |= AFLAG_NEGATIVE;
-
-        if (aur->GetDuration() > 0 && !(aur->GetSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_HIDE_DURATION))
-            auraUpdate.flags |= AFLAG_DURATION;
-
-        auraUpdate.visualSlot = aur->m_visualSlot;
-        auraUpdate.spellId = aur->GetSpellId();
-
-        auraUpdate.level = getLevel();
-        auraUpdate.stackCount = m_auraStackCount[aur->m_visualSlot];
-
-        if (!(auraUpdate.flags & AFLAG_NOT_CASTER))
-            auraUpdate.casterGuid = aur->GetCasterGUID();
-
-        if (auraUpdate.flags & AFLAG_DURATION)
-        {
-            auraUpdate.duration = aur->GetDuration();
-            auraUpdate.timeLeft = aur->GetTimeLeft();
-        }
-
-        SendMessageToSet(SmsgAuraUpdate(GetNewGUID(), auraUpdate, remove).serialise().get(), true);
-    }
-#endif
-#ifdef AE_TBC
-    if (AuraSlot >= MAX_TOTAL_AURAS_END)
-        return;
-
-    auto aura = m_auras[AuraSlot];
-    if (!aura || aura->IsPassive())
-        return;
-
-    if (isPlayer())
-    {
-        const auto this_player = reinterpret_cast<Player*>(this);
-
-        /*WorldPacket data(SMSG_UPDATE_AURA_DURATION, 5);
-        data << uint8_t(AuraSlot) << uint32_t(aura->GetDuration());
-        this_player->SendPacket(&data);
-
-        data.Initialize(SMSG_SET_EXTRA_AURA_INFO, (8 + 1 + 4 + 4 + 4));
-        data << this_player->GetNewGUID();
-        data << uint8_t(AuraSlot);
-        data << uint32_t(aura->GetSpellId());
-        data << uint32_t(aura->getExpiryTime());
-        data << uint32_t(aura->GetDuration());
-        this_player->SendPacket(&data);*/
-    }
-#endif
 }
 
 void Unit::ModVisualAuraStackCount(Aura* aur, int32 count)
@@ -11630,14 +10793,14 @@ void Unit::ModVisualAuraStackCount(Aura* aur, int32 count)
         m_auraStackCount[slot] = 0;
         m_auravisuals[slot] = 0;
 
-        SendAuraUpdate(aur->m_auraSlot, true);
+        sendAuraUpdate(aur, true);
     }
     else
     {
         m_auraStackCount[slot] += static_cast<uint8>(count);
-        m_auravisuals[slot] = aur->GetSpellId();
+        m_auravisuals[slot] = aur->getSpellId();
 
-        SendAuraUpdate(aur->m_auraSlot, false);
+        sendAuraUpdate(aur, false);
     }
 
     //return m_auraStackCount[slot];
@@ -11645,32 +10808,28 @@ void Unit::ModVisualAuraStackCount(Aura* aur, int32 count)
 
 void Unit::RemoveAurasOfSchool(uint32 School, bool Positive, bool Immune)
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x]
-            && m_auras[x]->GetSpellInfo()->getFirstSchoolFromSchoolMask() == School
-            && (!m_auras[x]->IsPositive() || Positive)
-            && (!Immune && m_auras[x]->GetSpellInfo()->getAttributes() & ATTRIBUTES_IGNORE_INVULNERABILITY)
+        if (aur->getSpellInfo()->getFirstSchoolFromSchoolMask() == School
+            && (aur->isNegative() || Positive)
+            && (!Immune && aur->getSpellInfo()->getAttributes() & ATTRIBUTES_IGNORE_INVULNERABILITY)
             )
         {
-            m_auras[x]->Remove();
+            aur->removeAura();
         }
     }
 }
 
 bool Unit::IsDazed()
 {
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x])
-        {
-            if (m_auras[x]->GetSpellInfo()->getMechanicsType() == MECHANIC_ENSNARED)
-                return true;
+        if (aur->getSpellInfo()->getMechanicsType() == MECHANIC_ENSNARED)
+            return true;
 
-            for (uint8_t y = 0; y < 3; y++)
-                if (m_auras[x]->GetSpellInfo()->getEffectMechanic(y) == MECHANIC_ENSNARED)
-                    return true;
-        }
+        for (uint8_t y = 0; y < 3; y++)
+            if (aur->getSpellInfo()->getEffectMechanic(y) == MECHANIC_ENSNARED)
+                return true;
     }
 
     return false;
@@ -12025,9 +11184,9 @@ void CombatStatusHandler::ClearPrimaryAttackTarget()
 bool CombatStatusHandler::IsAttacking(Unit* pTarget)
 {
     // check the target for any of our DoT's.
-    for (uint32 i = MAX_NEGATIVE_AURAS_EXTEDED_START; i < MAX_NEGATIVE_AURAS_EXTEDED_END; ++i)
-        if (pTarget->m_auras[i] != NULL)
-            if (m_Unit->getGuid() == pTarget->m_auras[i]->m_casterGuid && pTarget->m_auras[i]->IsCombatStateAffecting())
+    for (const auto& aur : pTarget->getAuraList())
+        if (aur->isNegative())
+            if (m_Unit->getGuid() == aur->getCasterGuid() && aur->IsCombatStateAffecting())
                 return true;
 
     // place any additional checks here
@@ -12593,11 +11752,10 @@ void Unit::EventStrikeWithAbility(uint64 guid, SpellInfo const* sp, uint32 /*dam
 
 void Unit::DispelAll(bool positive)
 {
-    for (uint32 i = MAX_TOTAL_AURAS_START; i < MAX_TOTAL_AURAS_END; ++i)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[i] != NULL)
-            if (m_auras[i]->IsPositive() && positive || !m_auras[i]->IsPositive())
-                m_auras[i]->Remove();
+        if (!aur->isNegative() && positive || aur->isNegative())
+            aur->removeAura();
     }
 }
 
@@ -12616,19 +11774,22 @@ bool Unit::RemoveAllAurasByMechanic(uint32 MechanicType, uint32 /*MaxDispel = 0*
 {
     LogDebugFlag(LF_AURA, "Unit::MechanicImmunityMassDispel called, mechanic: %u" , MechanicType);
     uint32 DispelCount = 0;
-    for (uint32 x = (HostileOnly ? MAX_NEGATIVE_AURAS_EXTEDED_START : MAX_POSITIVE_AURAS_EXTEDED_START); x < MAX_REMOVABLE_AURAS_END; x++)    // If HostileOnly = 1, then we use aura slots 40-56 (hostile). Otherwise, we use 0-56 (all)
+    for (const auto& aur : getAuraList())
     {
         // This check is will never be true since DispelCount is 0 and MaxDispel was 4294967295!
         /*if (DispelCount >= MaxDispel && MaxDispel > 0)
             return true;*/
 
-        if (m_auras[x])
+        if (HostileOnly && !aur->isNegative())
+            continue;
+
+        if (!aur->IsPassive())
         {
-            if (m_auras[x]->GetSpellInfo()->getMechanicsType() == MechanicType)   // Remove all mechanics of type MechanicType (my english goen boom)
+            if (aur->getSpellInfo()->getMechanicsType() == MechanicType)   // Remove all mechanics of type MechanicType (my english goen boom)
             {
-                LogDebugFlag(LF_AURA, "Removed aura. [AuraSlot %u, SpellId %u]", x, m_auras[x]->GetSpellId());
+                LogDebugFlag(LF_AURA, "Removed aura. [SpellId %u]", aur->getSpellId());
                 ///\todo Stop moving if fear was removed.
-                m_auras[x]->Remove(); // EZ-Remove
+                aur->removeAura(); // EZ-Remove
                 DispelCount++;
             }
             else if (MechanicType == MECHANIC_ENSNARED)   // if got immunity for slow, remove some that are not in the mechanics
@@ -12636,9 +11797,9 @@ bool Unit::RemoveAllAurasByMechanic(uint32 MechanicType, uint32 /*MaxDispel = 0*
                 for (uint8 i = 0; i < 3; i++)
                 {
                     // SNARE + ROOT
-                    if (m_auras[x]->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_DECREASE_SPEED || m_auras[x]->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_ROOT)
+                    if (aur->getSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_DECREASE_SPEED || aur->getSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_ROOT)
                     {
-                        m_auras[x]->Remove();
+                        aur->removeAura();
                         break;
                     }
                 }
@@ -12650,25 +11811,25 @@ bool Unit::RemoveAllAurasByMechanic(uint32 MechanicType, uint32 /*MaxDispel = 0*
 
 void Unit::RemoveAllMovementImpairing()
 {
-    for (uint32 x = MAX_NEGATIVE_AURAS_EXTEDED_START; x < MAX_REMOVABLE_AURAS_END; x++)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] != NULL)
+        if (aur->isNegative())
         {
-            if (m_auras[x]->GetSpellInfo()->getMechanicsType() == MECHANIC_ROOTED
-                || m_auras[x]->GetSpellInfo()->getMechanicsType() == MECHANIC_ENSNARED
-                || m_auras[x]->GetSpellInfo()->getMechanicsType() == MECHANIC_DAZED)
+            if (aur->getSpellInfo()->getMechanicsType() == MECHANIC_ROOTED
+                || aur->getSpellInfo()->getMechanicsType() == MECHANIC_ENSNARED
+                || aur->getSpellInfo()->getMechanicsType() == MECHANIC_DAZED)
 
             {
-                m_auras[x]->Remove();
+                aur->removeAura();
             }
             else
             {
                 for (uint8 i = 0; i < 3; i++)
                 {
-                    if (m_auras[x]->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_DECREASE_SPEED
-                        || m_auras[x]->GetSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_ROOT)
+                    if (aur->getSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_DECREASE_SPEED
+                        || aur->getSpellInfo()->getEffectApplyAuraName(i) == SPELL_AURA_MOD_ROOT)
                     {
-                        m_auras[x]->Remove();
+                        aur->removeAura();
                         break;
                     }
                 }
@@ -13123,29 +12284,6 @@ void Unit::TakeDamage(Unit* /*pAttacker*/, uint32 /*damage*/, uint32 /*spellid*/
 void Unit::Die(Unit* /*pAttacker*/, uint32 /*damage*/, uint32 /*spellid*/)
 {}
 
-void Unit::SendPeriodicAuraLog(const WoWGuid & CasterGUID, const WoWGuid & TargetGUID, uint32 SpellID, uint32 School, uint32 Amount, uint32 abs_dmg, uint32 resisted_damage, bool is_critical, uint32_t mod, int32_t misc, uint32 over_healed)
-{
-    switch (mod)
-    {
-        case SPELL_AURA_PERIODIC_DAMAGE:
-        case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
-            break;
-        case SPELL_AURA_PERIODIC_HEAL:
-        case SPELL_AURA_MOD_TOTAL_HEALTH_REGEN_PCT:
-            break;
-        case SPELL_AURA_MOD_TOTAL_MANA_REGEN_PCT:
-        case SPELL_AURA_PERIODIC_ENERGIZE:
-            break;
-        case SPELL_AURA_PERIODIC_MANA_LEECH:
-            break;
-        default:
-            LogError("SendPeriodicAuraLog: unknown aura type %u", mod);
-            return;
-    }
-
-    SendMessageToSet(SmsgPeriodicAuraLog(TargetGUID, CasterGUID, SpellID, mod, Amount, over_healed, g_spellSchoolConversionTable[School], abs_dmg, resisted_damage, is_critical, misc, 0).serialise().get(), true);
-}
-
 void Unit::Phase(uint8 command, uint32 newphase)
 {
     Object::Phase(command, newphase);
@@ -13162,68 +12300,7 @@ void Unit::Phase(uint8 command, uint32 newphase)
 bool Unit::IsCriticalDamageForSpell(Object* victim, SpellInfo const* spell)
 {
     bool result = false;
-    float CritChance = 0.0f;
-    PlayerCombatRating resilience_type = PCR_RANGED_SKILL;
-
-    if (spell->custom_is_ranged_spell)
-    {
-        if (isPlayer())
-        {
-            CritChance = static_cast<Player*>(this)->getRangedCritPercentage();
-            if (victim->isPlayer())
-                CritChance += static_cast<Player*>(victim)->res_R_crit_get();
-
-            if (victim->isCreatureOrPlayer())
-                CritChance += static_cast<float>(static_cast<Unit*>(victim)->AttackerCritChanceMod[spell->getFirstSchoolFromSchoolMask()]);
-        }
-        else
-            CritChance = 5.0f; // static value for mobs.. not blizzlike, but an unfinished formula is not fatal :)
-
-        if (victim->isPlayer())
-            resilience_type = PCR_RANGED_CRIT_RESILIENCE;
-    }
-    else if (spell->custom_is_melee_spell)
-    {
-        // Same shit with the melee spells, such as Judgment/Seal of Command
-        if (isPlayer())
-            CritChance = static_cast<Player*>(this)->getMeleeCritPercentage();
-
-        if (victim->isPlayer())
-        {
-            CritChance += static_cast<Player*>(victim)->res_R_crit_get(); //this could be ability but in that case we overwrite the value
-            resilience_type = PCR_MELEE_CRIT_RESILIENCE;
-        }
-
-        // Victim's (!) crit chance mod for physical attacks?
-        if (victim->isCreatureOrPlayer())
-            CritChance += static_cast<float>(static_cast<Unit*>(victim)->AttackerCritChanceMod[0]);
-    }
-    else
-    {
-        CritChance = spellcritperc + SpellCritChanceSchool[spell->getFirstSchoolFromSchoolMask()];
-
-        if (victim->isCreatureOrPlayer())
-        {
-            CritChance += static_cast<float>(static_cast<Unit*>(victim)->AttackerCritChanceMod[spell->getFirstSchoolFromSchoolMask()]);
-
-            //\todo Zyres: is tis relly the way this should work?
-            if (isPlayer() && (static_cast<Unit*>(victim)->m_rootCounter - static_cast<Unit*>(victim)->m_stunned))
-                CritChance += static_cast<float>(static_cast<Player*>(this)->m_RootedCritChanceBonus);
-        }
-
-        spellModFlatFloatValue(SM_CriticalChance, &CritChance, spell->getSpellFamilyFlags());
-
-        if (victim->isPlayer())
-            resilience_type = PCR_SPELL_CRIT_RESILIENCE;
-    }
-
-    if (resilience_type)
-        CritChance -= static_cast<Player*>(victim)->CalcRating(resilience_type);
-
-    if (CritChance < 0.0f)
-        CritChance = 0.0f;
-    else if (CritChance > 95.0f)
-        CritChance = 95.0f;
+    float CritChance = getCriticalChanceForDamageSpell(spell, static_cast<Unit*>(victim));
 
     result = Rand(CritChance);
 
@@ -13288,7 +12365,7 @@ bool Unit::IsCriticalDamageForSpell(Object* victim, SpellInfo const* spell)
             {
                 result = true;
                 if (!HasAura(55447))            // Glyph of Flame Shock
-                    fs->Remove();
+                    fs->removeAura();
             } break;
         }
     }
@@ -13338,9 +12415,7 @@ float Unit::GetCriticalDamageBonusForSpell(Object* victim, SpellInfo const* spel
 
 bool Unit::IsCriticalHealForSpell(Object* victim, SpellInfo const* spell)
 {
-    int32 crit_chance = 0;
-
-    crit_chance = float2int32(this->spellcritperc + this->SpellCritChanceSchool[spell->getFirstSchoolFromSchoolMask()]);
+    int32 crit_chance = float2int32(getCriticalChanceForHealSpell(spell));
 
     //Sacred Shield
     if (victim->isCreatureOrPlayer())
@@ -13388,8 +12463,6 @@ bool Unit::IsCriticalHealForSpell(Object* victim, SpellInfo const* spell)
         }
     }
 
-    spellModFlatIntValue(this->SM_CriticalChance, &crit_chance, spell->getSpellFamilyFlags());
-
     return Rand(crit_chance);
 }
 
@@ -13412,12 +12485,9 @@ uint32 Unit::GetAuraCountWithDispelType(uint32 dispel_type, uint64 guid)
 {
     uint32 result = 0;
 
-    for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
+    for (const auto& aur : getAuraList())
     {
-        if (m_auras[x] == NULL)
-            continue;
-
-        if (m_auras[x]->GetSpellInfo()->getDispelType() == dispel_type && (guid == 0 || m_auras[x]->GetCasterGUID() == guid))
+        if (aur->getSpellInfo()->getDispelType() == dispel_type && (guid == 0 || aur->getCasterGuid() == guid))
             result++;
     }
 

@@ -223,7 +223,6 @@ Spell::Spell(Object* Caster, SpellInfo* info, bool triggered, Aura* aur)
     pSpellId = 0;
     m_cancelled = false;
     ProcedOnSpell = nullptr;
-    forced_basepoints[0] = forced_basepoints[1] = forced_basepoints[2] = 0;
     extra_cast_number = 0;
     m_isCasting = false;
     m_glyphslot = 0;
@@ -277,6 +276,11 @@ Spell::Spell(Object* Caster, SpellInfo* info, bool triggered, Aura* aur)
             if (m_canBeReflected)
                 break;
         }
+    }
+
+    for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
+    {
+        forced_basepoints[i] = 0;
     }
 
     // MIT End
@@ -1896,70 +1900,8 @@ void Spell::HandleEffects(uint64 guid, uint32 i)
     DecRef();
 }
 
-void Spell::HandleAddAura(uint64 guid)
+void Spell::HandleAddAura(Unit* Target, Aura* aur)
 {
-    Unit* Target = nullptr;
-
-    std::map<uint64, Aura*>::iterator itr = m_pendingAuras.find(guid);
-
-    if (itr == m_pendingAuras.end() || itr->second == nullptr)
-    {
-        DecRef();
-        return;
-    }
-
-    //If this aura isn't added correctly it MUST be deleted
-    Aura* aur = itr->second;
-    itr->second = nullptr;
-
-    if (event_GetInstanceID() == WORLD_INSTANCE)
-    {
-        DecRef();
-        return;
-    }
-
-    if (u_caster && u_caster->getGuid() == guid)
-        Target = u_caster;
-    else if (m_caster->IsInWorld())
-        Target = m_caster->GetMapMgr()->GetUnit(guid);
-
-    if (Target == nullptr)
-    {
-        delete aur;
-        DecRef();
-        return;
-    }
-
-    // call script
-    if (Target->isCreature())
-    {
-        auto creature = static_cast<Creature*>(Target);
-        if (creature->GetScript())
-        {
-            if (m_caster->isCreatureOrPlayer())
-                CALL_SCRIPT_EVENT(creature, OnHitBySpell)(getSpellInfo()->getId(), static_cast<Unit*>(m_caster));
-        }
-    }
-
-    // Applying an aura to a flagged target will cause you to get flagged.
-    // self casting doesn't flag himself.
-    if (Target->isPlayer() && p_caster && p_caster != static_cast<Player*>(Target))
-    {
-        if (static_cast<Player*>(Target)->isPvpFlagSet())
-        {
-            if (p_caster->isPlayer() && !p_caster->isPvpFlagSet())
-                static_cast<Player*>(p_caster)->PvPToggle();
-            else
-                p_caster->setPvpFlag();
-        }
-    }
-
-    // remove any auras with same type
-    if (getSpellInfo()->custom_BGR_one_buff_on_target > 0)
-    {
-        Target->RemoveAurasByBuffType(getSpellInfo()->custom_BGR_one_buff_on_target, m_caster->getGuid(), getSpellInfo()->getId());
-    }
-
     uint32 spellid = 0;
 
     if ((getSpellInfo()->getMechanicsType() == MECHANIC_INVULNARABLE && getSpellInfo()->getId() != 25771) || getSpellInfo()->getId() == 31884)     // Cast spell Forbearance
@@ -2064,7 +2006,7 @@ void Spell::HandleAddAura(uint64 guid)
                 };
 
                 if (u_caster && u_caster->hasAurasWithId(vindication))
-                    spellid = u_caster->getAuraWithId(vindication)->m_spellInfo->custom_RankNumber == 2 ? 26017 : 67;
+                    spellid = u_caster->getAuraWithId(vindication)->getSpellInfo()->custom_RankNumber == 2 ? 26017 : 67;
             } break;
             case 5229:
             {
@@ -2093,7 +2035,7 @@ void Spell::HandleAddAura(uint64 guid)
                     Spell* spell = sSpellMgr.newSpell(p_caster, spellInfo, true, nullptr);
 
 
-                    spell->forced_basepoints[0] = p_caster->getAuraWithId(kingOfTheJungle)->m_spellInfo->custom_RankNumber * 5;
+                    spell->forced_basepoints[0] = p_caster->getAuraWithId(kingOfTheJungle)->getSpellInfo()->custom_RankNumber * 5;
                     SpellCastTargets targets(p_caster->getGuid());
                     spell->prepare(&targets);
                 }
@@ -2169,7 +2111,7 @@ void Spell::HandleAddAura(uint64 guid)
                 0
             };
             if (Target->getAuraWithId(arcanePotency))
-                spellid = Target->getAuraWithId(arcanePotency)->m_spellInfo->custom_RankNumber == 1 ? 57529 : 57531;
+                spellid = Target->getAuraWithId(arcanePotency)->getSpellInfo()->custom_RankNumber == 1 ? 57529 : 57531;
         }
         break;
     }
@@ -2198,47 +2140,11 @@ void Spell::HandleAddAura(uint64 guid)
         };
 
         if (spellid == 31665 && Target->hasAurasWithId(masterOfSubtlety))
-            spell->forced_basepoints[0] = Target->getAuraWithId(masterOfSubtlety)->m_spellInfo->getEffectBasePoints(0);
+            spell->forced_basepoints[0] = Target->getAuraWithId(masterOfSubtlety)->getSpellInfo()->getEffectBasePoints(0);
 
         SpellCastTargets targets(Target->getGuid());
         spell->prepare(&targets);
     }
-
-    // avoid map corruption (this is impossible, btw)
-    if (Target->GetInstanceID() != m_caster->GetInstanceID())
-    {
-        delete aur;
-        DecRef();
-        return;
-    }
-
-    int32 charges = m_charges;
-    if (charges > 0)
-    {
-        if (u_caster != nullptr)
-        {
-            spellModFlatIntValue(u_caster->SM_FCharges, &charges, aur->GetSpellInfo()->getSpellFamilyFlags());
-            spellModPercentageIntValue(u_caster->SM_PCharges, &charges, aur->GetSpellInfo()->getSpellFamilyFlags());
-        }
-        for (int i = 0; i < (charges - 1); ++i)
-        {
-            Aura* staur = sSpellMgr.newAura(aur->GetSpellInfo(), aur->GetDuration(), aur->GetCaster(), aur->GetTarget(), m_triggeredSpell, i_caster);
-            Target->AddAura(staur);
-        }
-        if (!(aur->GetSpellInfo()->getProcFlags() & PROC_REMOVEONUSE))
-        {
-            SpellCharge charge;
-            charge.count = charges;
-            charge.spellId = aur->GetSpellId();
-            charge.ProcFlag = aur->GetSpellInfo()->getProcFlags();
-            charge.lastproc = 0;
-            Target->m_chargeSpells.insert(std::make_pair(aur->GetSpellId(), charge));
-        }
-    }
-
-    Target->AddAura(aur); // the real spell is added last so the modifier is removed last
-
-    DecRef();
 }
 
 
@@ -3799,330 +3705,6 @@ void Spell::SendHealSpellOnPlayer(Object* caster, Object* target, uint32 healed,
         return;
 
     caster->SendMessageToSet(SmsgSpellHealLog(target->GetNewGUID(), caster->GetNewGUID(), spellid, healed, overhealed, absorbed, critical).serialise().get(), true);
-}
-
-void Spell::Heal(int32 amount, bool ForceCrit)
-{
-    if (unitTarget == nullptr || !unitTarget->isAlive())
-        return;
-
-    if (p_caster != nullptr)
-        p_caster->last_heal_spell = getSpellInfo();
-
-    //self healing shouldn't flag himself
-    if (p_caster != nullptr && playerTarget != nullptr && p_caster != playerTarget)
-    {
-        // Healing a flagged target will flag you.
-        if (playerTarget->isPvpFlagSet())
-        {
-            if (!p_caster->isPvpFlagSet())
-                p_caster->PvPToggle();
-            else
-                p_caster->setPvpFlag();
-        }
-    }
-
-    //Make it critical
-    bool critical = false;
-    int32 critchance = 0;
-    int32 bonus = 0;
-    uint32 school = getSpellInfo()->getFirstSchoolFromSchoolMask();
-
-    if (u_caster != nullptr && !(getSpellInfo()->getAttributesExC() & ATTRIBUTESEXC_NO_HEALING_BONUS))
-    {
-        //Basic bonus
-        if (p_caster == nullptr ||
-            !(p_caster->getClass() == ROGUE
-            || p_caster->getClass() == WARRIOR
-            || p_caster->getClass() == HUNTER
-#if VERSION_STRING > TBC
-            || p_caster->getClass() == DEATHKNIGHT
-#endif
-            ))
-            bonus += u_caster->HealDoneMod[school];
-
-        bonus += unitTarget->HealTakenMod[school];
-
-        //Bonus from Intellect & Spirit
-        if (p_caster != nullptr)
-        {
-            for (uint8 a = 0; a < STAT_COUNT; a++)
-                bonus += float2int32(p_caster->SpellHealDoneByAttribute[a][school] * p_caster->getStat(a));
-        }
-
-        //Spell Coefficient, bonus to DH part
-        if (getSpellInfo()->spell_coeff_direct > 0)
-            bonus = float2int32(bonus * getSpellInfo()->spell_coeff_direct);
-
-        critchance = float2int32(u_caster->spellcritperc + u_caster->SpellCritChanceSchool[school]);
-
-        //Sacred Shield
-        uint32 sacredShield[] =
-        {
-            //SPELL_HASH_SACRED_SHIELD
-            53601,
-            58597,
-            0
-        };
-
-        if (unitTarget->hasAurasWithId(sacredShield))
-        {
-            switch (m_spellInfo->getId())
-            {
-                //SPELL_HASH_FLASH_OF_LIGHT
-                case 19750:
-                case 19939:
-                case 19940:
-                case 19941:
-                case 19942:
-                case 19943:
-                case 25514:
-                case 27137:
-                case 33641:
-                case 37249:
-                case 37254:
-                case 37257:
-                case 48784:
-                case 48785:
-                case 57766:
-                case 59997:
-                case 66113:
-                case 66922:
-                case 68008:
-                case 68009:
-                case 68010:
-                case 71930:
-                    critchance += 50;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-
-        int penalty_pct = 0;
-        int penalty_flt = 0;
-        spellModFlatIntValue(u_caster->SM_PPenalty, &penalty_pct, getSpellInfo()->getSpellFamilyFlags());
-        bonus += amount * penalty_pct / 100;
-        spellModFlatIntValue(u_caster->SM_FPenalty, &penalty_flt, getSpellInfo()->getSpellFamilyFlags());
-        bonus += penalty_flt;
-        spellModFlatIntValue(u_caster->SM_CriticalChance, &critchance, getSpellInfo()->getSpellFamilyFlags());
-
-
-        if (p_caster != nullptr)
-        {
-            switch (m_spellInfo->getId())
-            {
-                //SPELL_HASH_LESSER_HEALING_WAVE
-                case 8004:
-                case 8008:
-                case 8010:
-                case 10466:
-                case 10467:
-                case 10468:
-                case 25420:
-                case 27624:
-                case 28849:
-                case 28850:
-                case 44256:
-                case 46181:
-                case 49275:
-                case 49276:
-                case 49309:
-                case 66055:
-                case 68115:
-                case 68116:
-                case 68117:
-                case 75366:
-                //SPELL_HASH_HEALING_WAVE
-                case 331:
-                case 332:
-                case 547:
-                case 913:
-                case 939:
-                case 959:
-                case 8005:
-                case 10395:
-                case 10396:
-                case 11986:
-                case 12491:
-                case 12492:
-                case 15982:
-                case 25357:
-                case 25391:
-                case 25396:
-                case 26097:
-                case 38330:
-                case 43548:
-                case 48700:
-                case 49272:
-                case 49273:
-                case 51586:
-                case 52868:
-                case 55597:
-                case 57785:
-                case 58980:
-                case 59083:
-                case 60012:
-                case 61569:
-                case 67528:
-                case 68318:
-                case 69958:
-                case 71133:
-                case 75382:
-                {
-                    //Tidal Waves
-                    p_caster->RemoveAura(53390, p_caster->getGuid());
-                }
-                //SPELL_HASH_CHAIN_HEAL
-                case 1064:
-                case 10622:
-                case 10623:
-                case 14900:
-                case 15799:
-                case 16367:
-                case 25422:
-                case 25423:
-                case 33642:
-                case 41114:
-                case 42027:
-                case 42477:
-                case 43527:
-                case 48894:
-                case 54481:
-                case 55458:
-                case 55459:
-                case 59473:
-                case 69923:
-                case 70425:
-                case 71120:
-                case 75370:
-                {
-                    //Maelstrom Weapon
-                    p_caster->removeAllAurasByIdForGuid(53817, p_caster->getGuid());
-                } break;
-            }
-        }
-
-        switch (m_spellInfo->getId())
-        {
-            case 54172: //Paladin - Divine Storm heal effect
-            {
-                int dmg = (int)CalculateDamage(u_caster, unitTarget, MELEE, nullptr, sSpellMgr.getSpellInfo(53385));    //1 hit
-                int target = 0;
-                uint8 did_hit_result;
-
-                for (const auto& itr : u_caster->getInRangeObjectsSet())
-                {
-                    if (itr)
-                    {
-                        auto obj = itr;
-                        if (itr->isCreatureOrPlayer() && static_cast<Unit*>(itr)->isAlive() && obj->isInRange(u_caster, 8) && (u_caster->GetPhase() & itr->GetPhase()))
-                        {
-                            did_hit_result = DidHit(sSpellMgr.getSpellInfo(53385)->getEffect(0), static_cast<Unit*>(itr));
-                            if (did_hit_result == SPELL_DID_HIT_SUCCESS)
-                                target++;
-                        }
-                    }
-                }
-                if (target > 4)
-                    target = 4;
-
-                amount = (dmg * target) >> 2;   // 25%
-            }
-            break;
-        }
-
-        amount += bonus;
-        amount += amount * (int32)(u_caster->HealDonePctMod[school]);
-        amount += float2int32(amount * unitTarget->HealTakenPctMod[school]);
-
-        spellModPercentageIntValue(u_caster->SM_PDamageBonus, &amount, getSpellInfo()->getSpellFamilyFlags());
-
-        if (ForceCrit || ((critical = Rand(critchance)) != 0))
-        {
-            int32 critical_bonus = 100;
-            spellModFlatIntValue(u_caster->SM_PCriticalDamage, &critical_bonus, getSpellInfo()->getSpellFamilyFlags());
-
-            if (critical_bonus > 0)
-            {
-                // the bonuses are halved by 50% (funky blizzard math :S)
-                float b = (critical_bonus / 2.0f) / 100.0f;
-                amount += float2int32(amount * b);
-            }
-
-            unitTarget->HandleProc(PROC_ON_SPELL_CRIT_HIT_VICTIM, u_caster, getSpellInfo(), false, amount);
-            u_caster->HandleProc(PROC_ON_SPELL_CRIT_HIT, unitTarget, getSpellInfo(), false, amount);
-        }
-    }
-
-    if (amount < 0)
-        amount = 0;
-
-    uint32 overheal = 0;
-    uint32 curHealth = unitTarget->getHealth();
-    uint32 maxHealth = unitTarget->getMaxHealth();
-    if ((curHealth + amount) >= maxHealth)
-    {
-        unitTarget->setHealth(maxHealth);
-        overheal = curHealth + amount - maxHealth;
-    }
-    else
-        unitTarget->modHealth(amount);
-
-    SendHealSpellOnPlayer(m_caster, unitTarget, amount, critical, overheal, pSpellId ? pSpellId : getSpellInfo()->getId());
-
-    if (p_caster != nullptr)
-    {
-        p_caster->m_bgScore.HealingDone += amount;
-        if (p_caster->m_bg != nullptr)
-            p_caster->m_bg->UpdatePvPData();
-    }
-
-    if (p_caster != nullptr)
-    {
-        p_caster->m_casted_amount[school] = amount;
-        p_caster->HandleProc(PROC_ON_CAST_SPECIFIC_SPELL | PROC_ON_CAST_SPELL, unitTarget, getSpellInfo());
-    }
-
-    unitTarget->RemoveAurasByHeal();
-
-    // add threat
-    if (u_caster != nullptr)
-    {
-        std::vector<Unit*> target_threat;
-        int count = 0;
-        Creature* tmp_creature;
-        for (const auto& itr : u_caster->getInRangeObjectsSet())
-        {
-            if (!itr || !itr->isCreature())
-                continue;
-
-            tmp_creature = static_cast<Creature*>(itr);
-
-            if (!tmp_creature->CombatStatus.IsInCombat() || (tmp_creature->GetAIInterface()->getThreatByPtr(u_caster) == 0 && tmp_creature->GetAIInterface()->getThreatByPtr(unitTarget) == 0))
-                continue;
-
-            if (!(u_caster->GetPhase() & itr->GetPhase()))     //Can't see, can't be a threat
-                continue;
-
-            target_threat.push_back(tmp_creature);
-            count++;
-        }
-        if (count == 0)
-            return;
-
-        amount = amount / count;
-
-        for (std::vector<Unit*>::iterator itr = target_threat.begin(); itr != target_threat.end(); ++itr)
-        {
-            (*itr)->GetAIInterface()->HealReaction(u_caster, unitTarget, m_spellInfo, amount);
-        }
-
-        // remember that we healed (for combat status)
-        if (unitTarget->IsInWorld() && u_caster->IsInWorld())
-            u_caster->CombatStatus.WeHealed(unitTarget);
-    }
 }
 
 uint32 Spell::GetType() { return (getSpellInfo()->getDmgClass() == SPELL_DMG_TYPE_NONE ? SPELL_DMG_TYPE_MAGIC : getSpellInfo()->getDmgClass()); }

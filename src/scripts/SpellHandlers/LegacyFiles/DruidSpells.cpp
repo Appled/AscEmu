@@ -59,15 +59,13 @@ bool ImprovedLeaderOfThePack(uint8_t /*effectIndex*/, Spell* s)
 
 bool PredatoryStrikes(uint8_t effectIndex, Aura* a, bool apply)
 {
-    Unit* m_target = a->GetTarget();
+    Unit* m_target = a->getOwner();
     int32_t realamount = 0;
 
-
-    realamount = (a->GetModAmount(effectIndex) * m_target->getLevel()) / 100;
+    realamount = (a->getEffectDamage(effectIndex) * m_target->getLevel()) / 100;
 
     if (apply)
     {
-        a->SetPositive();
         m_target->modAttackPowerMods(realamount);
     }
     else
@@ -80,7 +78,7 @@ bool PredatoryStrikes(uint8_t effectIndex, Aura* a, bool apply)
 
 bool Furor(uint8_t effectIndex, Aura* a, bool apply)
 {
-    Unit* u_target = a->GetTarget();
+    Unit* u_target = a->getOwner();
 
     if (!u_target->isPlayer())
         return true;
@@ -90,9 +88,9 @@ bool Furor(uint8_t effectIndex, Aura* a, bool apply)
         return true;
 
     if (apply)
-        p_target->m_furorChance += a->GetModAmount(effectIndex);
+        p_target->m_furorChance += a->getEffectDamage(effectIndex);
     else
-        p_target->m_furorChance -= a->GetModAmount(effectIndex);
+        p_target->m_furorChance -= a->getEffectDamage(effectIndex);
 
     return true;
 }
@@ -100,7 +98,7 @@ bool Furor(uint8_t effectIndex, Aura* a, bool apply)
 bool Tranquility(uint8_t effectIndex, Aura* a, bool apply)
 {
     if (apply)
-        sEventMgr.AddEvent(a, &Aura::EventPeriodicHeal1, (uint32_t)a->GetModAmount(effectIndex), EVENT_AURA_PERIODIC_HEAL, 2000, 0, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
+        sEventMgr.AddEvent(a, &Aura::EventPeriodicHeal1, (uint32_t)a->getEffectDamage(effectIndex), EVENT_AURA_PERIODIC_HEAL, 2000, 0, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
     else
         sEventMgr.RemoveEvents(a, EVENT_AURA_PERIODIC_HEAL);
 
@@ -109,7 +107,7 @@ bool Tranquility(uint8_t effectIndex, Aura* a, bool apply)
 
 bool LifeBloom(uint8_t effectIndex, Aura* a, bool apply)
 {
-    Unit* m_target = a->GetTarget();
+    Unit* m_target = a->getOwner();
 
     if (apply)
         return true;
@@ -124,17 +122,14 @@ bool LifeBloom(uint8_t effectIndex, Aura* a, bool apply)
 
     // Remove other Lifeblooms - but do NOT handle unapply again
     bool expired = true;
-    for (uint32_t x = MAX_POSITIVE_AURAS_EXTEDED_START; x < MAX_POSITIVE_AURAS_EXTEDED_END; x++)
+    for (const auto& aur : m_target->getAuraList())
     {
-        if (m_target->m_auras[x])
+        if (aur->getSpellId() == a->getSpellId())
         {
-            if (m_target->m_auras[x]->GetSpellId() == a->GetSpellId())
-            {
-                m_target->m_auras[x]->m_ignoreunapply = true;
-                if (m_target->m_auras[x]->GetTimeLeft())
-                    expired = false;
-                m_target->m_auras[x]->Remove();
-            }
+            aur->m_ignoreunapply = true;
+            if (aur->getTimeLeft())
+                expired = false;
+            aur->removeAura();
         }
     }
 
@@ -142,9 +137,9 @@ bool LifeBloom(uint8_t effectIndex, Aura* a, bool apply)
     /*if (expired)
     {
 
-        Spell* spell = sSpellMgr.newSpell(pCaster, a->GetSpellInfo(), true, NULL);
+        Spell* spell = sSpellMgr.newSpell(pCaster, a->getSpellInfo(), true, NULL);
         spell->SetUnitTarget(m_target);
-        spell->Heal(a->GetModAmount(effectIndex));
+        spell->Heal(a->getEffectDamage(effectIndex));
         delete spell;
     }*/
 
@@ -153,7 +148,7 @@ bool LifeBloom(uint8_t effectIndex, Aura* a, bool apply)
 
 bool LeaderOfThePack(uint8_t /*effectIndex*/, Aura* a, bool apply)
 {
-    Unit* u_target = a->GetTarget();
+    Unit* u_target = a->getOwner();
 
     if (!u_target->isPlayer())
         return true;

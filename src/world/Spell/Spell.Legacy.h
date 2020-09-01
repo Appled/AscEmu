@@ -64,6 +64,10 @@ class SERVER_DECL Spell : public EventableObject
         // Update spell state based on time difference
         void Update(unsigned long timePassed);
 
+    private:
+        void handleAddAura(uint64_t targetGuid, Aura* aur);
+
+    public:
         //////////////////////////////////////////////////////////////////////////////////////////
         // Spell cast checks
 
@@ -146,6 +150,9 @@ class SERVER_DECL Spell : public EventableObject
         // Misc
         SpellInfo const* getSpellInfo() const;
 
+        // Some spells inherit base points from the mother spell
+        uint32_t forced_basepoints[MAX_SPELL_EFFECTS];
+
     private:
         bool canAttackCreatureType(Creature* target) const;
 
@@ -156,6 +163,147 @@ class SERVER_DECL Spell : public EventableObject
 
         // Spell reflect stuff
         bool m_canBeReflected = false;
+
+        // Stores all auras created by this spell
+        std::map<uint64_t, Aura*> m_pendingAuras;
+
+    public:
+        //////////////////////////////////////////////////////////////////////////////////////////
+        // Spell effects (defined in SpellEffects.cpp)
+
+        // Used with effects that are not implemented yet
+        void spellEffectNotImplemented(uint8_t effectIndex);
+        // Used with effects that are not used or are handled elsewhere
+        void spellEffectNotUsed(uint8_t effectIndex);
+
+        void spellEffectInstantKill(uint8_t effectIndex);
+        void spellEffectSchoolDMG(uint8_t effectIndex);
+        void spellEffectDummy(uint8_t effectIndex);
+        void spellEffectTeleportUnits(uint8_t effectIndex);
+        void spellEffectApplyAura(uint8_t effectIndex);
+        void spellEffectEnvironmentalDamage(uint8_t effectIndex);
+        void spellEffectPowerDrain(uint8_t effectIndex);
+        void spellEffectHealthLeech(uint8_t effectIndex);
+        void spellEffectHeal(uint8_t effectIndex);
+        void spellEffectBind(uint8_t effectIndex);
+        void spellEffectQuestComplete(uint8_t effectIndex);
+        void spellEffectWeapondamageNoschool(uint8_t effectIndex);
+        void spellEffectResurrect(uint8_t effectIndex);
+        void spellEffectAddExtraAttacks(uint8_t effectIndex);
+        void spellEffectDodge(uint8_t effectIndex);
+        void spellEffectParry(uint8_t effectIndex);
+        void spellEffectBlock(uint8_t effectIndex);
+        void spellEffectCreateItem(uint8_t effectIndex);
+        void spellEffectWeapon(uint8_t effectIndex);
+        void spellEffectDefense(uint8_t effectIndex);
+        void spellEffectPersistentAA(uint8_t effectIndex);
+        void spellEffectSummon(uint8_t effectIndex);
+        void spellEffectSummonWild(uint8_t effectIndex);
+        void spellEffectSummonGuardian(uint8_t effectIndex, DBC::Structures::SummonPropertiesEntry const* spe, CreatureProperties const* properties_, LocationVector &v);
+        void spellEffectSummonTemporaryPet(uint8_t effectIndex, DBC::Structures::SummonPropertiesEntry const* spe, CreatureProperties const* properties_, LocationVector &v);
+        void spellEffectSummonTotem(uint8_t effectIndex, DBC::Structures::SummonPropertiesEntry const* spe, CreatureProperties const* properties_, LocationVector &v);
+        void spellEffectSummonPossessed(uint8_t effectIndex, DBC::Structures::SummonPropertiesEntry const* spe, CreatureProperties const* properties_, LocationVector &v);
+        void spellEffectSummonCompanion(uint8_t effectIndex, DBC::Structures::SummonPropertiesEntry const* spe, CreatureProperties const* properties_, LocationVector &v);
+        void spellEffectSummonVehicle(uint8_t effectIndex, DBC::Structures::SummonPropertiesEntry const* spe, CreatureProperties const* properties_, LocationVector &v);
+        void spellEffectLeap(uint8_t effectIndex);
+        void spellEffectEnergize(uint8_t effectIndex);
+        void spellEffectWeaponDmgPerc(uint8_t effectIndex);
+        void spellEffectTriggerMissile(uint8_t effectIndex);
+        void spellEffectOpenLock(uint8_t effectIndex);
+        void spellEffectTransformItem(uint8_t effectIndex);
+        void spellEffectApplyGroupAA(uint8_t effectIndex);
+        void spellEffectLearnSpell(uint8_t effectIndex);
+        void spellEffectSpellDefense(uint8_t effectIndex);
+        void spellEffectDispel(uint8_t effectIndex);
+        void spellEffectLanguage(uint8_t effectIndex);
+        void spellEffectDualWield(uint8_t effectIndex);
+        void spellEffectSkillStep(uint8_t effectIndex);
+        void spellEffectAddHonor(uint8_t effectIndex);
+        void spellEffectSpawn(uint8_t effectIndex);
+        void spellEffectSummonObject(uint8_t effectIndex);
+        void spellEffectEnchantItem(uint8_t effectIndex);
+        void spellEffectEnchantItemTemporary(uint8_t effectIndex);
+        void spellEffectTameCreature(uint8_t effectIndex);
+        void spellEffectSummonPet(uint8_t effectIndex);
+        void spellEffectLearnPetSpell(uint8_t effectIndex);
+        void spellEffectWeapondamage(uint8_t effectIndex);
+        void spellEffectOpenLockItem(uint8_t effectIndex);
+        void spellEffectProficiency(uint8_t effectIndex);
+        void spellEffectSendEvent(uint8_t effectIndex);
+        void spellEffectPowerBurn(uint8_t effectIndex);
+        void spellEffectThreat(uint8_t effectIndex);
+        void spellEffectClearQuest(uint8_t effectIndex);
+        void spellEffectTriggerSpell(uint8_t effectIndex);
+        void spellEffectApplyRaidAA(uint8_t effectIndex);
+        void spellEffectPowerFunnel(uint8_t effectIndex);
+        void spellEffectHealMaxHealth(uint8_t effectIndex);
+        void spellEffectInterruptCast(uint8_t effectIndex);
+        void spellEffectDistract(uint8_t effectIndex);
+        void spellEffectPickpocket(uint8_t effectIndex);
+        void spellEffectAddFarsight(uint8_t effectIndex);
+        void spellEffectUseGlyph(uint8_t effectIndex);
+        void spellEffectHealMechanical(uint8_t effectIndex);
+        void spellEffectSummonObjectWild(uint8_t effectIndex);
+        void spellEffectScriptEffect(uint8_t effectIndex);
+        void spellEffectSanctuary(uint8_t effectIndex);
+        void spellEffectAddComboPoints(uint8_t effectIndex);
+        void spellEffectCreateHouse(uint8_t effectIndex);
+        void spellEffectDuel(uint8_t effectIndex);
+        void spellEffectStuck(uint8_t effectIndex);
+        void spellEffectSummonPlayer(uint8_t effectIndex);
+        void spellEffectActivateObject(uint8_t effectIndex);
+        void spellEffectBuildingDamage(uint8_t effectIndex);
+        void spellEffectEnchantHeldItem(uint8_t effectIndex);
+        void spellEffectSetMirrorName(uint8_t effectIndex);
+        void spellEffectSelfResurrect(uint8_t effectIndex);
+        void spellEffectSkinning(uint8_t effectIndex);
+        void spellEffectCharge(uint8_t effectIndex);
+        void spellEffectKnockBack(uint8_t effectIndex);
+        void spellEffectKnockBack2(uint8_t effectIndex);
+        void spellEffectDisenchant(uint8_t effectIndex);
+        void spellEffectInebriate(uint8_t effectIndex);
+        void spellEffectFeedPet(uint8_t effectIndex);
+        void spellEffectDismissPet(uint8_t effectIndex);
+        void spellEffectReputation(uint8_t effectIndex);
+        void spellEffectSummonObjectSlot(uint8_t effectIndex);
+        void spellEffectDispelMechanic(uint8_t effectIndex);
+        void spellEffectSummonDeadPet(uint8_t effectIndex);
+        void spellEffectDestroyAllTotems(uint8_t effectIndex);
+        void spellEffectDurabilityDamage(uint8_t effectIndex);
+        void spellEffectDurabilityDamagePCT(uint8_t effectIndex);
+        void spellEffectResurrectNew(uint8_t effectIndex);
+        void spellEffectAttackMe(uint8_t effectIndex);
+        void spellEffectSkinPlayerCorpse(uint8_t effectIndex);
+        void spellEffectSkill(uint8_t effectIndex);
+        void spellEffectApplyPetAA(uint8_t effectIndex);
+        void spellEffectDummyMelee(uint8_t effectIndex);
+        void spellEffectStartTaxi(uint8_t effectIndex);
+        void spellEffectPlayerPull(uint8_t effectIndex);
+        void spellEffectReduceThreatPercent(uint8_t effectIndex);
+        void spellEffectSpellSteal(uint8_t effectIndex);
+        void spellEffectProspecting(uint8_t effectIndex);
+        void spellEffectApplyFriendAA(uint8_t effectIndex);
+        void spellEffectApplyEnemyAA(uint8_t effectIndex);
+        void spellEffectRedirectThreat(uint8_t effectIndex);
+        void spellEffectPlayMusic(uint8_t effectIndex);
+        void spellEffectForgetSpecialization(uint8_t effectIndex);
+        void spellEffectKillCredit(uint8_t effectIndex);
+        void spellEffectRestorePowerPct(uint8_t effectIndex);
+        void spellEffectTriggerSpellWithValue(uint8_t effectIndex);
+        void spellEffectApplyOwnerAA(uint8_t effectIndex);
+        void spellEffectCreatePet(uint8_t effectIndex);
+        void spellEffectTeachTaxiPath(uint8_t effectIndex);
+        void spellEffectDualWield2H(uint8_t effectIndex);
+        void spellEffectEnchantItemPrismatic(uint8_t effectIndex);
+        void spellEffectCreateItem2(uint8_t effectIndex);
+        void spellEffectMilling(uint8_t effectIndex);
+        void spellEffectRenamePet(uint8_t effectIndex);
+        void spellEffectRestoreHealthPct(uint8_t effectIndex);
+        void spellEffectLearnSpec(uint8_t effectIndex);
+        void spellEffectActivateSpec(uint8_t effectIndex);
+        void spellEffectActivateRunes(uint8_t effectIndex);
+        void spellEffectJumpTarget(uint8_t effectIndex);
+        void spellEffectJumpBehindTarget(uint8_t effectIndex);
 
     public:
         // MIT Ends
@@ -244,7 +392,7 @@ class SERVER_DECL Spell : public EventableObject
         void SendTameFailure(uint8 failure);
         static void SendHealSpellOnPlayer(Object* caster, Object* target, uint32 healed, bool critical, uint32 overhealed, uint32 spellid, uint32 absorbed = 0);
 
-        void HandleAddAura(uint64 guid);
+        void HandleAddAura(Unit* target, Aura* aur);
         void writeSpellGoTargets(WorldPacket* data);
         uint32 pSpellId;
         SpellInfo const* ProcedOnSpell;
@@ -253,11 +401,8 @@ class SERVER_DECL Spell : public EventableObject
         void CreateItem(uint32 itemId);
 
         // Effect Handlers for effectIndex
-        void SpellEffectUnused(uint8_t effectIndex);
-
         void ApplyAreaAura(uint8_t effectIndex);
 
-        void SpellEffectNULL(uint8_t effectIndex);
         void SpellEffectInstantKill(uint8_t effectIndex);
         void SpellEffectSchoolDMG(uint8_t effectIndex);
         void SpellEffectDummy(uint8_t effectIndex);
@@ -388,8 +533,6 @@ class SERVER_DECL Spell : public EventableObject
         void SpellEffectJumpTarget(uint8_t effectIndex);
         void SpellEffectJumpBehindTarget(uint8_t effectIndex);
 
-        void Heal(int32 amount, bool ForceCrit = false);
-
         GameObject*     g_caster;
         Unit*           u_caster;
         Item*           i_caster;
@@ -401,8 +544,6 @@ class SERVER_DECL Spell : public EventableObject
         // This returns SPELL_ENTRY_Spell_Dmg_Type where 0 = SPELL_DMG_TYPE_NONE, 1 = SPELL_DMG_TYPE_MAGIC, 2 = SPELL_DMG_TYPE_MELEE, 3 = SPELL_DMG_TYPE_RANGED
         // It should NOT be used for weapon_damage_type which needs: 0 = MELEE, 1 = OFFHAND, 2 = RANGED
         uint32 GetType();
-
-        std::map<uint64, Aura*> m_pendingAuras;
 
         Item* GetItemTarget() const;
         Unit* GetUnitTarget() const;
@@ -431,7 +572,6 @@ class SERVER_DECL Spell : public EventableObject
 
         int32 damage;
         Aura* m_triggeredByAura;
-        signed int  forced_basepoints[3]; //some talent inherit base points from previous caster spells
 
         bool m_triggeredSpell;
         bool m_AreaAura;
