@@ -4117,36 +4117,34 @@ bool Unit::canSee(Object* const obj)
     if ((GetPhase() & obj->GetPhase()) == 0)
         return false;
 
-    // Get map view distance (WIP: usually 100 yards for open world and 500 yards for instanced maps)
-    //\ todo: there are some objects which should be visible even further and some objects which should always be visible
-    // should cover all Instances with 5000 * 5000 easyier for far Gameobjects / Creatures to Handle, also Loaded Cells affect the Distance standart 2 Cells equal 500.0f * 500.0f : aaron02
-    const auto viewDistance = GetMapMgr()->GetMapInfo()->isInstanceMap() ? 5000.0f * 5000.0f : GetMapMgr()->m_UpdateDistance;
+    // Get map view distance
+    // todo: there are some objects which should be visible even further and some objects which should always be visible
+    // i.e. Fel Reaver in Hellfire Peninsula should have infinite visibility range
+    // const auto viewDistance = GetMapMgr()->GetMapInfo()->isInstanceMap() ? 5000.0f * 5000.0f : GetMapMgr()->m_UpdateDistance;
+    const auto viewDistance = GetMapMgr()->m_UpdateDistance;
     if (obj->isGameObject())
     {
-        // TODO: for now, all maps have 500 yard view distance
-        // problem is that objects on active map cells are updated only if player can see it, iirc
-
-        // Transports should always be visible
         const auto gobj = static_cast<GameObject*>(obj);
         if (gobj->getGoType() == GAMEOBJECT_TYPE_TRANSPORT || gobj->getGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT)
         {
+            // Transports should always be visible
             return true;
         }
-        // Gameobjects on transport should always be visible
-        else if (gobj->GetTransport() != nullptr)
-        {
-            return true;
-        }
+        else if (gobj->GetTransport() != nullptr) return true;
         else
         {
             if (!isInRange(gobj->GetPosition(), viewDistance))
                 return false;
         }
+
+        // TODO: transports glitch while moving, not while they are still
+        // so mobs drop on ground etc
     }
     else
     {
-        // Creatures on transports should always be visible
         if (obj->isCreature() && dynamic_cast<Creature*>(obj)->hasUnitMovementFlag(MOVEFLAG_TRANSPORT))
+            return true;
+        else if (obj->GetTransport() != nullptr)
             return true;
         else if (!isInRange(obj->GetPosition(), viewDistance))
             return false;
