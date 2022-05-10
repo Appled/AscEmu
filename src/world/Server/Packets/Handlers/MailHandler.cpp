@@ -164,7 +164,7 @@ void WorldSession::handleMailCreateTextItemOpcode(WorldPacket& recvPacket)
     if (_player->getItemInterface()->AddItemToFreeSlot(item))
         SendPacket(SmsgSendMailResult(srlPacket.messageId, MAIL_RES_MADE_PERMANENT, MAIL_OK).serialise().get());
     else
-        item->DeleteMe();
+        item->safeRemoveFromWorldAndDelete();
 }
 
 void WorldSession::handleItemTextQueryOpcode(WorldPacket& recvPacket)
@@ -382,7 +382,7 @@ void WorldSession::handleTakeItemOpcode(WorldPacket& recvPacket)
     {
         SendPacket(SmsgSendMailResult(srlPacket.messageId, MAIL_RES_ITEM_TAKEN, MAIL_ERR_BAG_FULL, INV_ERR_INVENTORY_FULL).serialise().get());
 
-        item->DeleteMe();
+        item->safeRemoveFromWorldAndDelete();
         return;
     }
     item->m_isDirty = true;
@@ -392,7 +392,7 @@ void WorldSession::handleTakeItemOpcode(WorldPacket& recvPacket)
         if (!_player->getItemInterface()->AddItemToFreeSlot(item))
         {
             SendPacket(SmsgSendMailResult(srlPacket.messageId, MAIL_RES_ITEM_TAKEN, MAIL_ERR_BAG_FULL, INV_ERR_INVENTORY_FULL).serialise().get());
-            item->DeleteMe();
+            item->safeRemoveFromWorldAndDelete();
             return;
         }
     }
@@ -515,7 +515,6 @@ void WorldSession::handleSendMailOpcode(WorldPacket& recvPacket)
             if (_player->getItemInterface()->SafeRemoveAndRetreiveItemByGuid(item->getGuid(), false) != pItem)
                 continue;
 
-            pItem->RemoveFromWorld();
             pItem->setOwner(nullptr);
             pItem->SaveToDB(INVENTORY_SLOT_NOT_SET, 0, true, nullptr);
             msg.items.push_back(pItem->getGuidLow());
@@ -523,7 +522,7 @@ void WorldSession::handleSendMailOpcode(WorldPacket& recvPacket)
             if (GetPermissionCount() > 0)
                 sGMLog.writefromsession(this, "sent mail with item entry %u to %s", pItem->getEntry(), playerReceiverInfo->name.c_str());
 
-            pItem->DeleteMe();
+            pItem->safeRemoveFromWorldAndDelete();
         }
     }
 

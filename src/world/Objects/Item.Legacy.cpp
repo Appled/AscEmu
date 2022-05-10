@@ -358,14 +358,6 @@ void Item::DeleteFromDB()
     CharacterDatabase.Execute("DELETE FROM playeritems WHERE guid = %u", getGuidLow());
 }
 
-void Item::DeleteMe()
-{
-    if (this->m_owner != nullptr)
-        this->m_owner->getItemInterface()->RemoveRefundable(this->getGuid());
-
-    delete this;
-}
-
 uint16_t GetSkillByProto(uint32 Class, uint32 SubClass)
 {
     if (Class == 4 && SubClass < 7)
@@ -399,22 +391,6 @@ uint32 GetBuyPriceForItem(ItemProperties const* proto, uint32 count, Player* plr
     }
 
     return cost * count;
-}
-
-void Item::RemoveFromWorld()
-{
-    // if we have an owner->send destroy
-    if (m_owner != nullptr)
-        m_owner->sendDestroyObjectPacket(getGuid());
-
-    if (!IsInWorld())
-        return;
-
-    m_WorldMap->RemoveObject(this, false);
-    m_WorldMap = nullptr;
-
-    // update our event holder
-    event_Relocate();
 }
 
 void Item::ApplyEnchantmentBonus(EnchantmentSlot Slot, bool Apply)

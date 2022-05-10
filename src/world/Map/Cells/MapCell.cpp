@@ -187,10 +187,7 @@ void MapCell::removeObjects()
         if (obj->IsActive())
             obj->Deactivate(_map);
 
-        if (obj->IsInWorld())
-            obj->RemoveFromWorld(true);
-
-        delete obj;
+        obj->safeRemoveFromWorldAndDelete();
     }
     _objects.clear();
     _corpses.clear();

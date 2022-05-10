@@ -145,13 +145,14 @@ public:
 
     // void Update(unsigned long /*time_passed*/);      // not used
     // void AddToWorld();                               // not used
-    // void AddToWorld(WorldMap* pMapMgr);                // not used
-    // void PushToWorld(WorldMap*);                       // not used
-    // void RemoveFromWorld(bool free_guid);            // not used
+    // void AddToWorld(WorldMap* pMapMgr);              // not used
+    // void PushToWorld(WorldMap*);                     // not used
+    void clearObjectFromWorld(bool free_guid) override;
     // void OnPrePushToWorld();                         // not used
     // void OnPushToWorld();                            // not used
     // void OnPreRemoveFromWorld();                     // not used
     // void OnRemoveFromWorld();                        // not used
+    void safeRemoveFromWorldAndDelete() override;
 
 private:
     const WoWItem* itemData() const { return reinterpret_cast<WoWItem*>(wow_data); }
@@ -300,7 +301,6 @@ public:
         void SaveToDB(int8 containerslot, int8 slot, bool firstsave, QueryBuffer* buf);
         bool LoadAuctionItemFromDB(uint64 guid);
         void DeleteFromDB();
-        void DeleteMe();
         bool IsEligibleForRefund();
 
         //////////////////////////////////////////////////////////////////////////////////////////
@@ -365,8 +365,6 @@ public:
         bool IsAmmoBag() { return (m_itemProperties->Class == ITEM_CLASS_QUIVER); }
 
         uint32 CountGemsWithLimitId(uint32 Limit);
-
-        void RemoveFromWorld();
 
         Loot* loot = nullptr;
         bool locked = false;

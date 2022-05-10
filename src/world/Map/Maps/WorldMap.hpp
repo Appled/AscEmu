@@ -15,6 +15,11 @@ This file is released under the MIT license. See README-MIT for more information
 #include "Threading/AEThread.h"
 #include "Storage/DBC/DBCStructures.hpp"
 
+#include <map>
+#include <mutex>
+#include <set>
+#include <vector>
+
 template <typename T>
 class CellHandler;
 class InstanceScript;
@@ -119,6 +124,16 @@ struct CompareTimeAndGuid
     }
 };
 
+struct ObjectRemoveInfo
+{
+    ObjectRemoveInfo(Object* object, bool freeGuid, bool deleteObject) :
+        object(object), freeGuid(freeGuid), deleteObject(deleteObject) {}
+
+    Object* object = nullptr;
+    bool freeGuid = false;
+    bool deleteObject = false;
+};
+
 typedef std::unordered_map<uint32_t, Player*> PlayerStorageMap;
 typedef std::vector<Creature*> CreaturesStorageMap;
 typedef std::unordered_map<uint32_t, Pet*> PetStorageMap;
@@ -128,6 +143,7 @@ typedef std::set<Transporter*> TransportsContainer;
 
 typedef std::set<Creature*> CreatureSet;
 typedef std::set<Object*> ObjectSet;
+typedef std::vector<ObjectRemoveInfo> ObjectRemoveContainer;
 typedef std::set<Creature*> ActiveCreatureSet;
 typedef std::set<GameObject*> ActiveGameObjectSet;
 
@@ -169,11 +185,14 @@ public:
     void outOfMapBoundariesTeleport(Object* object);
 
     std::mutex m_objectinsertlock;
+    std::mutex m_objectRemoveLock;
     ObjectSet m_objectinsertpool;
+    ObjectRemoveContainer m_objectRemovePool;
     void AddObject(Object*);
     void PushObject(Object* obj);
     void PushStaticObject(Object* obj);
     void RemoveObject(Object* obj, bool free_guid);
+    void addObjectToRemoveQueue(Object* obj, bool free_guid, bool _delete = false);
 
     void addObjectToActiveSet(Object* obj);
     void removeObjectFromActiveSet(Object* obj);

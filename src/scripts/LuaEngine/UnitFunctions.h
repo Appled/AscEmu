@@ -1404,7 +1404,7 @@ public:
                         return false;
 
                     if (!player->getItemInterface()->AddItemToFreeSlot(item))
-                        item->DeleteMe();
+                        item->safeRemoveFromWorldAndDelete();
                 }
             }
 
@@ -1415,7 +1415,7 @@ public:
                 {
                     item->setStackCount(questProperties->srcitemcount ? questProperties->srcitemcount : 1);
                     if (!player->getItemInterface()->AddItemToFreeSlot(item))
-                        item->DeleteMe();
+                        item->safeRemoveFromWorldAndDelete();
                 }
             }
 
@@ -3230,7 +3230,7 @@ public:
                     unit->m_spawn = nullptr;
                 }
             }
-            unit->RemoveFromWorld(false, true);
+            unit->RemoveFromWorld(true);
         }
         return 0;
     }
@@ -5712,7 +5712,7 @@ public:
         if (o->isPlayer())
             o->RemoveAllAuraType(SPELL_AURA_MOUNTED);
         else
-            o->Delete();
+            o->safeRemoveFromWorldAndDelete();
 #endif
         return 0;
     }

@@ -382,8 +382,7 @@ void Transporter::UnloadStaticPassengers()
                 obj->ToGameObject()->Despawn(0, 0);
                 break;
             default:
-                if (obj->IsInWorld())
-                    obj->Delete();
+                obj->safeRemoveFromWorldAndDelete();
                 break;
         }
     }
@@ -559,8 +558,11 @@ void Transporter::delayedTeleportTransport()
     if (!_delayedTransportFromMap || !_pendingMapChange)
         return;
 
+    auto testTrans = this->GetGameObjectProperties()->entry == 164871;
+
     _delayedTransportFromMap->removeFromMapMgr(this);
-    RemoveFromWorld(false);
+    //RemoveFromWorld(false);
+    clearObjectFromWorld(false);
 
     // Set new Map Information
     SetMapId(_nextFrame->Node.mapid);

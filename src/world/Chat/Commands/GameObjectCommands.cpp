@@ -359,7 +359,7 @@ bool ChatHandler::HandleGOMoveHereCommand(const char* args, WorldSession* m_sess
     }
 
     uint32 new_go_guid = m_session->GetPlayer()->getWorldMap()->generateGameobjectGuid();
-    gameobject->RemoveFromWorld(true);
+    gameobject->clearObjectFromWorld(true);
     gameobject->SetNewGuid(new_go_guid);
     gameobject->PushToWorld(m_session->GetPlayer()->getWorldMap());
 
@@ -461,7 +461,7 @@ bool ChatHandler::HandleGORotateCommand(const char* args, WorldSession* m_sessio
     GreenSystemMessage(m_session, "Gameobject spawn id: %u rotated", go->m_spawn->id);
 
     uint32 NewGuid = m_session->GetPlayer()->getWorldMap()->generateGameobjectGuid();
-    go->RemoveFromWorld(true);
+    go->clearObjectFromWorld(true);
     go->SetNewGuid(NewGuid);
     go->PushToWorld(m_session->GetPlayer()->getWorldMap());
     go->SaveToDB();
@@ -822,7 +822,7 @@ bool ChatHandler::HandleGOSetOverridesCommand(const char* args, WorldSession* m_
     }
 
     uint32 new_go_guid = m_session->GetPlayer()->getWorldMap()->generateGameobjectGuid();
-    gameobject->RemoveFromWorld(true);
+    gameobject->clearObjectFromWorld(true);
     gameobject->SetNewGuid(new_go_guid);
     gameobject->PushToWorld(m_session->GetPlayer()->getWorldMap());
 
@@ -878,7 +878,7 @@ bool ChatHandler::HandleGOSetPhaseCommand(const char* args, WorldSession* m_sess
     }
 
     uint32 new_go_guid = m_session->GetPlayer()->getWorldMap()->generateGameobjectGuid();
-    gameobject->RemoveFromWorld(true);
+    gameobject->clearObjectFromWorld(true);
     gameobject->SetNewGuid(new_go_guid);
     gameobject->PushToWorld(m_session->GetPlayer()->getWorldMap());
 
@@ -931,7 +931,7 @@ bool ChatHandler::HandleGOSetScaleCommand(const char* args, WorldSession* m_sess
     }
 
     uint32 new_go_guid = m_session->GetPlayer()->getWorldMap()->generateGameobjectGuid();
-    gameobject->RemoveFromWorld(true);
+    gameobject->clearObjectFromWorld(true);
     gameobject->SetNewGuid(new_go_guid);
     gameobject->PushToWorld(m_session->GetPlayer()->getWorldMap());
 

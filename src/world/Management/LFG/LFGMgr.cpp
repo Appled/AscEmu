@@ -1970,7 +1970,7 @@ void LfgMgr::RewardDungeonDoneFor(const uint32 dungeonId, Player* player)
                                 item->setStackCount(uint32(qReward->reward_itemcount[i]));
                                 if (!player->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
                                 {
-                                    item->DeleteMe();
+                                    item->safeRemoveFromWorldAndDelete();
                                 }
                             }
                         }
@@ -2064,7 +2064,7 @@ void LfgMgr::RewardDungeonDoneFor(const uint32 dungeonId, Player* player)
                                 item->setStackCount(uint32(qReward->reward_itemcount[i]));
                                 if (!player->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
                                 {
-                                    item->DeleteMe();
+                                    item->safeRemoveFromWorldAndDelete();
                                 }
                             }
                         }

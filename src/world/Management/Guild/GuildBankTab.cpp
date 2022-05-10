@@ -50,11 +50,10 @@ void GuildBankTab::removeBankTabItemFromDB(bool removeItemsFromDB)
     {
         if (Item* pItem = mItems[slotId])
         {
-            pItem->RemoveFromWorld();
             if (removeItemsFromDB)
                 pItem->DeleteFromDB();
 
-            delete pItem;
+            pItem->safeRemoveFromWorldAndDelete();
             pItem = nullptr;
         }
     }

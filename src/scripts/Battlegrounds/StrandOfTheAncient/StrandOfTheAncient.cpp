@@ -898,7 +898,7 @@ void StrandOfTheAncient::SpawnControlPoint(SOTAControlPoints point, SOTACPStates
     else
     {
         if (cp.banner->IsInWorld())
-            cp.banner->RemoveFromWorld(false);
+            cp.banner->clearObjectFromWorld(false);
     }
 
     cp.banner = SpawnGameObject(FlagIDs[point][team], FlagPositions[point], 0, faction, 1.0f);

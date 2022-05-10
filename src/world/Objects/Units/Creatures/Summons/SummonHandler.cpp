@@ -32,7 +32,7 @@ void SummonHandler::removeGuardian(Summon* summon, bool deleteObject)
         return;
 
     if (deleteObject)
-        (*itr)->Delete();
+        (*itr)->safeRemoveFromWorldAndDelete();
 
     _guardianPets.erase(itr);
 }
@@ -52,7 +52,7 @@ void SummonHandler::removeTotem(TotemSummon* totem, bool deleteObject)
         if (_totems[i] == totem)
         {
             if (deleteObject)
-                totem->Delete();
+                totem->safeRemoveFromWorldAndDelete();
 
             _totems[i] = nullptr;
             break;
@@ -68,7 +68,7 @@ void SummonHandler::removeAllSummons(bool totemsOnly/* = false*/)
         {
             auto guardian = *itr;
             ++itr;
-            guardian->Delete();
+            guardian->safeRemoveFromWorldAndDelete();
         }
 
         _guardianPets.clear();
@@ -79,7 +79,7 @@ void SummonHandler::removeAllSummons(bool totemsOnly/* = false*/)
         if (_totems[i] == nullptr)
             continue;
 
-        _totems[i]->Delete();
+        _totems[i]->safeRemoveFromWorldAndDelete();
         _totems[i] = nullptr;
     }
 }

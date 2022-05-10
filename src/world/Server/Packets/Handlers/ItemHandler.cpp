@@ -967,7 +967,7 @@ void WorldSession::handleSplitOpcode(WorldPacket& recvPacket)
                 {
                     _player->getItemInterface()->buildInventoryChangeError(inventoryItem1, inventoryItem2, INV_ERR_COULDNT_SPLIT_ITEMS);
                     inventoryItem2->DeleteFromDB();
-                    inventoryItem2->DeleteMe();
+                    inventoryItem2->safeRemoveFromWorldAndDelete();
                     inventoryItem2 = nullptr;
                 }
             }
@@ -979,7 +979,7 @@ void WorldSession::handleSplitOpcode(WorldPacket& recvPacket)
                 if (inventoryItem2 != nullptr)
                 {
                     inventoryItem2->DeleteFromDB();
-                    inventoryItem2->DeleteMe();
+                    inventoryItem2->safeRemoveFromWorldAndDelete();
                     inventoryItem2 = nullptr;
                 };
             }
@@ -1222,7 +1222,7 @@ void WorldSession::handleDestroyItemOpcode(WorldPacket& recvPacket)
         }
 
         pItem->DeleteFromDB();
-        pItem->DeleteMe();
+        pItem->safeRemoveFromWorldAndDelete();
     }
 }
 
@@ -1304,7 +1304,7 @@ void WorldSession::handleAutoEquipItemOpcode(WorldPacket& recvPacket)
                 if (!_player->getItemInterface()->SafeAddItem(offhandweapon, result.ContainerSlot, result.Slot)
                     && !_player->getItemInterface()->AddItemToFreeSlot(offhandweapon))
                 {
-                    offhandweapon->DeleteMe();
+                    offhandweapon->safeRemoveFromWorldAndDelete();
                     offhandweapon = nullptr;
                 }
             }
@@ -1333,7 +1333,7 @@ void WorldSession::handleAutoEquipItemOpcode(WorldPacket& recvPacket)
                 if (!_player->getItemInterface()->SafeAddItem(mainhandweapon, result.ContainerSlot, result.Slot)
                     && !_player->getItemInterface()->AddItemToFreeSlot(mainhandweapon))
                 {
-                    mainhandweapon->DeleteMe();
+                    mainhandweapon->safeRemoveFromWorldAndDelete();
                     mainhandweapon = nullptr;
                 }
             }
@@ -1376,7 +1376,7 @@ void WorldSession::handleAutoEquipItemOpcode(WorldPacket& recvPacket)
             if (!result)
             {
                 sLogger.failure("Error while adding item to SrcSlot");
-                oitem->DeleteMe();
+                oitem->safeRemoveFromWorldAndDelete();
                 oitem = nullptr;
             }
         }
@@ -1386,7 +1386,7 @@ void WorldSession::handleAutoEquipItemOpcode(WorldPacket& recvPacket)
             if (!result)
             {
                 sLogger.failure("Error while adding item to Slot");
-                eitem->DeleteMe();
+                eitem->safeRemoveFromWorldAndDelete();
                 eitem = nullptr;
                 return;
             }
@@ -1831,7 +1831,7 @@ void WorldSession::handleBuyBackOpcode(WorldPacket& recvPacket)
             if (!result)
             {
                 sLogger.failure("Error while adding item to free slot");
-                it->DeleteMe();
+                it->safeRemoveFromWorldAndDelete();
             }
         }
         else
@@ -1841,7 +1841,7 @@ void WorldSession::handleBuyBackOpcode(WorldPacket& recvPacket)
 
             // delete the item
             it->DeleteFromDB();
-            it->DeleteMe();
+            it->safeRemoveFromWorldAndDelete();
         }
 
 #if VERSION_STRING < Cata
@@ -2097,7 +2097,7 @@ void WorldSession::handleBuyItemInSlotOpcode(WorldPacket& recvPacket)
             pItem->m_isDirty = true;
             if (!_player->getItemInterface()->SafeAddItem(pItem, bagslot, slot))
             {
-                pItem->DeleteMe();
+                pItem->safeRemoveFromWorldAndDelete();
                 return;
             }
         }
@@ -2229,7 +2229,7 @@ void WorldSession::handleBuyItemOpcode(WorldPacket& recvPacket)
             const auto addItemResult = _player->getItemInterface()->SafeAddItem(item, INVENTORY_SLOT_NOT_SET, slotResult.Slot);
             if (!addItemResult)
             {
-                item->DeleteMe();
+                item->safeRemoveFromWorldAndDelete();
             }
             else
             {
@@ -2248,7 +2248,7 @@ void WorldSession::handleBuyItemOpcode(WorldPacket& recvPacket)
             {
                 if (!dynamic_cast<Container*>(bag)->AddItem(slotResult.Slot, item))
                 {
-                    item->DeleteMe();
+                    item->safeRemoveFromWorldAndDelete();
                 }
                 else
                 {
@@ -2506,7 +2506,7 @@ void WorldSession::handleAutoStoreBagItemOpcode(WorldPacket& recvPacket)
                     if (!result)
                     {
                         sLogger.failure("Error while adding item to newslot");
-                        srcitem->DeleteMe();
+                        srcitem->safeRemoveFromWorldAndDelete();
                         return;
                     }
                 }
@@ -2547,7 +2547,7 @@ void WorldSession::handleAutoStoreBagItemOpcode(WorldPacket& recvPacket)
                             if (!result)
                             {
                                 sLogger.failure("Error while adding item to newslot");
-                                srcitem->DeleteMe();
+                                srcitem->safeRemoveFromWorldAndDelete();
                             }
                         }
                     }
@@ -2693,7 +2693,7 @@ void WorldSession::handleAutoBankItemOpcode(WorldPacket& recvPacket)
         {
             sLogger.failure("Error while adding item to bank bag!");
             if (!_player->getItemInterface()->SafeAddItem(eitem, srlPacket.srcInventorySlot, srlPacket.srcSlot))
-                eitem->DeleteMe();
+                eitem->safeRemoveFromWorldAndDelete();
         }
     }
 }
@@ -2730,7 +2730,7 @@ void WorldSession::handleAutoStoreBankItemOpcode(WorldPacket& recvPacket)
         {
             sLogger.failure("Error while adding item from one of the bank bags to the player bag!");
             if (!_player->getItemInterface()->SafeAddItem(eitem, srlPacket.srcInventorySlot, srlPacket.srcSlot))
-                eitem->DeleteMe();
+                eitem->safeRemoveFromWorldAndDelete();
         }
     }
 }
@@ -2874,7 +2874,7 @@ void WorldSession::handleInsertGemOpcode(WorldPacket& recvPacket)
                 return; //someone sending hacked packets to crash server
 
             gem_properties = sGemPropertiesStore.LookupEntry(it->getItemProperties()->GemProperties);
-            it->DeleteMe();
+            it->safeRemoveFromWorldAndDelete();
 
             if (!gem_properties)
                 continue;

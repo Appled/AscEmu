@@ -1537,7 +1537,7 @@ void QuestMgr::OnQuestFinished(Player* plr, QuestProperties const* qst, Object* 
 
                             item->setStackCount(uint32(qst->reward_itemcount[i]));
                             if (!plr->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
-                                item->DeleteMe();
+                                item->safeRemoveFromWorldAndDelete();
                         }
                     }
                     else
@@ -1575,7 +1575,7 @@ void QuestMgr::OnQuestFinished(Player* plr, QuestProperties const* qst, Object* 
 
                         item->setStackCount(uint32(qst->reward_choiceitemcount[reward_slot]));
                         if (!plr->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
-                            item->DeleteMe();
+                            item->safeRemoveFromWorldAndDelete();
 
                     }
                 }
@@ -1649,7 +1649,7 @@ void QuestMgr::OnQuestFinished(Player* plr, QuestProperties const* qst, Object* 
 
                             item->setStackCount(uint32(qst->reward_itemcount[i]));
                             if (!plr->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
-                                item->DeleteMe();
+                                item->safeRemoveFromWorldAndDelete();
                         }
                     }
                     else
@@ -1687,7 +1687,7 @@ void QuestMgr::OnQuestFinished(Player* plr, QuestProperties const* qst, Object* 
 
                         item->setStackCount(uint32(qst->reward_choiceitemcount[reward_slot]));
                         if (!plr->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
-                            item->DeleteMe();
+                            item->safeRemoveFromWorldAndDelete();
                     }
                 }
                 else
@@ -1801,7 +1801,7 @@ void QuestMgr::OnQuestFinished(Player* plr, QuestProperties const* qst, Object* 
                     pItem->setStackCount(1);
                     pItem->SaveToDB(0, 0, true, NULL);
                     itemGuid = pItem->getGuid();
-                    pItem->DeleteMe();
+                    pItem->safeRemoveFromWorldAndDelete();
                 }
             }
 #if VERSION_STRING > Classic

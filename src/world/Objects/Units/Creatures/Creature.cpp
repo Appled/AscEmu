@@ -70,6 +70,13 @@ Creature::~Creature()
         m_escorter = nullptr;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Essential functions
+void Creature::RemoveFromWorld(bool /*free_guid = false*/, bool /*deleteObject = false*/)
+{
+    Despawn(0, 0);
+}
+
 bool Creature::isVendor() const { return getNpcFlags() & UNIT_NPC_FLAG_VENDOR; }
 bool Creature::isTrainer() const { return getNpcFlags() & UNIT_NPC_FLAG_TRAINER; }
 bool Creature::isClassTrainer() const { return getNpcFlags() & UNIT_NPC_FLAG_TRAINER_CLASS; }
@@ -523,21 +530,6 @@ void Creature::Update(unsigned long time_passed)
     }
 }
 
-void Creature::SafeDelete()
-{
-    sEventMgr.RemoveEvents(this);
-
-    delete this;
-}
-
-void Creature::DeleteMe()
-{
-    if (IsInWorld())
-        RemoveFromWorld(false, true);
-    else
-        SafeDelete();
-}
-
 void Creature::OnRemoveCorpse()
 {
     // time to respawn!
@@ -562,14 +554,14 @@ void Creature::OnRemoveCorpse()
 
         if ((getWorldMap()->getBaseMap()->getMapInfo() && getWorldMap()->getBaseMap()->getMapInfo()->isRaid() && creature_properties->isBoss) || m_noRespawn)
         {
-            RemoveFromWorld(false, true);
+            RemoveFromWorld(true);
         }
         else
         {
             if (m_respawnTime)
-                RemoveFromWorld(true, false);
+                despawn(0);
             else
-                RemoveFromWorld(false, true);
+                RemoveFromWorld(true);
         }
     }
     else
@@ -933,18 +925,10 @@ bool Creature::CanAddToWorld()
     return true;
 }
 
-void Creature::RemoveFromWorld(bool addrespawnevent, bool /*free_guid*/)
-{
-    if (addrespawnevent && m_respawnTime > 0)
-        despawn(0);
-    else
-        Despawn(0, 0);
-}
-
-void Creature::RemoveFromWorld(bool free_guid)
+void Creature::clearObjectFromWorld(bool free_guid)
 {
     PrepareForRemove();
-    Unit::RemoveFromWorld(free_guid);
+    Unit::clearObjectFromWorld(free_guid);
 }
 
 void Creature::EnslaveExpire()
@@ -1989,8 +1973,8 @@ void Creature::Despawn(uint32 delay, uint32 respawntime)
         }
         else
         {
-            Unit::RemoveFromWorld(true);
-            SafeDelete();
+            sEventMgr.RemoveEvents(this);
+            Unit::RemoveFromWorld(true, true);
         }
     }
 }
@@ -2037,8 +2021,8 @@ void Creature::despawn(uint32_t delay)
         }
         else
         {
-            Unit::RemoveFromWorld(true);
-            SafeDelete();
+            sEventMgr.RemoveEvents(this);
+            Unit::RemoveFromWorld(true, true);
         }
     }
 }

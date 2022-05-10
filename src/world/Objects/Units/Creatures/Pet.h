@@ -131,15 +131,16 @@ public:
     //////////////////////////////////////////////////////////////////////////////////////////
     // Essential functions
 
-    void Update(unsigned long /*time_passed*/);         // hides function Creature::Update
-    // void AddToWorld();                               // not used
-    // void AddToWorld(WorldMap* pMapMgr);                // not used
-    // void PushToWorld(WorldMap*);                       // not used
-    void RemoveFromWorld(bool free_guid);               // hides function Creature::RemoveFromWorld
-    // void OnPrePushToWorld();                         // not used
-    void OnPushToWorld();                               // hides function Creature::OnPushToWorld
-    // void OnPreRemoveFromWorld();                     // not used
-    void OnRemoveFromWorld();                           // hides function Object::OnRemoveFromWorld
+    void Update(unsigned long /*time_passed*/) override;                            // hides function Creature::Update
+    // void AddToWorld();                                                           // not used
+    // void AddToWorld(WorldMap* pMapMgr);                                          // not used
+    // void PushToWorld(WorldMap*);                                                 // not used
+    void RemoveFromWorld(bool free_guid = false, bool deleteObj = false) override;  // overrides function Creature::RemoveFromWorld
+    void clearObjectFromWorld(bool free_guid) override;                             // overrides function Creature::clearObjectFromWorld
+    // void OnPrePushToWorld();                                                     // not used
+    void OnPushToWorld() override;                                                  // overrides function Creature::OnPushToWorld
+    // void OnPreRemoveFromWorld();                                                 // not used
+    void OnRemoveFromWorld() override;                                              // overrides function Object::OnRemoveFromWorld
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // Owner
@@ -298,7 +299,6 @@ public:
         HappinessState GetHappinessState();
         void SetNameForEntry(uint32 entry);
         uint32 GetAutoCastTypeForSpell(SpellInfo const* ent);
-        void SafeDelete();
 
     std::list<AI_Spell*> m_autoCastSpells[AUTOCAST_EVENT_COUNT];
 };

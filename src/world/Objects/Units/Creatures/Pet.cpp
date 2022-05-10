@@ -63,6 +63,20 @@ Pet::~Pet()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+// Essential functions
+void Pet::RemoveFromWorld(bool free_guid/* = false*/, bool deleteObj/* = false*/)
+{
+    if (!ScheduledForDeletion)
+    {
+        Remove(true, true);
+        return;
+    }
+
+    // Override Creature::RemoveFromWorld
+    Unit::RemoveFromWorld(free_guid, deleteObj);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 // Owner
 Player* Pet::getPlayerOwner() { return m_Owner; }
 
@@ -1199,19 +1213,16 @@ void Pet::Remove(bool bUpdate, bool bSetOffline)
     PrepareForRemove(bUpdate, bSetOffline);
     m_Owner->addGroupUpdateFlag(GROUP_UPDATE_PET);
 
-    if (IsInWorld())
-        Unit::RemoveFromWorld(true);
-
-    SafeDelete();
+    safeRemoveFromWorldAndDelete();
 }
 
-void Pet::RemoveFromWorld(bool free_guid)
+void Pet::clearObjectFromWorld(bool free_guid)
 {
     if (IsSummonedPet())
         PrepareForRemove(false, true);
     else
         PrepareForRemove(true, false);
-    Unit::RemoveFromWorld(free_guid);
+    Unit::clearObjectFromWorld(free_guid);
 }
 
 void Pet::OnRemoveFromWorld()
@@ -1231,13 +1242,6 @@ void Pet::Despawn(uint32 delay, uint32 /*respawntime*/)
 {
     bool delayed = (delay != 0);
     DelayedRemove(delayed, true, delay);
-}
-
-void Pet::SafeDelete()
-{
-    sEventMgr.RemoveEvents(this);
-
-    m_Owner->AddGarbagePet(this);
 }
 
 void Pet::DelayedRemove(bool bTime, bool dismiss, uint32 delay)

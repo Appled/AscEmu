@@ -2401,7 +2401,7 @@ void Guild::swapItemsWithInventory(Player* player, bool toChar, uint8_t tabId, u
             if (!player->getItemInterface()->SafeAddItem(pDestItem, 0, 0))
             {
                 if (!player->getItemInterface()->AddItemToFreeSlot(pDestItem))
-                    pDestItem->DeleteMe();
+                    pDestItem->safeRemoveFromWorldAndDelete();
             }
 
             logBankEvent(GB_LOG_WITHDRAW_ITEM, tabId, player->getGuidLow(),

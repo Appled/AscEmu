@@ -476,7 +476,7 @@ bool ScrollOfMyzrael(uint8_t /*effectIndex*/, Spell* pSpell)
     if (myzrael != nullptr)
     {
         if (!myzrael->isAlive())
-            myzrael->Delete();
+            myzrael->safeRemoveFromWorldAndDelete();
         else
             return true;
     }
@@ -1362,7 +1362,7 @@ bool HunterTamingQuest(uint8_t /*effectIndex*/, Aura* a, bool apply)
                     Pet* pPet = sObjectMgr.CreatePet(tamed->getEntry());
                     if (!pPet->CreateAsSummon(tamed->getEntry(), tamed->GetCreatureProperties(), tamed, getPlayerCaster(), triggerspell, 2, 900000))
                     {
-                        pPet->DeleteMe();//CreateAsSummon() returns false if an error occurred.
+                        pPet->safeRemoveFromWorldAndDelete();//CreateAsSummon() returns false if an error occurred.
                         pPet = NULL;
                     }
 

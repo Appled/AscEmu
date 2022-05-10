@@ -111,7 +111,7 @@ public:
     // Essential functions (mostly inherited by other classes)
 
     // updated by EventableObject
-    void Update(unsigned long /*time_passed*/) {}
+    virtual void Update(unsigned long /*time_passed*/) {}
 
     // adds/queues object to world and links WorldMap to it if possible
     virtual void AddToWorld();
@@ -122,8 +122,11 @@ public:
     // Unlike addtoworld it pushes it directly ignoring add pool this can only be called from the thread of WorldMap!
     void PushToWorld(WorldMap*);
 
+    // Adds object into remove queue
+    virtual void RemoveFromWorld(bool free_guid = false, bool deleteObject = false);
+
     // removes object from world and queue
-    virtual void RemoveFromWorld(bool free_guid);
+    virtual void clearObjectFromWorld(bool free_guid);
 
     // True if object exists in world, else false
     bool IsInWorld() const { return m_WorldMap != NULL; }
@@ -139,6 +142,9 @@ public:
 
     // is called AFTER removing the Object from the game world
     virtual void OnRemoveFromWorld() {}
+
+    // Very safe way to delete object
+    virtual void safeRemoveFromWorldAndDelete();
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // Object values
@@ -654,12 +660,6 @@ public:
         bool m_inQueue = false;
         void SetMapMgr(WorldMap* mgr) { m_WorldMap = mgr; }
 
-        void Delete()
-        {
-            if (IsInWorld())
-                RemoveFromWorld(true);
-            delete this;
-        }
         // Play's a sound to players in range.
         void PlaySoundToSet(uint32 sound_entry);
         // Is the player in a battleground?

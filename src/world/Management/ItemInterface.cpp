@@ -292,7 +292,7 @@ ItemInterface::~ItemInterface()
     {
         if (m_pItems[i] != nullptr && m_pItems[i]->getOwner() == m_pOwner)
         {
-            m_pItems[i]->DeleteMe();
+            m_pItems[i]->safeRemoveFromWorldAndDelete();
         }
     }
     this->m_refundableitems.clear();
@@ -384,7 +384,7 @@ Item* ItemInterface::SafeAddItem(uint32 ItemId, int8 ContainerSlot, int16 slot)
         }
         else
         {
-            pItem->DeleteMe();
+            pItem->safeRemoveFromWorldAndDelete();
             return nullptr;
         }
     }
@@ -815,17 +815,8 @@ bool ItemInterface::SafeFullRemoveItemFromSlot(int8 ContainerSlot, int16 slot)
             else if (slot < INVENTORY_SLOT_BAG_END)
                 m_pOwner->applyItemMods(pItem, slot, false);  //watch containers that give attackspeed and stuff ;)
 
-            if (pItem->IsInWorld())
-            {
-                pItem->RemoveFromWorld();
-            }
-
             pItem->DeleteFromDB();
-
-            //delete pItem;
-            // We make it a garbage item, so when it's used for a spell, it gets deleted in the next Player update
-            // otherwise we get a nice crash
-            m_pOwner->addGarbageItem(pItem);
+            pItem->safeRemoveFromWorldAndDelete();
         }
     }
     else
@@ -2979,16 +2970,11 @@ void ItemInterface::EmptyBuyBack()
 
             if (m_pBuyBack[j]->isContainer())
             {
-                if (m_pBuyBack[j]->IsInWorld())
-                    m_pBuyBack[j]->RemoveFromWorld();
-
-                delete static_cast<Container*>(m_pBuyBack[j]);
+                m_pBuyBack[j]->safeRemoveFromWorldAndDelete();
             }
             else
             {
-                if (m_pBuyBack[j]->IsInWorld())
-                    m_pBuyBack[j]->RemoveFromWorld();
-                delete m_pBuyBack[j];
+                m_pBuyBack[j]->safeRemoveFromWorldAndDelete();
                 m_pBuyBack[j] = nullptr;
             }
 
@@ -3012,20 +2998,7 @@ void ItemInterface::AddBuyBackItem(Item* it, uint32 price)
             m_pOwner->sendDestroyObjectPacket(m_pBuyBack[0]->getGuid());
             m_pBuyBack[0]->DeleteFromDB();
 
-            if (m_pBuyBack[0]->isContainer())
-            {
-                if (m_pBuyBack[0]->IsInWorld())
-                    m_pBuyBack[0]->RemoveFromWorld();
-
-                delete static_cast<Container*>(m_pBuyBack[0]);
-            }
-            else
-            {
-                if (m_pBuyBack[0]->IsInWorld())
-                    m_pBuyBack[0]->RemoveFromWorld();
-                delete m_pBuyBack[0];
-            }
-
+            m_pBuyBack[0]->safeRemoveFromWorldAndDelete();
             m_pBuyBack[0] = nullptr;
         }
 
@@ -3413,7 +3386,7 @@ void ItemInterface::mLoadItemsFromDatabase(QueryResult* result)
                 if (item->GetItemExpireTime() > 0 && UNIXTIME > item->GetItemExpireTime())
                 {
                     item->DeleteFromDB();
-                    item->DeleteMe();
+                    item->safeRemoveFromWorldAndDelete();
                     continue;
                 }
 
@@ -3421,7 +3394,7 @@ void ItemInterface::mLoadItemsFromDatabase(QueryResult* result)
                     item->m_isDirty = false;
                 else
                 {
-                    delete item;
+                    item->safeRemoveFromWorldAndDelete();
                     item = nullptr;
                 }
             }
@@ -4179,7 +4152,7 @@ bool ItemInterface::AddItemById(uint32 itemid, uint32 count, int32 randomprop)
         {
             freeslots = false;
             chr->getSession()->SendNotification("No free slots were found in your inventory!");
-            item->DeleteMe();
+            item->safeRemoveFromWorldAndDelete();
         }
     }
     return true;
@@ -4393,7 +4366,7 @@ bool ItemInterface::SwapItems(int8 DstInvSlot, int8 DstSlot, int8 SrcInvSlot, in
             {
                 sLogger.failure("HandleSwapItem: Error while adding item to dstslot");
                 SrcItem->DeleteFromDB();
-                SrcItem->DeleteMe();
+                SrcItem->safeRemoveFromWorldAndDelete();
                 SrcItem = nullptr;
                 adderror = true;
             }
@@ -4406,7 +4379,7 @@ bool ItemInterface::SwapItems(int8 DstInvSlot, int8 DstSlot, int8 SrcInvSlot, in
             {
                 sLogger.failure("HandleSwapItem: Error while adding item to srcslot");
                 DstItem->DeleteFromDB();
-                DstItem->DeleteMe();
+                DstItem->safeRemoveFromWorldAndDelete();
                 DstItem = nullptr;
                 adderror = true;
             }

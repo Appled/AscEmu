@@ -3338,7 +3338,22 @@ void Object::PushToWorld(WorldMap* mgr)
 //////////////////////////////////////////////////////////////////////////////////////////
 /// Remove object from world
 //////////////////////////////////////////////////////////////////////////////////////////
-void Object::RemoveFromWorld(bool free_guid)
+void Object::RemoveFromWorld(bool free_guid/* = false*/, bool deleteObject/* = false*/)
+{
+    if (!IsInWorld())
+    {
+        sLogger.failure("Object::RemoveFromWorld tried to remove object without a valid mapMgr (nullptr)");
+
+        if (deleteObject)
+            delete this;
+
+        return;
+    }
+
+    getWorldMap()->addObjectToRemoveQueue(this, free_guid, deleteObject);
+}
+
+void Object::clearObjectFromWorld(bool free_guid)
 {
     if (m_WorldMap != nullptr)
     {
@@ -3365,8 +3380,21 @@ void Object::RemoveFromWorld(bool free_guid)
     }
     else
     {
-        sLogger.failure("Object::RemoveFromWorld tried to remove object without a valid mapMgr (nullptr)");
+        sLogger.failure("Object::clearObjectFromWorld tried to remove object without a valid mapMgr (nullptr)");
     }
+}
+
+void Object::safeRemoveFromWorldAndDelete()
+{
+    sEventMgr.RemoveEvents(this);
+
+    if (IsInWorld())
+    {
+        RemoveFromWorld(true, true);
+        return;
+    }
+
+    delete this;
 }
 
 float Object::CalcDistance(Object* Ob)

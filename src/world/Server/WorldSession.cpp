@@ -383,8 +383,6 @@ void WorldSession::LogoutPlayer(bool Save)
         _player->dismount();
 
         _player->RemoveAllAuras();
-        if (_player->IsInWorld())
-            _player->RemoveFromWorld();
 
         if (_player->m_playerInfo->m_Group != nullptr)
             _player->m_playerInfo->m_Group->Update();
@@ -427,7 +425,7 @@ void WorldSession::LogoutPlayer(bool Save)
             }
         }
 
-        delete _player;
+        _player->safeRemoveFromWorldAndDelete();
         _player = nullptr;
 
         SendPacket(SmsgLogoutComplete().serialise().get());

@@ -272,7 +272,7 @@ void AuctionHouse::removeAuction(Auction* auction)
 
     // Destroy the item from memory (it still remains in the db)
     if (auction->auctionItem)
-        auction->auctionItem->DeleteMe();
+        auction->auctionItem->safeRemoveFromWorldAndDelete();
 
     // Finally destroy the auction instance.
     auction->deleteFromDB();

@@ -221,7 +221,7 @@ bool ChatHandler::HandleNpcDeleteCommand(const char* args, WorldSession* m_sessi
     bool save_to_db = atoi(args) == 1 ? true : false;
     if (creature_target->isSummon())
     {
-        creature_target->Delete();
+        creature_target->safeRemoveFromWorldAndDelete();
     }
     else
     {
@@ -266,7 +266,7 @@ bool ChatHandler::HandleNpcDeleteCommand(const char* args, WorldSession* m_sessi
             }
         }
 
-        creature_target->RemoveFromWorld(false, true);
+        creature_target->RemoveFromWorld(true);
     }
 
     return true;

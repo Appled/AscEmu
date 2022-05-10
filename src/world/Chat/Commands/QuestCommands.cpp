@@ -191,7 +191,7 @@ bool ChatHandler::HandleQuestStartCommand(const char* args, WorldSession* m_sess
                                 return false;
 
                             if (!player->getItemInterface()->AddItemToFreeSlot(item))
-                                item->DeleteMe();
+                                item->safeRemoveFromWorldAndDelete();
                         }
                     }
 
@@ -202,7 +202,7 @@ bool ChatHandler::HandleQuestStartCommand(const char* args, WorldSession* m_sess
                         {
                             item->setStackCount(questProperties->srcitemcount ? questProperties->srcitemcount : 1);
                             if (!player->getItemInterface()->AddItemToFreeSlot(item))
-                                item->DeleteMe();
+                                item->safeRemoveFromWorldAndDelete();
                         }
                     }
 
@@ -385,7 +385,7 @@ bool ChatHandler::HandleQuestFinishCommand(const char* args, WorldSession* m_ses
                                     item->setStackCount(uint32(qst->reward_itemcount[i]));
                                     if (!plr->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
                                     {
-                                        item->DeleteMe();
+                                        item->safeRemoveFromWorldAndDelete();
                                     }
                                 }
                             }
@@ -424,7 +424,7 @@ bool ChatHandler::HandleQuestFinishCommand(const char* args, WorldSession* m_ses
                                 item->setStackCount(uint32(qst->reward_choiceitemcount[reward_slot]));
                                 if (!plr->getItemInterface()->SafeAddItem(item, slotresult.ContainerSlot, slotresult.Slot))
                                 {
-                                    item->DeleteMe();
+                                    item->safeRemoveFromWorldAndDelete();
                                 }
                             }
                         }

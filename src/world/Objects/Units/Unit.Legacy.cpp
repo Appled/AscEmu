@@ -8223,7 +8223,7 @@ void Unit::OnPushToWorld()
 }
 
 //! Remove Unit from world
-void Unit::RemoveFromWorld(bool free_guid)
+void Unit::clearObjectFromWorld(bool free_guid)
 {
 #ifdef FT_VEHICLES
     removeVehicleKit();
@@ -8237,7 +8237,7 @@ void Unit::RemoveFromWorld(bool free_guid)
         setCritterGuid(0);
 
         if (Unit* u = m_WorldMap->getUnit(getCritterGuid()))
-            u->Delete();
+            u->safeRemoveFromWorldAndDelete();
     }
 #endif
 
@@ -8267,7 +8267,7 @@ void Unit::RemoveFromWorld(bool free_guid)
         static_cast<Unit*>(obj)->clearCasterFromHealthBatch(this);
     }
 
-    Object::RemoveFromWorld(free_guid);
+    Object::clearObjectFromWorld(free_guid);
 
     //zack: should relocate new events to new eventmanager and not to -1
     for (uint32 x = MAX_TOTAL_AURAS_START; x < MAX_TOTAL_AURAS_END; ++x)
@@ -8601,7 +8601,7 @@ void Unit::RemoveFieldSummon()
     {
         Creature* summon = static_cast<Creature*>(getWorldMap()->getUnit(guid));
         if (summon)
-            summon->RemoveFromWorld(false, true);
+            summon->RemoveFromWorld(true);
         setSummonGuid(0);
     }
 }
@@ -9197,7 +9197,7 @@ void Unit::UnPossess()
 
     if (!pTarget->isPet() && (pTarget->getCreatedByGuid() == getGuid()))
     {
-        sEventMgr.AddEvent(static_cast< Object* >(pTarget), &Object::Delete, 0, 1, 1, 0);
+        sEventMgr.AddEvent(static_cast< Object* >(pTarget), &Object::safeRemoveFromWorldAndDelete, 0, 1, 1, 0);
         return;
     }
 }

@@ -413,10 +413,7 @@ void WorldSession::handleLootReleaseOpcode(WorldPacket& recvPacket)
                     // Remove our Guid
                     pLGO->loot.removeLooter(_player->getGuidLow());
 
-                    if (gameObject->IsInWorld())
-                        gameObject->RemoveFromWorld(true);
-
-                    delete gameObject;
+                    gameObject->safeRemoveFromWorldAndDelete();
                 }
             }
             break;

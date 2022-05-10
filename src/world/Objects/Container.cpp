@@ -52,7 +52,7 @@ Container::~Container()
     for (uint32_t i = 0; i < m_itemProperties->ContainerSlots; ++i)
     {
         if (m_Slot[i] && m_Slot[i]->getOwner() == m_owner)
-            m_Slot[i]->DeleteMe();
+            m_Slot[i]->safeRemoveFromWorldAndDelete();
     }
 
     delete[] m_Slot;
@@ -307,12 +307,8 @@ bool Container::SafeFullRemoveItemFromSlot(int16 slot)
     setSlot(slot, 0);
     pItem->setContainer(nullptr);
 
-    if (pItem->IsInWorld())
-    {
-        pItem->RemoveFromWorld();
-    }
     pItem->DeleteFromDB();
-    pItem->DeleteMe();
+    pItem->safeRemoveFromWorldAndDelete();
 
     return true;
 }

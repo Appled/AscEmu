@@ -38,7 +38,7 @@ bool ChatHandler::HandlePetCreateCommand(const char* args, WorldSession* m_sessi
     Pet* pet = sObjectMgr.CreatePet(entry);
     if (!pet->CreateAsSummon(entry, creature_proto, nullptr, selected_player, nullptr, 1, 0, &vector, true))
     {
-        pet->DeleteMe();
+        pet->safeRemoveFromWorldAndDelete();
         return true;
     }
 

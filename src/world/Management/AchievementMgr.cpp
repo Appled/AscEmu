@@ -2016,11 +2016,11 @@ void AchievementMgr::GiveAchievementReward(DBC::Structures::AchievementEntry con
             sMailSystem.SendCreatureGameobjectMail(MAIL_TYPE_CREATURE, Sender, receiver, messageheader, messagebody, 0, 0, pItem->getGuid(), 0, MAIL_CHECK_MASK_HAS_BODY, MAIL_DEFAULT_EXPIRATION_TIME);
 
             //removing pItem
-            pItem->DeleteMe();
+            pItem->safeRemoveFromWorldAndDelete();
             pItem = nullptr;
 
             //removing sender
-            pCreature->Delete();
+            pCreature->safeRemoveFromWorldAndDelete();
         }
         else
         {

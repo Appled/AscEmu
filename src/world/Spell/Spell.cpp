@@ -1247,10 +1247,7 @@ void Spell::cancel()
                     if (getPlayerCaster() != nullptr && getPlayerCaster()->getSummonedObject() != nullptr)
                     {
                         auto obj = getPlayerCaster()->getSummonedObject();
-                        if (obj->IsInWorld())
-                            obj->RemoveFromWorld(true);
-
-                        delete obj;
+                        obj->safeRemoveFromWorldAndDelete();
                         getPlayerCaster()->setSummonedObject(nullptr);
                     }
 

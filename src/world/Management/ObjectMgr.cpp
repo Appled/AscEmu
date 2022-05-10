@@ -1090,9 +1090,7 @@ void ObjectMgr::CorpseCollectorUnload()
     for (itr = m_corpses.begin(); itr != m_corpses.end(); ++itr)
     {
         Corpse* c = itr->second;
-        if (c->IsInWorld())
-            c->RemoveFromWorld(false);
-        delete c;
+        c->safeRemoveFromWorldAndDelete();
     }
     m_corpses.clear();
     _corpseslock.Release();

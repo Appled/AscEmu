@@ -321,14 +321,11 @@ void DynamicObject::Remove()
     //\todo: Despawn animation only for GOs? Zyres.
     sendGameobjectDespawnAnim();
 
-    if (IsInWorld())
-        RemoveFromWorld(true);
-
     if (u_caster != nullptr && m_spellProto->getChannelInterruptFlags() != 0)
     {
         u_caster->setChannelObjectGuid(0);
         u_caster->setChannelSpellId(0);
     }
 
-    delete this;
+    safeRemoveFromWorldAndDelete();
 }

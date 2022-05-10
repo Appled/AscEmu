@@ -612,7 +612,7 @@ void WorldSession::handleDismissCritter(WorldPacket& recvPacket)
 
     const auto unit = _player->getWorldMap()->getUnit(srlPacket.guid.getRawGuid());
     if (unit != nullptr)
-        unit->Delete();
+        unit->safeRemoveFromWorldAndDelete();
 
     _player->setCritterGuid(0);
 #endif

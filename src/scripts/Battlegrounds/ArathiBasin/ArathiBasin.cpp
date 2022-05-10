@@ -173,7 +173,7 @@ void ArathiBasin::SpawnBuff(uint32_t x)
     {
         // only need to reassign guid if the entry changes.
         if (m_buffs[x]->IsInWorld())
-            m_buffs[x]->RemoveFromWorld(false);
+            m_buffs[x]->clearObjectFromWorld(false);
 
         if (chosen_buffid != m_buffs[x]->getEntry())
         {
@@ -228,7 +228,7 @@ void ArathiBasin::SpawnControlPoint(uint32_t Id, uint32_t Type)
     else
     {
         if (m_controlPoints[Id]->IsInWorld())
-            m_controlPoints[Id]->RemoveFromWorld(false);
+            m_controlPoints[Id]->clearObjectFromWorld(false);
 
         // assign it a new guid (client needs this to see the entry change?)
         m_controlPoints[Id]->SetNewGuid(m_mapMgr->generateGameobjectGuid());
@@ -280,7 +280,7 @@ void ArathiBasin::SpawnControlPoint(uint32_t Id, uint32_t Type)
     else
     {
         if (m_controlPointAuras[Id]->IsInWorld())
-            m_controlPointAuras[Id]->RemoveFromWorld(false);
+            m_controlPointAuras[Id]->clearObjectFromWorld(false);
 
         // re-spawn the aura
         m_controlPointAuras[Id]->SetNewGuid(m_mapMgr->generateGameobjectGuid());

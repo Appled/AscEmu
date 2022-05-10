@@ -119,11 +119,9 @@ WorldMap::~WorldMap()
     }
 
     // Static Spawns
-    for (auto _mapWideStaticObject : _mapWideStaticObjects)
+    for (auto& _mapWideStaticObject : _mapWideStaticObjects)
     {
-        if (_mapWideStaticObject->IsInWorld())
-            _mapWideStaticObject->RemoveFromWorld(false);
-        delete _mapWideStaticObject;
+        _mapWideStaticObject->safeRemoveFromWorldAndDelete();
     }
     _mapWideStaticObjects.clear();
 
@@ -139,15 +137,33 @@ WorldMap::~WorldMap()
         Corpse* pCorpse = *itr;
         ++itr;
 
-        if (pCorpse->IsInWorld())
-            pCorpse->RemoveFromWorld(false);
+        pCorpse->safeRemoveFromWorldAndDelete();
 
-        delete pCorpse;
     }
     m_corpses.clear();
 
     if (mInstanceScript != nullptr)
         mInstanceScript->Destroy();
+
+    std::scoped_lock<std::mutex> insertLock(m_objectinsertlock);
+    for (auto itr = m_objectinsertpool.cbegin(); itr != m_objectinsertpool.cend(); ++itr)
+    {
+        if ((*itr)->IsInWorld())
+            (*itr)->clearObjectFromWorld(true);
+
+        delete *itr;
+    }
+    m_objectinsertpool.clear();
+
+    std::scoped_lock<std::mutex> removeLock(m_objectRemoveLock);
+    for (auto itr = m_objectRemovePool.cbegin(); itr != m_objectRemovePool.cend(); ++itr)
+    {
+        if (itr->object->IsInWorld())
+            itr->object->clearObjectFromWorld(true);
+
+        delete itr->object;
+    }
+    m_objectRemovePool.clear();
 
     // Empty remaining containers
     m_PlayerStorage.clear();
@@ -229,6 +245,22 @@ void WorldMap::Do()
 
         // Update Our Map
         update(diffTime);
+
+        // Last remove objects marked for remove
+        {
+            std::scoped_lock<std::mutex> lock(m_objectRemoveLock);
+            if (!m_objectRemovePool.empty())
+            {
+                for (const auto& itr : m_objectRemovePool)
+                {
+                    itr.object->clearObjectFromWorld(itr.freeGuid);
+                    if (itr.deleteObject)
+                        delete itr.object;
+                }
+
+                m_objectRemovePool.clear();
+            }
+        }
 
         m_lastUpdateTime = Util::getMSTime();
         return;
@@ -936,6 +968,26 @@ void WorldMap::RemoveObject(Object* obj, bool free_guid)
                 sWorld.addGlobalSession(plObj->getSession());
         }
     }
+}
+
+void WorldMap::addObjectToRemoveQueue(Object* obj, bool free_guid, bool _delete/* = false*/)
+{
+    std::scoped_lock<std::mutex> guard(m_objectRemoveLock);
+    for (auto& itr : m_objectRemovePool)
+    {
+        if (itr.object == obj)
+        {
+            if (!itr.freeGuid)
+                itr.freeGuid = free_guid;
+
+            if (!itr.deleteObject)
+                itr.deleteObject = _delete;
+
+            return;
+        }
+    }
+
+    m_objectRemovePool.push_back(ObjectRemoveInfo(obj, free_guid, _delete));
 }
 
 void WorldMap::addForcedCell(MapCell* c)

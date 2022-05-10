@@ -614,7 +614,7 @@ int LuaGameObject::Update(lua_State* /*L*/, GameObject* ptr)
     TEST_GO()
     auto* mapmgr = ptr->getWorldMap();
     uint32_t NewGuid = mapmgr->generateGameobjectGuid();
-    ptr->RemoveFromWorld(true);
+    ptr->clearObjectFromWorld(true);
     ptr->SetNewGuid(NewGuid);
     ptr->PushToWorld(mapmgr);
     ptr->SaveToDB();
@@ -925,7 +925,7 @@ int LuaGameObject::SetPosition(lua_State* L, GameObject* ptr)
     TEST_GO_RET();
     auto* mapMgr = ptr->getWorldMap();
     uint32_t NewGuid = mapMgr->generateGameobjectGuid();
-    ptr->RemoveFromWorld(true);
+    ptr->clearObjectFromWorld(true);
     ptr->SetNewGuid(NewGuid);
     float x = CHECK_FLOAT(L, 1);
     float y = CHECK_FLOAT(L, 2);
@@ -956,7 +956,7 @@ int LuaGameObject::ChangeScale(lua_State* L, GameObject* ptr)
     {
         auto* mapMgr = ptr->getWorldMap();
         uint32_t nguid = mapMgr->generateGameobjectGuid();
-        ptr->RemoveFromWorld(true);
+        ptr->clearObjectFromWorld(true);
         ptr->SetNewGuid(nguid);
         ptr->PushToWorld(mapMgr);
     }

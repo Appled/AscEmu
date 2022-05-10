@@ -227,6 +227,16 @@ Player::~Player()
     removeGarbageItems();
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Essential functions
+void Player::safeRemoveFromWorldAndDelete()
+{
+    if (IsInWorld())
+        RemoveFromWorld();
+
+    Object::safeRemoveFromWorldAndDelete();
+}
+
 void Player::resendSpeed()
 {
     if (resend_speed)
@@ -4871,17 +4881,16 @@ void Player::unEquipOffHandIfRequired()
     if (!result.Result)
     {
         // Player has no free slots in inventory, send it by mail
-        offHandWeapon->RemoveFromWorld();
         offHandWeapon->setOwner(nullptr);
         offHandWeapon->SaveToDB(INVENTORY_SLOT_NOT_SET, 0, true, nullptr);
         sMailSystem.SendAutomatedMessage(MAIL_TYPE_NORMAL, getGuid(), getGuid(), "There were troubles with your item.", "There were troubles storing your item into your inventory.", 0, 0, offHandWeapon->getGuidLow(), MAIL_STATIONERY_GM);
-        offHandWeapon->DeleteMe();
+        offHandWeapon->safeRemoveFromWorldAndDelete();
         offHandWeapon = nullptr;
     }
     else if (!getItemInterface()->SafeAddItem(offHandWeapon, result.ContainerSlot, result.Slot) && !getItemInterface()->AddItemToFreeSlot(offHandWeapon))
     {
         // shouldn't happen
-        offHandWeapon->DeleteMe();
+        offHandWeapon->safeRemoveFromWorldAndDelete();
         offHandWeapon = nullptr;
     }
 }
@@ -7001,7 +7010,7 @@ void Player::acceptQuest(uint64_t guid, uint32_t quest_id)
             {
                 if (!getItemInterface()->AddItemToFreeSlot(item))
                 {
-                    item->DeleteMe();
+                    item->safeRemoveFromWorldAndDelete();
                 }
                 else
                 {
@@ -7021,7 +7030,7 @@ void Player::acceptQuest(uint64_t guid, uint32_t quest_id)
             {
                 item->setStackCount(questProperties->srcitemcount ? questProperties->srcitemcount : 1);
                 if (!getItemInterface()->AddItemToFreeSlot(item))
-                    item->DeleteMe();
+                    item->safeRemoveFromWorldAndDelete();
             }
         }
     }
@@ -9442,7 +9451,7 @@ Item* Player::storeItem(LootItem const* lootItem)
         }
         else
         {
-            newItem->DeleteMe();
+            newItem->safeRemoveFromWorldAndDelete();
             return nullptr;
         }
 
@@ -10119,8 +10128,7 @@ void Player::endDuel(uint8_t condition)
             GameObject* arbiter = m_WorldMap ? getWorldMap()->getGameObject(wowGuid.getGuidLowPart()) : nullptr;
             if (arbiter)
             {
-                arbiter->RemoveFromWorld(true);
-                delete arbiter;
+                arbiter->safeRemoveFromWorldAndDelete();
             }
 
             m_duelPlayer->setDuelArbiter(0);
@@ -10180,8 +10188,7 @@ void Player::endDuel(uint8_t condition)
     GameObject* goFlag = m_WorldMap ? getWorldMap()->getGameObject(wowGuid.getGuidLowPart()) : nullptr;
     if (goFlag)
     {
-        goFlag->RemoveFromWorld(true);
-        delete goFlag;
+        goFlag->safeRemoveFromWorldAndDelete();
     }
 
     setDuelArbiter(0);
@@ -10246,7 +10253,7 @@ void Player::cancelDuel()
 
     const auto goFlag = getWorldMap()->getGameObject(wowGuid.getGuidLowPart());
     if (goFlag)
-        goFlag->RemoveFromWorld(true);
+        goFlag->safeRemoveFromWorldAndDelete();
 
     setDuelArbiter(0);
     m_duelPlayer->setDuelArbiter(0);

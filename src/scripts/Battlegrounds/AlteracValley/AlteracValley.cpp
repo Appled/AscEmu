@@ -588,7 +588,7 @@ void AlteracValley::AVNode::Spawn()
             if (m_flag->getEntry() != g->id[m_state] || !m_flag->IsInWorld())
             {
                 auto gameobject_info = sMySQLStore.getGameObjectProperties(g->id[m_state]);
-                m_flag->RemoveFromWorld(false);
+                m_flag->clearObjectFromWorld(false);
                 m_flag->setEntry(g->id[m_state]);
                 m_flag->SetNewGuid(m_bg->getWorldMap()->generateGameobjectGuid());
                 m_flag->SetGameObjectProperties(gameobject_info);
@@ -634,7 +634,7 @@ void AlteracValley::AVNode::Spawn()
             if (m_aura->getEntry() != g->id[m_state] || !m_aura->IsInWorld())
             {
                 auto gameobject_info = sMySQLStore.getGameObjectProperties(g->id[m_state]);
-                m_aura->RemoveFromWorld(false);
+                m_aura->clearObjectFromWorld(false);
                 m_aura->setEntry(g->id[m_state]);
                 m_aura->SetNewGuid(m_bg->getWorldMap()->generateGameobjectGuid());
                 m_aura->SetGameObjectProperties(gameobject_info);
@@ -685,7 +685,7 @@ void AlteracValley::AVNode::Spawn()
             if (m_glow->getEntry() != g->id[m_state] || !m_glow->IsInWorld())
             {
                 auto gameobject_info = sMySQLStore.getGameObjectProperties(g->id[m_state]);
-                m_glow->RemoveFromWorld(false);
+                m_glow->clearObjectFromWorld(false);
                 m_glow->setEntry(g->id[m_state]);
                 m_glow->SetNewGuid(m_bg->getWorldMap()->generateGameobjectGuid());
                 m_glow->SetGameObjectProperties(gameobject_info);

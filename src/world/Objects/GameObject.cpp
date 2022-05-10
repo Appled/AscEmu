@@ -386,7 +386,6 @@ void GameObject::Despawn(uint32 delay, uint32 respawntime)
     }
     else
     {
-        RemoveFromWorld(true);
         ExpireAndDelete();
     }
 }
@@ -559,18 +558,6 @@ void GameObject::DeleteFromDB()
 //////////////////////////////////////////////////////////////////////////////////////////
 // Summoned Go's
 //////////////////////////////////////////////////////////////////////////////////////////
-void GameObject::_Expire()
-{
-    sEventMgr.RemoveEvents(this);
-
-    if (IsInWorld())
-        RemoveFromWorld(true);
-
-    //sEventMgr.AddEvent(sWorld, &World::DeleteObject, ((Object*)this), EVENT_DELETE_TIMER, 1000, 1);
-    delete this;
-    //this = NULL;
-}
-
 void GameObject::ExpireAndDelete()
 {
     if (m_deleted)
@@ -578,12 +565,7 @@ void GameObject::ExpireAndDelete()
 
     m_deleted = true;
 
-    // remove any events
-    sEventMgr.RemoveEvents(this);
-    if (IsInWorld())
-        sEventMgr.AddEvent(this, &GameObject::_Expire, EVENT_GAMEOBJECT_EXPIRE, 1, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
-    else
-        delete this;
+    safeRemoveFromWorldAndDelete();
 }
 
 void GameObject::CallScriptUpdate()
@@ -639,7 +621,7 @@ void GameObject::onRemoveInRangeObject(Object* pObj)
     }
 }
 // Remove gameobject from world, using their despawn animation.
-void GameObject::RemoveFromWorld(bool free_guid)
+void GameObject::clearObjectFromWorld(bool free_guid)
 {
     sendGameobjectDespawnAnim();
 
@@ -648,7 +630,7 @@ void GameObject::RemoveFromWorld(bool free_guid)
             getWorldMap()->removeGameObjectModel(*m_model);
 
     sEventMgr.RemoveEvents(this);
-    Object::RemoveFromWorld(free_guid);
+    Object::clearObjectFromWorld(free_guid);
 }
 
 uint32 GameObject::GetGOReqSkill()
@@ -1601,7 +1583,7 @@ void GameObject_Meetingstone::onUse(Player* player)
     player->setChannelSpellId(rGo->GetRitual()->GetSpellID());
 
     // expire after 2mins
-    sEventMgr.AddEvent(pGo, &GameObject::_Expire, EVENT_GAMEOBJECT_EXPIRE, 120000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
+    sEventMgr.AddEvent(pGo, &GameObject::ExpireAndDelete, EVENT_GAMEOBJECT_EXPIRE, 120000, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

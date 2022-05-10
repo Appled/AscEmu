@@ -104,6 +104,14 @@ void Summon::OnPreRemoveFromWorld()
     m_unitOwner = nullptr;
 }
 
+void Summon::RemoveFromWorld(bool free_guid/* = false*/, bool deleteObject/* = false*/)
+{
+    PrepareForRemove();
+
+    // Override Creature::RemoveFromWorld
+    Unit::RemoveFromWorld(free_guid, deleteObject);
+}
+
 bool Summon::isSummon() const { return true; }
 
 void Summon::onRemoveInRangeObject(Object* object)

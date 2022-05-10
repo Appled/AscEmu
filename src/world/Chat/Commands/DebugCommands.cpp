@@ -139,7 +139,7 @@ bool ChatHandler::HandleMoveHardcodedScriptsToDBCommand(const char* args, WorldS
                 ++count;
             }
 
-            creature->RemoveFromWorld(false, true);
+            creature->RemoveFromWorld(true);
         }
     }
 

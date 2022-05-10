@@ -498,7 +498,6 @@ public:
             m_summoner = mob;
             m_summonedGo = true;
         }
-        void _Expire();
 
         void ExpireAndDelete();
 
@@ -515,7 +514,7 @@ public:
         MySQLStructure::GameobjectSpawn* m_spawn = nullptr;
         void OnPushToWorld();
         void onRemoveInRangeObject(Object* pObj);
-        void RemoveFromWorld(bool free_guid);
+        void clearObjectFromWorld(bool free_guid) override;
 
         uint32 GetGOReqSkill();
     MapCell* m_respawnCell = nullptr;

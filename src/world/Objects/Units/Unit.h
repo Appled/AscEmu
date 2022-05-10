@@ -188,15 +188,15 @@ public: //\todo Zyres: public fpr LuaEngine, sort out why
     //////////////////////////////////////////////////////////////////////////////////////////
     // Essential functions
 
-    void Update(unsigned long time_passed);             // hides function Object::Update
-    // void AddToWorld();                               // not used
-    // void AddToWorld(WorldMap* pMapMgr);                // not used
-    // void PushToWorld(WorldMap*);                       // not used
-    virtual void RemoveFromWorld(bool free_guid);       // hides virtual function Object::RemoveFromWorld
-    // void OnPrePushToWorld();                         // not used
-    virtual void OnPushToWorld();                       // hides virtual function Object::OnPushToWorld
-    // void OnPreRemoveFromWorld();                     // not used
-    // void OnRemoveFromWorld();                        // not used
+    void Update(unsigned long time_passed) override;                // overrides function Object::Update
+    // void AddToWorld();                                           // not used
+    // void AddToWorld(WorldMap* pMapMgr);                          // not used
+    // void PushToWorld(WorldMap*);                                 // not used
+    virtual void clearObjectFromWorld(bool free_guid) override;     // overrides virtual function Object::clearObjectFromWorld
+    // void OnPrePushToWorld();                                     // not used
+    virtual void OnPushToWorld() override;                          // overrides virtual function Object::OnPushToWorld
+    // void OnPreRemoveFromWorld();                                 // not used
+    // void OnRemoveFromWorld();                                    // not used
 
 private:
     //////////////////////////////////////////////////////////////////////////////////////////

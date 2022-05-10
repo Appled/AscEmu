@@ -626,17 +626,17 @@ void EyeOfTheStorm::OnCreate()
 
 void EyeOfTheStorm::RespawnCPFlag(uint32_t i, uint32_t id)
 {
-    m_CPBanner[i]->RemoveFromWorld(false);
+    m_CPBanner[i]->clearObjectFromWorld(false);
     m_CPBanner[i]->SetNewGuid(m_mapMgr->generateGameobjectGuid());
     m_CPBanner[i]->CreateFromProto(id, m_mapMgr->getBaseMap()->getMapId(), m_CPBanner[i]->GetPositionX(), m_CPBanner[i]->GetPositionY(), m_CPBanner[i]->GetPositionZ(), m_CPBanner[i]->GetOrientation());
     m_CPBanner[i]->PushToWorld(m_mapMgr);
 
-    m_CPBanner2[i]->RemoveFromWorld(false);
+    m_CPBanner2[i]->clearObjectFromWorld(false);
     m_CPBanner2[i]->SetNewGuid(m_mapMgr->generateGameobjectGuid());
     m_CPBanner2[i]->CreateFromProto(id, m_mapMgr->getBaseMap()->getMapId(), m_CPBanner2[i]->GetPositionX(), m_CPBanner2[i]->GetPositionY(), m_CPBanner2[i]->GetPositionZ(), m_CPBanner2[i]->GetOrientation());
     m_CPBanner2[i]->PushToWorld(m_mapMgr);
 
-    m_CPBanner3[i]->RemoveFromWorld(false);
+    m_CPBanner3[i]->clearObjectFromWorld(false);
     m_CPBanner3[i]->SetNewGuid(m_mapMgr->generateGameobjectGuid());
     m_CPBanner3[i]->CreateFromProto(id, m_mapMgr->getBaseMap()->getMapId(), m_CPBanner3[i]->GetPositionX(), m_CPBanner3[i]->GetPositionY(), m_CPBanner3[i]->GetPositionZ(), m_CPBanner3[i]->GetOrientation());
     m_CPBanner3[i]->PushToWorld(m_mapMgr);
@@ -900,7 +900,7 @@ void EyeOfTheStorm::SpawnBuff(uint32_t x)
     else
     {
         if (EOTSm_buffs[x]->IsInWorld())
-            EOTSm_buffs[x]->RemoveFromWorld(false);
+            EOTSm_buffs[x]->clearObjectFromWorld(false);
 
         if (chosen_buffid != EOTSm_buffs[x]->getEntry())
         {
@@ -942,8 +942,7 @@ void EyeOfTheStorm::OnStart()
     // remove the bubbles
     for (uint8_t i = 0; i < 2; ++i)
     {
-        m_bubbles[i]->RemoveFromWorld(false);
-        delete m_bubbles[i];
+        m_bubbles[i]->safeRemoveFromWorldAndDelete();
         m_bubbles[i] = nullptr;
     }
 

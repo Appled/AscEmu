@@ -2068,7 +2068,7 @@ public:
             GameObject* IceBlock = getNearestGameObject(IceBlocks[i].x, IceBlocks[i].y, IceBlocks[i].z, ICE_BLOCK_GO);
             if (IceBlock != NULL)
             {
-                IceBlock->Delete();
+                IceBlock->safeRemoveFromWorldAndDelete();
             }
         }
 
@@ -2264,7 +2264,7 @@ public:
                     GameObject* IceBlock = getNearestGameObject(IceBlocks[i].x, IceBlocks[i].y, IceBlocks[i].z, ICE_BLOCK_GO);
                     if (IceBlock != NULL)
                     {
-                        IceBlock->Delete();
+                        IceBlock->safeRemoveFromWorldAndDelete();
                     }
                 }
 

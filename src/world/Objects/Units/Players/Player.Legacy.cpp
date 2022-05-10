@@ -401,7 +401,7 @@ bool Player::Create(CharCreate& charCreateContent)
                     if (!getItemInterface()->SafeAddItem(item, INVENTORY_SLOT_NOT_SET, itemSlot))
                     {
                         sLogger.debug("StartOutfit - Item with entry %u can not be added safe to slot %u!", itemId, static_cast<uint32_t>(itemSlot));
-                        item->DeleteMe();
+                        item->safeRemoveFromWorldAndDelete();
                     }
                 }
                 else
@@ -410,7 +410,7 @@ bool Player::Create(CharCreate& charCreateContent)
                     if (!getItemInterface()->AddItemToFreeSlot(item))
                     {
                         sLogger.debug("StartOutfit - Item with entry %u can not be added to a free slot!", itemId);
-                        item->DeleteMe();
+                        item->safeRemoveFromWorldAndDelete();
                     }
                 }
             }
@@ -428,12 +428,12 @@ bool Player::Create(CharCreate& charCreateContent)
                 if ((*is).slot < INVENTORY_SLOT_BAG_END)
                 {
                     if (!getItemInterface()->SafeAddItem(item, INVENTORY_SLOT_NOT_SET, (*is).slot))
-                        item->DeleteMe();
+                        item->safeRemoveFromWorldAndDelete();
                 }
                 else
                 {
                     if (!getItemInterface()->AddItemToFreeSlot(item))
-                        item->DeleteMe();
+                        item->safeRemoveFromWorldAndDelete();
                 }
             }
         }
@@ -2548,7 +2548,7 @@ void Player::OnPushToWorld()
 #endif
 }
 
-void Player::RemoveFromWorld()
+void Player::RemoveFromWorld(bool /*free_guid = false*/, bool deleteObject/* = false*/)
 {
     if (m_sendOnlyRaidgroup)
         event_RemoveEvents(EVENT_PLAYER_EJECT_FROM_INSTANCE);
@@ -2578,14 +2578,11 @@ void Player::RemoveFromWorld()
     {
         if (m_summonedObject->GetInstanceID() != GetInstanceID())
         {
-            sEventMgr.AddEvent(m_summonedObject, &Object::Delete, EVENT_GAMEOBJECT_EXPIRE, 100, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
+            sEventMgr.AddEvent(m_summonedObject, &Object::safeRemoveFromWorldAndDelete, EVENT_GAMEOBJECT_EXPIRE, 100, 1, EVENT_FLAG_DO_NOT_EXECUTE_IN_WORLD_CONTEXT | EVENT_FLAG_DELETES_OBJECT);
         }
         else
         {
-            if (m_summonedObject->IsInWorld())
-                m_summonedObject->RemoveFromWorld(true);
-
-            delete m_summonedObject;
+            m_summonedObject->safeRemoveFromWorldAndDelete();
         }
         m_summonedObject = nullptr;
     }
@@ -2593,7 +2590,7 @@ void Player::RemoveFromWorld()
     if (IsInWorld())
     {
         RemoveItemsFromWorld();
-        Unit::RemoveFromWorld(false);
+        Object::RemoveFromWorld(false, deleteObject);
     }
 
     if (isOnTaxi())

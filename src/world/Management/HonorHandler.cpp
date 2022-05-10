@@ -192,7 +192,7 @@ void HonorHandler::OnPlayerKilled(Player* pPlayer, Player* pVictim)
                         {
                             PvPTokenItem->addFlags(ITEM_FLAG_SOULBOUND);
                             if (!pAffectedPlayer->getItemInterface()->AddItemToFreeSlot(PvPTokenItem))
-                                PvPTokenItem->DeleteMe();
+                                PvPTokenItem->safeRemoveFromWorldAndDelete();
                         }
                     }
                 }

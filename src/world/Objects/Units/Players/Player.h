@@ -100,15 +100,16 @@ public:
     //////////////////////////////////////////////////////////////////////////////////////////
     // Essential functions
 
-    void Update(unsigned long time_passed);             // hides function Unit::Update
-    void AddToWorld();                                  // hides virtual function Object::AddToWorld
-    void AddToWorld(WorldMap* pMapMgr);                   // hides virtual function Object::AddToWorld
-    // void PushToWorld(WorldMap*);                       // not used
-    // void RemoveFromWorld(bool free_guid);            // not used
-    void OnPrePushToWorld() override;                   // overrides virtual function  Object::OnPrePushToWorld
-    void OnPushToWorld() override;                      // overrides virtual function  Object::OnPushToWorld
-    // void OnPreRemoveFromWorld();                     // not used
-    // void OnRemoveFromWorld();                        // not used
+    void Update(unsigned long time_passed) override;                                    // overrides function Unit::Update
+    void AddToWorld() override;                                                         // overrides virtual function Object::AddToWorld
+    void AddToWorld(WorldMap* pMapMgr) override;                                        // overrides virtual function Object::AddToWorld
+    // void PushToWorld(WorldMap*);                                                     // not used
+    void RemoveFromWorld(bool free_guid = false, bool deleteObject = false) override;   // overrides virtual function Unit::RemoveFromWorld
+    void OnPrePushToWorld() override;                                                   // overrides virtual function  Object::OnPrePushToWorld
+    void OnPushToWorld() override;                                                      // overrides virtual function  Object::OnPushToWorld
+    // void OnPreRemoveFromWorld();                                                     // not used
+    // void OnRemoveFromWorld();                                                        // not used
+    void safeRemoveFromWorldAndDelete() override;                                       // overrides virtual function Unit::safeRemoveFromWorldAndDelete
 
 private:
     const WoWPlayer* playerData() const { return reinterpret_cast<WoWPlayer*>(wow_data); }
@@ -1813,7 +1814,6 @@ public:
         static void CharChange_Looks(uint64 GUID, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair);
         static void CharChange_Language(uint64 GUID, uint8 race);
 
-        void RemoveFromWorld();
         bool Create(CharCreate& charCreateContent);
 
         void BuildFlagUpdateForNonGroupSet(uint32 index, uint32 flag);

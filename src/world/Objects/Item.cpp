@@ -77,9 +77,27 @@ Item::~Item()
     }
 
     if (IsInWorld())
-        RemoveFromWorld();
+        clearObjectFromWorld(false);
 
     m_owner = nullptr;
+}
+
+void Item::clearObjectFromWorld(bool /*free_guid*/)
+{
+    // if we have an owner->send destroy
+    if (m_owner != nullptr)
+        m_owner->sendDestroyObjectPacket(getGuid());
+
+    // Never free guid for items
+    Object::clearObjectFromWorld(false);
+}
+
+void Item::safeRemoveFromWorldAndDelete()
+{
+    if (m_owner != nullptr)
+        m_owner->getItemInterface()->RemoveRefundable(getGuid());
+
+    Object::safeRemoveFromWorldAndDelete();
 }
 
 void Item::init(uint32_t high, uint32_t low)

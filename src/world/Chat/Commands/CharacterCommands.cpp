@@ -730,7 +730,7 @@ bool ChatHandler::HandleCharAddItemSetCommand(const char* args, WorldSession* m_
             if (!player->getItemInterface()->AddItemToFreeSlot(item))
             {
                 m_session->SendNotification("No free slots left!");
-                item->DeleteMe();
+                item->safeRemoveFromWorldAndDelete();
                 return true;
             }
             else

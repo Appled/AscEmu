@@ -24,6 +24,7 @@ public:
     // Override Object functions
     void OnPushToWorld() override;
     void OnPreRemoveFromWorld() override;
+    void RemoveFromWorld(bool free_guid = false, bool deleteObject = false);
     bool isSummon() const override;
     void onRemoveInRangeObject(Object* object) override;
 

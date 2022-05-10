@@ -3071,7 +3071,7 @@ void Spell::SpellEffectSummonTemporaryPet(uint32 /*i*/, DBC::Structures::SummonP
 
         if (!pet->CreateAsSummon(properties_->Id, ci, nullptr, p_caster, m_spellInfo, 1, GetDuration(), &v, false))
         {
-            pet->DeleteMe();
+            pet->safeRemoveFromWorldAndDelete();
             pet = nullptr;
             break;
         }
@@ -3122,7 +3122,7 @@ void Spell::SpellEffectSummonCompanion(uint32 /*i*/, DBC::Structures::SummonProp
 
         uint32 currententry = creature->GetCreatureProperties()->Id;
 
-        creature->RemoveFromWorld(false, true);
+        creature->RemoveFromWorld(true);
         u_caster->setCritterGuid(0);
 
         // Before WOTLK when you casted the companion summon spell the second time it removed the companion
@@ -3658,7 +3658,7 @@ void Spell::SpellEffectTransformItem(uint8_t effectIndex)
     if (!result2) //should never get here
     {
         owner->getItemInterface()->buildInventoryChangeError(nullptr, nullptr, INV_ERR_BAG_FULL);
-        it->DeleteMe();
+        it->safeRemoveFromWorldAndDelete();
     }
 }
 
@@ -4060,7 +4060,7 @@ void Spell::SpellEffectEnchantItem(uint8_t effectIndex) // Enchant Item Permanen
 
         p_caster->getItemInterface()->RemoveItemAmt(itemTarget->getEntry(), 1);
         if (!p_caster->getItemInterface()->AddItemToFreeSlot(pItem))
-            pItem->DeleteMe();
+            pItem->safeRemoveFromWorldAndDelete();
 
         return;
     }
@@ -4139,7 +4139,7 @@ void Spell::SpellEffectTameCreature(uint8_t /*effectIndex*/)
     Pet* pPet = sObjectMgr.CreatePet(tame->getEntry());
     if (!pPet->CreateAsSummon(tame->getEntry(), tame->GetCreatureProperties(), tame, p_caster, nullptr, 2, 0))
     {
-        pPet->DeleteMe();//CreateAsSummon() returns false if an error occurred.
+        pPet->safeRemoveFromWorldAndDelete();//CreateAsSummon() returns false if an error occurred.
         pPet = nullptr;
     }
     tame->Despawn(0, tame->GetCreatureProperties()->RespawnTime);
@@ -4209,7 +4209,7 @@ void Spell::SpellEffectSummonPet(uint8_t effectIndex) //summon - pet
         Pet* summon = sObjectMgr.CreatePet(getSpellInfo()->getEffectMiscValue(effectIndex));
         if (!summon->CreateAsSummon(getSpellInfo()->getEffectMiscValue(effectIndex), ci, nullptr, p_caster, getSpellInfo(), 2, 0))
         {
-            summon->DeleteMe();//CreateAsSummon() returns false if an error occurred.
+            summon->safeRemoveFromWorldAndDelete();//CreateAsSummon() returns false if an error occurred.
             summon = nullptr;
         }
     }
@@ -5117,9 +5117,7 @@ void Spell::SpellEffectSummonObjectSlot(uint8_t effectIndex)
             GoSummon->ExpireAndDelete();
         else
         {
-            if (GoSummon->IsInWorld())
-                GoSummon->RemoveFromWorld(true);
-            delete GoSummon;
+            GoSummon->safeRemoveFromWorldAndDelete();
         }
     }
 
@@ -5963,7 +5961,7 @@ void Spell::SpellEffectCreatePet(uint8_t effectIndex)
         Pet* pPet = sObjectMgr.CreatePet(getSpellInfo()->getEffectMiscValue(effectIndex));
         if (!pPet->CreateAsSummon(getSpellInfo()->getEffectMiscValue(effectIndex), ci, nullptr, playerTarget, getSpellInfo(), 1, 0))
         {
-            pPet->DeleteMe();//CreateAsSummon() returns false if an error occurred.
+            pPet->safeRemoveFromWorldAndDelete();//CreateAsSummon() returns false if an error occurred.
             pPet = nullptr;
         }
     }

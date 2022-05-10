@@ -545,7 +545,7 @@ void IsleOfConquest::SpawnControlPoint(uint32_t Id, uint32_t Type)
     else
     {
         if (controlpoint[Id].banner->IsInWorld())
-            controlpoint[Id].banner->RemoveFromWorld(false);
+            controlpoint[Id].banner->clearObjectFromWorld(false);
 
         // assign it a new guid (client needs this to see the entry change?)
         controlpoint[Id].banner->SetNewGuid(m_mapMgr->generateGameobjectGuid());
@@ -624,7 +624,7 @@ void IsleOfConquest::SpawnControlPoint(uint32_t Id, uint32_t Type)
     else
     {
         if (controlpoint[Id].aura->IsInWorld())
-            controlpoint[Id].aura->RemoveFromWorld(false);
+            controlpoint[Id].aura->clearObjectFromWorld(false);
 
         // re-spawn the aura
         controlpoint[Id].aura->SetNewGuid(m_mapMgr->generateGameobjectGuid());

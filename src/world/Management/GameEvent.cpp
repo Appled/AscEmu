@@ -57,7 +57,7 @@ void GameEvent::CreateNPCs()
         }
         else
         {
-            c->Delete();
+            c->safeRemoveFromWorldAndDelete();
         }
     }
 }
@@ -93,7 +93,7 @@ void GameEvent::CreateObjects()
         }
         else
         {
-            g->Delete();
+            g->safeRemoveFromWorldAndDelete();
         }
     }
 }
@@ -114,7 +114,7 @@ void GameEvent::DestroyAllEntities()
         if (mEventScript != nullptr)
             mEventScript->OnAfterCreatureDespawn(this, npc);
 
-        npc->Delete();
+        npc->safeRemoveFromWorldAndDelete();
     }
 
     for (auto gameobject : active_gameobjects)
@@ -125,7 +125,7 @@ void GameEvent::DestroyAllEntities()
         if (mEventScript != nullptr)
             mEventScript->OnAfterGameObjectDespawn(this, gameobject);
 
-        gameobject->Delete();
+        gameobject->safeRemoveFromWorldAndDelete();
     }
 
     active_npcs.clear();

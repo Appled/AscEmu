@@ -38,15 +38,16 @@ public:
     //////////////////////////////////////////////////////////////////////////////////////////
     // Essential functions
 
-    void Update(unsigned long time_passed);             // hides function Unit::Update
-    void AddToWorld();                                  // hides virtual function Object::AddToWorld
-    void AddToWorld(WorldMap* pMapMgr);                   // hides virtual function Object::AddToWorld
-    // void PushToWorld(WorldMap*);                       // not used
-    void RemoveFromWorld(bool free_guid);               // hides virtual function Unit::RemoveFromWorld
-    // void OnPrePushToWorld();                         // not used
-    void OnPushToWorld() override;                      // overrides virtual function Unit::OnPushToWorld
-    // void OnPreRemoveFromWorld();                     // not used
-    // void OnRemoveFromWorld();                        // not used
+    void Update(unsigned long time_passed) override;                                    // overrides function Unit::Update
+    void AddToWorld() override;                                                         // overrides virtual function Object::AddToWorld
+    void AddToWorld(WorldMap* pMapMgr) override;                                        // overrides virtual function Object::AddToWorld
+    // void PushToWorld(WorldMap*);                                                     // not used
+    void RemoveFromWorld(bool free_guid = false, bool deleteObject = false) override;   // overrides virtual function Unit::RemoveFromWorld
+    void clearObjectFromWorld(bool free_guid) override;                                 // overrides virtual function Unit::clearObjectFromWorld
+    // void OnPrePushToWorld();                                                         // not used
+    void OnPushToWorld() override;                                                      // overrides virtual function Unit::OnPushToWorld
+    // void OnPreRemoveFromWorld();                                                     // not used
+    // void OnRemoveFromWorld();                                                        // not used
 
     GameEvent * mEvent = nullptr;
 
@@ -148,8 +149,6 @@ public:
         bool Load(MySQLStructure::CreatureSpawn* spawn, uint8 mode, MySQLStructure::MapInfo const* info);
         void Load(CreatureProperties const* c_properties, float x, float y, float z, float o = 0);
 
-        void RemoveFromWorld(bool addrespawnevent, bool free_guid);
-
         // remove auras, guardians, scripts
         void PrepareForRemove();
 
@@ -165,7 +164,7 @@ public:
         void InitSummon(Object* summoner);
         void SummonExpire()
         {
-            DeleteMe();
+            safeRemoveFromWorldAndDelete();
         }
 
         int32 GetSlotByItemId(uint32 itemid);
@@ -263,10 +262,6 @@ public:
         uint32_t _waypointPathId = 0;
         std::pair<uint32_t/*nodeId*/, uint32_t/*pathId*/> _currentWaypointNodeInfo = {0, 0};
 
-    protected:
-
-        virtual void SafeDelete();      // use DeleteMe() instead of SafeDelete() to avoid crashes like InWorld Creatures deleted.
-
     public:
 
         // Demon
@@ -321,7 +316,6 @@ public:
 
         AuctionHouse* auctionHouse = nullptr;
 
-        void DeleteMe();
         bool CanAddToWorld();
 
         // scriptdev2
