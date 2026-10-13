@@ -927,7 +927,7 @@ Object* Aura::getCaster() const
         return nullptr;
     if (m_casterGuid == m_target->getGuid())
         return m_target;
-    
+
     return m_target->getWorldMapObject(m_casterGuid);
 }
 
