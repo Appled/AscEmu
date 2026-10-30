@@ -12294,10 +12294,10 @@ void Player::endDuel(uint8_t condition)
 
     for (const auto& aur : getNegativeAuraRange())
     {
-        if (aur == nullptr)
+        // Do not remove self casted negative auras
+        if (aur == nullptr || aur->getCasterGuid() == getGuid())
             continue;
-
-        if (aur->WasCastInDuel())
+        if (aur->wasCastedInDuel())
             aur->removeAura();
     }
 
@@ -12311,9 +12311,10 @@ void Player::endDuel(uint8_t condition)
 
     for (const auto& aur : m_duelPlayer->getNegativeAuraRange())
     {
-        if (aur == nullptr)
+        // Do not remove self casted negative auras
+        if (aur == nullptr || aur->getCasterGuid() == m_duelPlayer->getGuid())
             continue;
-        if (aur->WasCastInDuel())
+        if (aur->wasCastedInDuel())
             aur->removeAura();
     }
 
