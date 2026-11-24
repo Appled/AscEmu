@@ -17,13 +17,13 @@ namespace AscEmu::Packets
         WoWGuid casterGuid;
         uint8_t castNumber;
         uint32_t spellId;
-        uint8_t result;
+        uint16_t result;
 
         SmsgSpellFailure() : SmsgSpellFailure(WoWGuid(), 0, 0, 0)
         {
         }
 
-        SmsgSpellFailure(WoWGuid casterGuid, uint8_t castNumber, uint32_t spellId, uint8_t result) :
+        SmsgSpellFailure(WoWGuid casterGuid, uint8_t castNumber, uint32_t spellId, uint16_t result) :
             ManagedPacket(SMSG_SPELL_FAILURE, 8 + 4),
             casterGuid(casterGuid),
             castNumber(castNumber),
@@ -82,7 +82,7 @@ namespace AscEmu::Packets
 
                 packet << castNumber;
                 packet << spellId;
-                packet << result;
+                packet << uint8_t(SpellFailureClient::castResultFor(m_protocol, result));
 
                 packet.writeByteSeq(guid[4]);
                 packet.writeByteSeq(guid[5]);
@@ -93,7 +93,8 @@ namespace AscEmu::Packets
                 if (m_protocol.expansion > WoW::Expansion::_TBC)
                     packet << castNumber;
 
-                packet << spellId << result;
+                packet << spellId;
+                packet << uint8_t(SpellFailureClient::castResultFor(m_protocol, result));
             }
 
             return true;

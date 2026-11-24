@@ -6,6 +6,7 @@ This file is released under the MIT license. See README-MIT for more information
 #pragma once
 
 #include "ManagedPacket.h"
+#include "Spell/Definitions/SpellFailure.hpp"
 #include <cstdint>
 
 namespace AscEmu::Packets
@@ -15,13 +16,13 @@ namespace AscEmu::Packets
     public:
         uint8_t unk;
         uint32_t spellId;
-        uint8_t reason;
+        uint16_t reason;
 
         SmsgPetCastFailed() : SmsgPetCastFailed(0, 0)
         {
         }
 
-        SmsgPetCastFailed(uint32_t spellId, uint8_t reason) :
+        SmsgPetCastFailed(uint32_t spellId, uint16_t reason) :
             ManagedPacket(SMSG_PET_CAST_FAILED, 0),
             unk(0),
             spellId(spellId),
@@ -34,7 +35,8 @@ namespace AscEmu::Packets
 
         bool internalSerialise(WorldPacket& packet) override
         {
-            packet << unk << spellId << reason;
+            packet << unk << spellId;
+            packet << uint8_t(SpellFailureClient::castResultFor(m_protocol, reason));
             return true;
         }
 

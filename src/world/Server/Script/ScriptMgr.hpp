@@ -28,7 +28,7 @@ class SpellProc;
 class Object;
 class Player;
 
-enum SpellCastResult : uint8_t;
+enum SpellCastResult : uint16_t;
 enum AuraRemoveMode : uint8_t;
 enum SpellProcFlags : uint32_t;
 enum ServerHookEvents;

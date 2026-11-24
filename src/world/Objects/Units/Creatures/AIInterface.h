@@ -37,7 +37,7 @@ class CreatureGroup;
 class SpellInfo;
 
 enum MovementGeneratorType : uint8_t;
-enum SpellCastResult : uint8_t;
+enum SpellCastResult : uint16_t;
 
 namespace AIConstants
 {

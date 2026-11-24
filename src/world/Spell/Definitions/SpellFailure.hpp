@@ -5,953 +5,349 @@ This file is released under the MIT license. See README-MIT for more information
 
 #pragma once
 
-#include "AEVersion.hpp"
 #include "Server/ClientProtocol.hpp"
 
+#include <array>
 #include <cstdint>
 
-enum SpellCastResult : uint8_t
+// Enum values are purely serverside only
+enum SpellCastResult : uint16_t
 {
-#if VERSION_STRING == Classic
-    SPELL_FAILED_AFFECTING_COMBAT               = 0x00, // You are in combat
-    SPELL_FAILED_ALREADY_AT_FULL_HEALTH         = 0x01, // You are already at full Health
-    SPELL_FAILED_ALREADY_AT_FULL_POWER          = 0x02, // You are already at full Rage (tested on warrior)
-    SPELL_FAILED_ALREADY_BEING_TAMED            = 0x03, // That creature is already being tamed
-    SPELL_FAILED_ALREADY_HAVE_CHARM             = 0x04, // You already control a charmed creature
-    SPELL_FAILED_ALREADY_HAVE_SUMMON            = 0x05, // You already control a summoned creature
-    SPELL_FAILED_ALREADY_OPEN                   = 0x06, // Already open
-    SPELL_FAILED_AURA_BOUNCED                   = 0x07, // A more powerful spell is already active
-    SPELL_FAILED_AUTOTRACK_INTERRUPTED          = 0x08,
-    SPELL_FAILED_BAD_IMPLICIT_TARGETS           = 0x09, // You have no target
-    SPELL_FAILED_BAD_TARGETS                    = 0x0A, // Invalid target
-    SPELL_FAILED_CANT_BE_CHARMED                = 0x0B, // Target can't be charmed
-    SPELL_FAILED_CANT_BE_DISENCHANTED           = 0x0C, // Item cannot be disenchanted
-    SPELL_FAILED_CANT_BE_PROSPECTED             = 0x0D, // There are no gems in this
-    SPELL_FAILED_CANT_CAST_ON_TAPPED            = 0x0E, // Target is tapped
-    SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE      = 0x0F, // You can't start a duel while invisible
-    SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED      = 0x10, // You can't start a duel while stealthed
-    SPELL_FAILED_CANT_STEALTH                   = 0x11, // You are too close to enemies
-    SPELL_FAILED_CASTER_AURASTATE               = 0x12, // You can't do that yet
-    SPELL_FAILED_CASTER_DEAD                    = 0x13, // You are dead
-    SPELL_FAILED_CHARMED                        = 0x14, // Can't do that while charmed
-    SPELL_FAILED_CHEST_IN_USE                   = 0x15, // That is already being used
-    SPELL_FAILED_CONFUSED                       = 0x16, // Can't do that while confused
-    SPELL_FAILED_DONT_REPORT                    = 0x17,
-    SPELL_FAILED_EQUIPPED_ITEM                  = 0x18, // Must have the proper item equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS            = 0x19, // Must have a %s equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND   = 0x1A, // Must have a %s equipped in the main hand
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND    = 0x1B, // Must have a %s equipped in the offhand
-    SPELL_FAILED_ERROR                          = 0x1C, // Internal error
-    SPELL_FAILED_FIZZLE                         = 0x1D, // Fizzled
-    SPELL_FAILED_FLEEING                        = 0x1E, // Can't do that while fleeing
-    SPELL_FAILED_FOOD_LOWLEVEL                  = 0x1F, // That food's level is not high enough for your pet
-    SPELL_FAILED_HIGHLEVEL                      = 0x20, // Target is too high level
-    SPELL_FAILED_HUNGER_SATIATED                = 0x21,
-    SPELL_FAILED_IMMUNE                         = 0x22, // Immune
-    SPELL_FAILED_INTERRUPTED                    = 0x23, // Interrupted
-    SPELL_FAILED_INTERRUPTED_COMBAT             = 0x24, // Interrupted
-    SPELL_FAILED_ITEM_ALREADY_ENCHANTED         = 0x25, // Item is already enchanted
-    SPELL_FAILED_ITEM_GONE                      = 0x26, // Item is gone
-    SPELL_FAILED_ITEM_NOT_FOUND                 = 0x27, // Tried to enchant an item that didn't exist
-    SPELL_FAILED_ITEM_NOT_READY                 = 0x28, // Item is not ready yet
-    SPELL_FAILED_LEVEL_REQUIREMENT              = 0x29, // You are not high enough level
-    SPELL_FAILED_LINE_OF_SIGHT                  = 0x2A, // Target not in line of sight
-    SPELL_FAILED_LOWLEVEL                       = 0x2B, // Target is too low level
-    SPELL_FAILED_LOW_CASTLEVEL                  = 0x2C, // Skill not high enough
-    SPELL_FAILED_MAINHAND_EMPTY                 = 0x2D, // Your weapon hand is empty
-    SPELL_FAILED_MOVING                         = 0x2E, // Can't do that while moving
-    SPELL_FAILED_NEED_AMMO                      = 0x2F, // Ammo needs to be in the paper doll ammo slot before it can be fired
-    SPELL_FAILED_NEED_AMMO_POUCH                = 0x30, // Requires: %s
-    SPELL_FAILED_NEED_EXOTIC_AMMO               = 0x31, // Requires exotic ammo: %s
-    SPELL_FAILED_NOPATH                         = 0x32, // No path available
-    SPELL_FAILED_NOT_BEHIND                     = 0x33, // You must be behind your target
-    SPELL_FAILED_NOT_FISHABLE                   = 0x34, // Your cast didn't land in fishable water
-    SPELL_FAILED_NOT_HERE                       = 0x35, // You can't use that here
-    SPELL_FAILED_NOT_INFRONT                    = 0x36, // You must be in front of your target
-    SPELL_FAILED_NOT_IN_CONTROL                 = 0x37, // You are not in control of your actions
-    SPELL_FAILED_NOT_KNOWN                      = 0x38, // Spell not learned
-    SPELL_FAILED_NOT_MOUNTED                    = 0x39, // You are mounted
-    SPELL_FAILED_NOT_ON_TAXI                    = 0x3A, // You are in flight
-    SPELL_FAILED_NOT_ON_TRANSPORT               = 0x3B, // You are on a transport
-    SPELL_FAILED_NOT_READY                      = 0x3C, // Spell is not ready yet
-    SPELL_FAILED_NOT_SHAPESHIFT                 = 0x3D, // You are in shapeshift form
-    SPELL_FAILED_NOT_STANDING                   = 0x3E, // You must be standing to do that
-    SPELL_FAILED_NOT_TRADEABLE                  = 0x3F, // You can only use this on an object you own
-    SPELL_FAILED_NOT_TRADING                    = 0x40, // Tried to enchant a trade item, but not trading
-    SPELL_FAILED_NOT_UNSHEATHED                 = 0x41, // You have to be unsheathed to do that! (with yellow color)
-    SPELL_FAILED_NOT_WHILE_GHOST                = 0x42, // Can't cast as ghost
-    SPELL_FAILED_NO_AMMO                        = 0x43, // Out of ammo
-    SPELL_FAILED_NO_CHARGES_REMAIN              = 0x44, // No charges remain
-    SPELL_FAILED_NO_CHAMPION                    = 0x45, // You haven't selected a champion
-    SPELL_FAILED_NO_COMBO_POINTS                = 0x46, // That ability requires combo points
-    SPELL_FAILED_NO_DUELING                     = 0x47, // Dueling isn't allowed here
-    SPELL_FAILED_NO_ENDURANCE                   = 0x48, // Not enough endurance
-    SPELL_FAILED_NO_FISH                        = 0x49, // There aren't any fish here
-    SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED    = 0x4A, // Can't use items while shapeshifted
-    SPELL_FAILED_NO_MOUNTS_ALLOWED              = 0x4B, // You can't mount here
-    SPELL_FAILED_NO_PET                         = 0x4C, // You do not have a pet
-    SPELL_FAILED_NO_POWER                       = 0x4D, // Not enough mana (tested on warrior)
-    SPELL_FAILED_NOTHING_TO_DISPEL              = 0x4E, // Nothing to dispel
-    SPELL_FAILED_NOTHING_TO_STEAL               = 0x4F, // Nothing to steal
-    SPELL_FAILED_ONLY_ABOVEWATER                = 0x50, // Cannot use while swimming
-    SPELL_FAILED_ONLY_DAYTIME                   = 0x51, // Can only use during the day
-    SPELL_FAILED_ONLY_INDOORS                   = 0x52, // Can only use indoors
-    SPELL_FAILED_ONLY_MOUNTED                   = 0x53, // Can only use while mounted
-    SPELL_FAILED_ONLY_NIGHTTIME                 = 0x54, // Can only use during the night
-    SPELL_FAILED_ONLY_OUTDOORS                  = 0x55, // Can only use outside
-    SPELL_FAILED_ONLY_SHAPESHIFT                = 0x56, // Must be in %s
-    SPELL_FAILED_ONLY_STEALTHED                 = 0x57, // You must be in stealth mode
-    SPELL_FAILED_ONLY_UNDERWATER                = 0x58, // Can only use while swimming
-    SPELL_FAILED_OUT_OF_RANGE                   = 0x59, // Out of range
-    SPELL_FAILED_PACIFIED                       = 0x5A, // Can't use that ability while pacified
-    SPELL_FAILED_POSSESSED                      = 0x5B, // You are possessed
-  //SPELL_FAILED_REAGENTS                       = 0x5C, // Missing reagent: %s
-    SPELL_FAILED_REQUIRES_AREA                  = 0x5D, // You need to be in %s
-    SPELL_FAILED_REQUIRES_SPELL_FOCUS           = 0x5E, // Requires %s
-    SPELL_FAILED_ROOTED                         = 0x5F, // You are unable to move
-    SPELL_FAILED_SILENCED                       = 0x60, // Can't do that while silenced
-    SPELL_FAILED_SPELL_IN_PROGRESS              = 0x61, // Another action is in progress
-    SPELL_FAILED_SPELL_LEARNED                  = 0x62, // You have already learned the spell
-    SPELL_FAILED_SPELL_UNAVAILABLE              = 0x63, // The spell is not available to you
-    SPELL_FAILED_STUNNED                        = 0x64, // Can't do that while stunned
-    SPELL_FAILED_TARGETS_DEAD                   = 0x65, // Your target is dead
-    SPELL_FAILED_TARGET_AFFECTING_COMBAT        = 0x66, // Target is in combat
-    SPELL_FAILED_TARGET_AURASTATE               = 0x67, // You can't do that yet
-    SPELL_FAILED_TARGET_DUELING                 = 0x68, // Target is currently dueling
-    SPELL_FAILED_TARGET_ENEMY                   = 0x69, // Target is hostile
-    SPELL_FAILED_TARGET_ENRAGED                 = 0x6A, // Target is too enraged to be charmed
-    SPELL_FAILED_TARGET_FRIENDLY                = 0x6B, // Target is friendly
-    SPELL_FAILED_TARGET_IN_COMBAT               = 0x6C, // The target can't be in combat
-    SPELL_FAILED_TARGET_IS_PLAYER               = 0x6D, // Can't target players
-    SPELL_FAILED_TARGET_NOT_DEAD                = 0x6E, // Target is alive
-    SPELL_FAILED_TARGET_NOT_IN_PARTY            = 0x6F, // Target is not in your party
-    SPELL_FAILED_TARGET_NOT_LOOTED              = 0x70, // Creature must be looted first
-    SPELL_FAILED_TARGET_NOT_PLAYER              = 0x71, // Target is not a player
-    SPELL_FAILED_TARGET_NO_POCKETS              = 0x72, // No pockets to pick
-    SPELL_FAILED_TARGET_NO_WEAPONS              = 0x73, // Target has no weapons equipped
-    SPELL_FAILED_TARGET_UNSKINNABLE             = 0x74, // Creature is not skinnable
-    SPELL_FAILED_THIRST_SATIATED                = 0x75,
-    SPELL_FAILED_TOO_CLOSE                      = 0x76, // Target too close
-    SPELL_FAILED_TOO_MANY_OF_ITEM               = 0x77, // You have too many of that item already
-  //SPELL_FAILED_TOTEMS                         = 0x78, // Requires %s
-    SPELL_FAILED_TRAINING_POINTS                = 0x79, // Not enough training points
-    SPELL_FAILED_TRY_AGAIN                      = 0x7A, // Failed attempt
-    SPELL_FAILED_UNIT_NOT_BEHIND                = 0x7B, // Target needs to be behind you
-    SPELL_FAILED_UNIT_NOT_INFRONT               = 0x7C, // Target needs to be in front of you
-    SPELL_FAILED_WRONG_PET_FOOD                 = 0x7D, // Your pet doesn't like that food
-    SPELL_FAILED_NOT_WHILE_FATIGUED             = 0x7E, // Can't cast while fatigued
-    SPELL_FAILED_TARGET_NOT_IN_INSTANCE         = 0x7F, // Target must be in this instance
-    SPELL_FAILED_NOT_WHILE_TRADING              = 0x80, // Can't cast while trading
-    SPELL_FAILED_TARGET_NOT_IN_RAID             = 0x81, // Target is not in your party or raid group
-    SPELL_FAILED_DISENCHANT_WHILE_LOOTING       = 0x82, // Cannot disenchant while looting
-    SPELL_FAILED_PROSPECT_WHILE_LOOTING         = 0x83, // Cannot prospect while looting
-  //SPELL_FAILED_PROSPECT_NEED_MORE             = 0x84, // Requires %d %s
-    SPELL_FAILED_TARGET_FREEFORALL              = 0x85, // Target is currently in free-for-all PvP combat
-    SPELL_FAILED_NO_EDIBLE_CORPSES              = 0x86, // There are no nearby corpses to eat
-    SPELL_FAILED_ONLY_BATTLEGROUNDS             = 0x87, // Can only use in battlegrounds
-    SPELL_FAILED_TARGET_NOT_GHOST               = 0x88, // Target is not a ghost
-    SPELL_FAILED_TOO_MANY_SKILLS                = 0x89, // Your pet can't learn any more skills
-    SPELL_FAILED_TRANSFORM_UNUSABLE             = 0x8A, // You can't use the new item
-    SPELL_FAILED_WRONG_WEATHER                  = 0x8B, // The weather isn't right for that
-    SPELL_FAILED_DAMAGE_IMMUNE                  = 0x8C, // You can't do that while you are immune
-    SPELL_FAILED_PREVENTED_BY_MECHANIC          = 0x8D, // Can't do that while %s
-    SPELL_FAILED_PLAY_TIME                      = 0x8E, // Maximum play time exceeded
-    SPELL_FAILED_REPUTATION                     = 0x8F, // Your reputation isn't high enough
-    SPELL_FAILED_MIN_SKILL                      = 0x90, // Your skill is not high enough. Requires %s(%d).
-    SPELL_FAILED_UNKNOWN                        = 0xA8, // Unknown reason
-#elif VERSION_STRING == TBC
-    SPELL_FAILED_AFFECTING_COMBAT               = 0x00, // You are in combat
-    SPELL_FAILED_ALREADY_AT_FULL_HEALTH         = 0x01, // You are already at full Health
-    SPELL_FAILED_ALREADY_AT_FULL_MANA           = 0x02, // You are already at full Mana
-    SPELL_FAILED_ALREADY_AT_FULL_POWER          = 0x03, // You are already at full Rage (tested on warrior)
-    SPELL_FAILED_ALREADY_BEING_TAMED            = 0x04, // That creature is already being tamed
-    SPELL_FAILED_ALREADY_HAVE_CHARM             = 0x05, // You already control a charmed creature
-    SPELL_FAILED_ALREADY_HAVE_SUMMON            = 0x06, // You already control a summoned creature
-    SPELL_FAILED_ALREADY_OPEN                   = 0x07, // Already open
-    SPELL_FAILED_AURA_BOUNCED                   = 0x08, // A more powerful spell is already active
-    SPELL_FAILED_AUTOTRACK_INTERRUPTED          = 0x09,
-    SPELL_FAILED_BAD_IMPLICIT_TARGETS           = 0x0A, // You have no target
-    SPELL_FAILED_BAD_TARGETS                    = 0x0B, // Invalid target
-    SPELL_FAILED_CANT_BE_CHARMED                = 0x0C, // Target can't be charmed
-    SPELL_FAILED_CANT_BE_DISENCHANTED           = 0x0D, // Item cannot be disenchanted
-    SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL     = 0x0E, // Your enchanting skill is not high enough to disenchant that
-    SPELL_FAILED_CANT_BE_PROSPECTED             = 0x0F, // There are no gems in this
-    SPELL_FAILED_CANT_CAST_ON_TAPPED            = 0x10, // Target is tapped
-    SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE      = 0x11, // You can't start a duel while invisible
-    SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED      = 0x12, // You can't start a duel while stealthed
-    SPELL_FAILED_CANT_STEALTH                   = 0x13, // You are too close to enemies
-    SPELL_FAILED_CASTER_AURASTATE               = 0x14, // You can't do that yet
-    SPELL_FAILED_CASTER_DEAD                    = 0x15, // You are dead
-    SPELL_FAILED_CHARMED                        = 0x16, // Can't do that while charmed
-    SPELL_FAILED_CHEST_IN_USE                   = 0x17, // That is already being used
-    SPELL_FAILED_CONFUSED                       = 0x18, // Can't do that while confused
-    SPELL_FAILED_DONT_REPORT                    = 0x19,
-    SPELL_FAILED_EQUIPPED_ITEM                  = 0x1A, // Must have the proper item equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS            = 0x1B, // Must have a %s equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND   = 0x1C, // Must have a %s equipped in the main hand
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND    = 0x1D, // Must have a %s equipped in the offhand
-    SPELL_FAILED_ERROR                          = 0x1E, // Internal error
-    SPELL_FAILED_FIZZLE                         = 0x1F, // Fizzled
-    SPELL_FAILED_FLEEING                        = 0x20, // Can't do that while fleeing
-    SPELL_FAILED_FOOD_LOWLEVEL                  = 0x21, // That food's level is not high enough for your pet
-    SPELL_FAILED_HIGHLEVEL                      = 0x22, // Target is too high level
-    SPELL_FAILED_HUNGER_SATIATED                = 0x23,
-    SPELL_FAILED_IMMUNE                         = 0x24, // Immune
-    SPELL_FAILED_INTERRUPTED                    = 0x25, // Interrupted
-    SPELL_FAILED_INTERRUPTED_COMBAT             = 0x26, // Interrupted
-    SPELL_FAILED_ITEM_ALREADY_ENCHANTED         = 0x27, // Item is already enchanted
-    SPELL_FAILED_ITEM_GONE                      = 0x28, // Item is gone
-    SPELL_FAILED_ITEM_NOT_FOUND                 = 0x29, // Tried to enchant an item that didn't exist
-    SPELL_FAILED_ITEM_NOT_READY                 = 0x2A, // Item is not ready yet
-    SPELL_FAILED_LEVEL_REQUIREMENT              = 0x2B, // You are not high enough level
-    SPELL_FAILED_LINE_OF_SIGHT                  = 0x2C, // Target not in line of sight
-    SPELL_FAILED_LOWLEVEL                       = 0x2D, // Target is too low level
-    SPELL_FAILED_LOW_CASTLEVEL                  = 0x2E, // Skill not high enough
-    SPELL_FAILED_MAINHAND_EMPTY                 = 0x2F, // Your weapon hand is empty
-    SPELL_FAILED_MOVING                         = 0x30, // Can't do that while moving
-    SPELL_FAILED_NEED_AMMO                      = 0x31, // Ammo needs to be in the paper doll ammo slot before it can be fired
-    SPELL_FAILED_NEED_AMMO_POUCH                = 0x32, // Requires: %s
-    SPELL_FAILED_NEED_EXOTIC_AMMO               = 0x33, // Requires exotic ammo: %s
-    SPELL_FAILED_NOPATH                         = 0x34, // No path available
-    SPELL_FAILED_NOT_BEHIND                     = 0x35, // You must be behind your target
-    SPELL_FAILED_NOT_FISHABLE                   = 0x36, // Your cast didn't land in fishable water
-    SPELL_FAILED_NOT_FLYING                     = 0x37, // You are flying
-    SPELL_FAILED_NOT_HERE                       = 0x38, // You can't use that here
-    SPELL_FAILED_NOT_INFRONT                    = 0x39, // You must be in front of your target
-    SPELL_FAILED_NOT_IN_CONTROL                 = 0x3A, // You are not in control of your actions
-    SPELL_FAILED_NOT_KNOWN                      = 0x3B, // Spell not learned
-    SPELL_FAILED_NOT_MOUNTED                    = 0x3C, // You are mounted
-    SPELL_FAILED_NOT_ON_TAXI                    = 0x3D, // You are in flight
-    SPELL_FAILED_NOT_ON_TRANSPORT               = 0x3E, // You are on a transport
-    SPELL_FAILED_NOT_READY                      = 0x3F, // Spell is not ready yet
-    SPELL_FAILED_NOT_SHAPESHIFT                 = 0x40, // You are in shapeshift form
-    SPELL_FAILED_NOT_STANDING                   = 0x41, // You must be standing to do that
-    SPELL_FAILED_NOT_TRADEABLE                  = 0x42, // You can only use this on an object you own
-    SPELL_FAILED_NOT_TRADING                    = 0x43, // Tried to enchant a trade item, but not trading
-    SPELL_FAILED_NOT_UNSHEATHED                 = 0x44, // You have to be unsheathed to do that! (with yellow color)
-    SPELL_FAILED_NOT_WHILE_GHOST                = 0x45, // Can't cast as ghost
-    SPELL_FAILED_NO_AMMO                        = 0x46, // Out of ammo
-    SPELL_FAILED_NO_CHARGES_REMAIN              = 0x47, // No charges remain
-    SPELL_FAILED_NO_CHAMPION                    = 0x48, // You haven't selected a champion
-    SPELL_FAILED_NO_COMBO_POINTS                = 0x49, // That ability requires combo points
-    SPELL_FAILED_NO_DUELING                     = 0x4A, // Dueling isn't allowed here
-    SPELL_FAILED_NO_ENDURANCE                   = 0x4B, // Not enough endurance
-    SPELL_FAILED_NO_FISH                        = 0x4C, // There aren't any fish here
-    SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED    = 0x4D, // Can't use items while shapeshifted
-    SPELL_FAILED_NO_MOUNTS_ALLOWED              = 0x4E, // You can't mount here
-    SPELL_FAILED_NO_PET                         = 0x4F, // You do not have a pet
-    SPELL_FAILED_NO_POWER                       = 0x50, // Not enough mana (tested on warrior)
-    SPELL_FAILED_NOTHING_TO_DISPEL              = 0x51, // Nothing to dispel
-    SPELL_FAILED_NOTHING_TO_STEAL               = 0x52, // Nothing to steal
-    SPELL_FAILED_ONLY_ABOVEWATER                = 0x53, // Cannot use while swimming
-    SPELL_FAILED_ONLY_DAYTIME                   = 0x54, // Can only use during the day
-    SPELL_FAILED_ONLY_INDOORS                   = 0x55, // Can only use indoors
-    SPELL_FAILED_ONLY_MOUNTED                   = 0x56, // Can only use while mounted
-    SPELL_FAILED_ONLY_NIGHTTIME                 = 0x57, // Can only use during the night
-    SPELL_FAILED_ONLY_OUTDOORS                  = 0x58, // Can only use outside
-    SPELL_FAILED_ONLY_SHAPESHIFT                = 0x59, // Must be in %s
-    SPELL_FAILED_ONLY_STEALTHED                 = 0x5A, // You must be in stealth mode
-    SPELL_FAILED_ONLY_UNDERWATER                = 0x5B, // Can only use while swimming
-    SPELL_FAILED_OUT_OF_RANGE                   = 0x5C, // Out of range
-    SPELL_FAILED_PACIFIED                       = 0x5D, // Can't use that ability while pacified
-    SPELL_FAILED_POSSESSED                      = 0x5E, // You are possessed
-    SPELL_FAILED_REAGENTS                       = 0x5F, // Missing reagent: %s
-    SPELL_FAILED_REQUIRES_AREA                  = 0x60, // You need to be in %s
-    SPELL_FAILED_REQUIRES_SPELL_FOCUS           = 0x61, // Requires %s
-    SPELL_FAILED_ROOTED                         = 0x62, // You are unable to move
-    SPELL_FAILED_SILENCED                       = 0x63, // Can't do that while silenced
-    SPELL_FAILED_SPELL_IN_PROGRESS              = 0x64, // Another action is in progress
-    SPELL_FAILED_SPELL_LEARNED                  = 0x65, // You have already learned the spell
-    SPELL_FAILED_SPELL_UNAVAILABLE              = 0x66, // The spell is not available to you
-    SPELL_FAILED_STUNNED                        = 0x67, // Can't do that while stunned
-    SPELL_FAILED_TARGETS_DEAD                   = 0x68, // Your target is dead
-    SPELL_FAILED_TARGET_AFFECTING_COMBAT        = 0x69, // Target is in combat
-    SPELL_FAILED_TARGET_AURASTATE               = 0x6A, // You can't do that yet
-    SPELL_FAILED_TARGET_DUELING                 = 0x6B, // Target is currently dueling
-    SPELL_FAILED_TARGET_ENEMY                   = 0x6C, // Target is hostile
-    SPELL_FAILED_TARGET_ENRAGED                 = 0x6D, // Target is too enraged to be charmed
-    SPELL_FAILED_TARGET_FRIENDLY                = 0x6E, // Target is friendly
-    SPELL_FAILED_TARGET_IN_COMBAT               = 0x6F, // The target can't be in combat
-    SPELL_FAILED_TARGET_IS_PLAYER               = 0x70, // Can't target players
-    SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED    = 0x71, // Can't target player controlled units
-    SPELL_FAILED_TARGET_NOT_DEAD                = 0x72, // Target is alive
-    SPELL_FAILED_TARGET_NOT_IN_PARTY            = 0x73, // Target is not in your party
-    SPELL_FAILED_TARGET_NOT_LOOTED              = 0x74, // Creature must be looted first
-    SPELL_FAILED_TARGET_NOT_PLAYER              = 0x75, // Target is not a player
-    SPELL_FAILED_TARGET_NO_POCKETS              = 0x76, // No pockets to pick
-    SPELL_FAILED_TARGET_NO_WEAPONS              = 0x77, // Target has no weapons equipped
-    SPELL_FAILED_TARGET_UNSKINNABLE             = 0x78, // Creature is not skinnable
-    SPELL_FAILED_THIRST_SATIATED                = 0x79,
-    SPELL_FAILED_TOO_CLOSE                      = 0x7A, // Target too close
-    SPELL_FAILED_TOO_MANY_OF_ITEM               = 0x7B, // You have too many of that item already
-    SPELL_FAILED_TOTEM_CATEGORY                 = 0x7C, // Requires %s
-    SPELL_FAILED_TOTEMS                         = 0x7D, // Requires %s
-    SPELL_FAILED_TRAINING_POINTS                = 0x7E, // Not enough training points
-    SPELL_FAILED_TRY_AGAIN                      = 0x7F, // Failed attempt
-    SPELL_FAILED_UNIT_NOT_BEHIND                = 0x80, // Target needs to be behind you
-    SPELL_FAILED_UNIT_NOT_INFRONT               = 0x81, // Target needs to be in front of you
-    SPELL_FAILED_WRONG_PET_FOOD                 = 0x82, // Your pet doesn't like that food
-    SPELL_FAILED_NOT_WHILE_FATIGUED             = 0x83, // Can't cast while fatigued
-    SPELL_FAILED_TARGET_NOT_IN_INSTANCE         = 0x84, // Target must be in this instance
-    SPELL_FAILED_NOT_WHILE_TRADING              = 0x85, // Can't cast while trading
-    SPELL_FAILED_TARGET_NOT_IN_RAID             = 0x86, // Target is not in your party or raid group
-    SPELL_FAILED_DISENCHANT_WHILE_LOOTING       = 0x87, // Cannot disenchant while looting
-    SPELL_FAILED_PROSPECT_WHILE_LOOTING         = 0x88, // Cannot prospect while looting
-    SPELL_FAILED_PROSPECT_NEED_MORE             = 0x89, // Requires %d %s
-    SPELL_FAILED_TARGET_FREEFORALL              = 0x8A, // Target is currently in free-for-all PvP combat
-    SPELL_FAILED_NO_EDIBLE_CORPSES              = 0x8B, // There are no nearby corpses to eat
-    SPELL_FAILED_ONLY_BATTLEGROUNDS             = 0x8C, // Can only use in battlegrounds
-    SPELL_FAILED_TARGET_NOT_GHOST               = 0x8D, // Target is not a ghost
-    SPELL_FAILED_TOO_MANY_SKILLS                = 0x8E, // Your pet can't learn any more skills
-    SPELL_FAILED_TRANSFORM_UNUSABLE             = 0x8F, // You can't use the new item
-    SPELL_FAILED_WRONG_WEATHER                  = 0x90, // The weather isn't right for that
-    SPELL_FAILED_DAMAGE_IMMUNE                  = 0x91, // You can't do that while you are immune
-    SPELL_FAILED_PREVENTED_BY_MECHANIC          = 0x92, // Can't do that while %s
-    SPELL_FAILED_PLAY_TIME                      = 0x93, // Maximum play time exceeded
-    SPELL_FAILED_REPUTATION                     = 0x94, // Your reputation isn't high enough
-    SPELL_FAILED_MIN_SKILL                      = 0x95, // Your skill is not high enough. Requires %s(%d).
-    SPELL_FAILED_NOT_IN_ARENA                   = 0x96, // You can't do that in an arena
-    SPELL_FAILED_NOT_ON_SHAPESHIFT              = 0x97, // Cannot be cast on shapeshifted target
-    SPELL_FAILED_NOT_ON_STEALTHED               = 0x98, // Spell cannot be cast on stealthed target
-    SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE           = 0x99, // Spell cannot be cast on a damage immune target
-    SPELL_FAILED_NOT_ON_MOUNTED                 = 0x9A, // Spell cannot be cast on a mounted unit
-    SPELL_FAILED_TOO_SHALLOW                    = 0x9B, // Water too shallow
-    SPELL_FAILED_TARGET_NOT_IN_SANCTUARY        = 0x9C, // Target is not in a sanctuary
-    SPELL_FAILED_TARGET_IS_TRIVIAL              = 0x9D, // Can't target trivial
-    SPELL_FAILED_BM_OR_INVISGOD                 = 0x9E, // The spell cannot be cast on beastmaster or invis god targets
-    SPELL_FAILED_EXPERT_RIDING_REQUIREMENT      = 0x9F, // Requires expert riding skill
-    SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT     = 0xA0, // Requires artisan riding skill
-    SPELL_FAILED_NOT_IDLE                       = 0xA1, // Can't use while Idle
-    SPELL_FAILED_NOT_INACTIVE                   = 0xA2, // Can't use while Inactive
-    SPELL_FAILED_PARTIAL_PLAYTIME               = 0xA3, // You can not do this. You have more than 3 hours of online time
-    SPELL_FAILED_NO_PLAYTIME                    = 0xA4, // You can not do this. You have more than 5 hours of online time
-    SPELL_FAILED_NOT_IN_BATTLEGROUND            = 0xA5, // You can't do that in a battleground
-    SPELL_FAILED_ONLY_IN_ARENA                  = 0xA6, // You can only do that in an arena
-    SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE = 0xA7, // Target is locked to another raid instance
-    SPELL_FAILED_UNKNOWN                        = 0xA8, // Unknown reason
-#elif VERSION_STRING == WotLK
-    // Values are tested on 3.3.5a client
-    // Values without comments didn't return anything
-    SPELL_FAILED_SUCCESS                        = 0x00,
-    SPELL_FAILED_AFFECTING_COMBAT               = 0x01, // You are in combat
-    SPELL_FAILED_ALREADY_AT_FULL_HEALTH         = 0x02, // You are already at full Health
-    SPELL_FAILED_ALREADY_AT_FULL_MANA           = 0x03, // You are already at full Mana
-    SPELL_FAILED_ALREADY_AT_FULL_POWER          = 0x04, // You are already at full Rage (tested on warrior)
-    SPELL_FAILED_ALREADY_BEING_TAMED            = 0x05, // That creature is already being tamed
-    SPELL_FAILED_ALREADY_HAVE_CHARM             = 0x06, // You already control a charmed creature
-    SPELL_FAILED_ALREADY_HAVE_SUMMON            = 0x07, // You already control a summoned creature
-    SPELL_FAILED_ALREADY_OPEN                   = 0x08, // Already open
-    SPELL_FAILED_AURA_BOUNCED                   = 0x09, // A more powerful spell is already active
-    SPELL_FAILED_AUTOTRACK_INTERRUPTED          = 0x0A,
-    SPELL_FAILED_BAD_IMPLICIT_TARGETS           = 0x0B, // You have no target
-    SPELL_FAILED_BAD_TARGETS                    = 0x0C, // Invalid target
-    SPELL_FAILED_CANT_BE_CHARMED                = 0x0D, // Target can't be charmed
-    SPELL_FAILED_CANT_BE_DISENCHANTED           = 0x0E, // Item cannot be disenchanted
-    SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL     = 0x0F, // Your enchanting skill is not high enough to disenchant that
-    SPELL_FAILED_CANT_BE_MILLED                 = 0x10, // You cannot mill that
-    SPELL_FAILED_CANT_BE_PROSPECTED             = 0x11, // There are no gems in this
-    SPELL_FAILED_CANT_CAST_ON_TAPPED            = 0x12, // Target is tapped
-    SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE      = 0x13, // You can't start a duel while invisible
-    SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED      = 0x14, // You can't start a duel while stealthed
-    SPELL_FAILED_CANT_STEALTH                   = 0x15, // You are too close to enemies
-    SPELL_FAILED_CASTER_AURASTATE               = 0x16, // You can't do that yet
-    SPELL_FAILED_CASTER_DEAD                    = 0x17, // You are dead
-    SPELL_FAILED_CHARMED                        = 0x18, // Can't do that while charmed
-    SPELL_FAILED_CHEST_IN_USE                   = 0x19, // That is already being used
-    SPELL_FAILED_CONFUSED                       = 0x1A, // Can't do that while confused
-    SPELL_FAILED_DONT_REPORT                    = 0x1B,
-    SPELL_FAILED_EQUIPPED_ITEM                  = 0x1C, // Must have the proper item equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS            = 0x1D, // Must have a %s equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND   = 0x1E, // Must have a %s equipped in the main hand
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND    = 0x1F, // Must have a %s equipped in the offhand
-    SPELL_FAILED_ERROR                          = 0x20, // Internal error
-    SPELL_FAILED_FIZZLE                         = 0x21, // Fizzled
-    SPELL_FAILED_FLEEING                        = 0x22, // Can't do that while fleeing
-    SPELL_FAILED_FOOD_LOWLEVEL                  = 0x23, // That food's level is not high enough for your pet
-    SPELL_FAILED_HIGHLEVEL                      = 0x24, // Target is too high level
-    SPELL_FAILED_HUNGER_SATIATED                = 0x25,
-    SPELL_FAILED_IMMUNE                         = 0x26, // Immune
-    SPELL_FAILED_INCORRECT_AREA                 = 0x27, // You are in the wrong zone
-    SPELL_FAILED_INTERRUPTED                    = 0x28, // Interrupted
-    SPELL_FAILED_INTERRUPTED_COMBAT             = 0x29, // Interrupted
-    SPELL_FAILED_ITEM_ALREADY_ENCHANTED         = 0x2A, // Item is already enchanted
-    SPELL_FAILED_ITEM_GONE                      = 0x2B, // Item is gone
-    SPELL_FAILED_ITEM_NOT_FOUND                 = 0x2C, // Tried to enchant an item that didn't exist
-    SPELL_FAILED_ITEM_NOT_READY                 = 0x2D, // Item is not ready yet
-    SPELL_FAILED_LEVEL_REQUIREMENT              = 0x2E, // You are not high enough level
-    SPELL_FAILED_LINE_OF_SIGHT                  = 0x2F, // Target not in line of sight
-    SPELL_FAILED_LOWLEVEL                       = 0x30, // Target is too low level
-    SPELL_FAILED_LOW_CASTLEVEL                  = 0x31, // Skill not high enough
-    SPELL_FAILED_MAINHAND_EMPTY                 = 0x32, // Your weapon hand is empty
-    SPELL_FAILED_MOVING                         = 0x33, // Can't do that while moving
-    SPELL_FAILED_NEED_AMMO                      = 0x34, // Ammo needs to be in the paper doll ammo slot before it can be fired
-    SPELL_FAILED_NEED_AMMO_POUCH                = 0x35, // Requires: %s
-    SPELL_FAILED_NEED_EXOTIC_AMMO               = 0x36, // Requires exotic ammo: %s
-    SPELL_FAILED_NEED_MORE_ITEMS                = 0x37, // Requires %d %s
-    SPELL_FAILED_NOPATH                         = 0x38, // No path available
-    SPELL_FAILED_NOT_BEHIND                     = 0x39, // You must be behind your target
-    SPELL_FAILED_NOT_FISHABLE                   = 0x3A, // Your cast didn't land in fishable water
-    SPELL_FAILED_NOT_FLYING                     = 0x3B, // You are flying
-    SPELL_FAILED_NOT_HERE                       = 0x3C, // You can't use that here
-    SPELL_FAILED_NOT_INFRONT                    = 0x3D, // You must be in front of your target
-    SPELL_FAILED_NOT_IN_CONTROL                 = 0x3E, // You are not in control of your actions
-    SPELL_FAILED_NOT_KNOWN                      = 0x3F, // Spell not learned
-    SPELL_FAILED_NOT_MOUNTED                    = 0x40, // You are mounted
-    SPELL_FAILED_NOT_ON_TAXI                    = 0x41, // You are in flight
-    SPELL_FAILED_NOT_ON_TRANSPORT               = 0x42, // You are on a transport
-    SPELL_FAILED_NOT_READY                      = 0x43, // Spell is not ready yet
-    SPELL_FAILED_NOT_SHAPESHIFT                 = 0x44, // You are in shapeshift form
-    SPELL_FAILED_NOT_STANDING                   = 0x45, // You must be standing to do that
-    SPELL_FAILED_NOT_TRADEABLE                  = 0x46, // You can only use this on an object you own
-    SPELL_FAILED_NOT_TRADING                    = 0x47, // Tried to enchant a trade item, but not trading
-    SPELL_FAILED_NOT_UNSHEATHED                 = 0x48, // You have to be unsheathed to do that! (with yellow color)
-    SPELL_FAILED_NOT_WHILE_GHOST                = 0x49, // Can't cast as ghost
-    SPELL_FAILED_NOT_WHILE_LOOTING              = 0x4A, // You are busy looting
-    SPELL_FAILED_NO_AMMO                        = 0x4B, // Out of ammo
-    SPELL_FAILED_NO_CHARGES_REMAIN              = 0x4C, // No charges remain
-    SPELL_FAILED_NO_CHAMPION                    = 0x4D, // You haven't selected a champion
-    SPELL_FAILED_NO_COMBO_POINTS                = 0x4E, // That ability requires combo points
-    SPELL_FAILED_NO_DUELING                     = 0x4F, // Dueling isn't allowed here
-    SPELL_FAILED_NO_ENDURANCE                   = 0x50, // Not enough endurance
-    SPELL_FAILED_NO_FISH                        = 0x51, // There aren't any fish here
-    SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED    = 0x52, // Can't use items while shapeshifted
-    SPELL_FAILED_NO_MOUNTS_ALLOWED              = 0x53, // You can't mount here
-    SPELL_FAILED_NO_PET                         = 0x54, // You do not have a pet
-    SPELL_FAILED_NO_POWER                       = 0x55, // Not enough mana (tested on warrior)
-    SPELL_FAILED_NOTHING_TO_DISPEL              = 0x56, // Nothing to dispel
-    SPELL_FAILED_NOTHING_TO_STEAL               = 0x57, // Nothing to steal
-    SPELL_FAILED_ONLY_ABOVEWATER                = 0x58, // Cannot use while swimming
-    SPELL_FAILED_ONLY_DAYTIME                   = 0x59, // Can only use during the day
-    SPELL_FAILED_ONLY_INDOORS                   = 0x5A, // Can only use indoors
-    SPELL_FAILED_ONLY_MOUNTED                   = 0x5B, // Can only use while mounted
-    SPELL_FAILED_ONLY_NIGHTTIME                 = 0x5C, // Can only use during the night
-    SPELL_FAILED_ONLY_OUTDOORS                  = 0x5D, // Can only use outside
-    SPELL_FAILED_ONLY_SHAPESHIFT                = 0x5E, // Must be in %s
-    SPELL_FAILED_ONLY_STEALTHED                 = 0x5F, // You must be in stealth mode
-    SPELL_FAILED_ONLY_UNDERWATER                = 0x60, // Can only use while swimming
-    SPELL_FAILED_OUT_OF_RANGE                   = 0x61, // Out of range
-    SPELL_FAILED_PACIFIED                       = 0x62, // Can't use that ability while pacified
-    SPELL_FAILED_POSSESSED                      = 0x63, // You are possessed
-    SPELL_FAILED_REAGENTS                       = 0x64, // Missing reagent: %s
-    SPELL_FAILED_REQUIRES_AREA                  = 0x65, // You need to be in %s
-    SPELL_FAILED_REQUIRES_SPELL_FOCUS           = 0x66, // Requires %s
-    SPELL_FAILED_ROOTED                         = 0x67, // You are unable to move
-    SPELL_FAILED_SILENCED                       = 0x68, // Can't do that while silenced
-    SPELL_FAILED_SPELL_IN_PROGRESS              = 0x69, // Another action is in progress
-    SPELL_FAILED_SPELL_LEARNED                  = 0x6A, // You have already learned the spell
-    SPELL_FAILED_SPELL_UNAVAILABLE              = 0x6B, // The spell is not available to you
-    SPELL_FAILED_STUNNED                        = 0x6C, // Can't do that while stunned
-    SPELL_FAILED_TARGETS_DEAD                   = 0x6D, // Your target is dead
-    SPELL_FAILED_TARGET_AFFECTING_COMBAT        = 0x6E, // Target is in combat
-    SPELL_FAILED_TARGET_AURASTATE               = 0x6F, // You can't do that yet
-    SPELL_FAILED_TARGET_DUELING                 = 0x70, // Target is currently dueling
-    SPELL_FAILED_TARGET_ENEMY                   = 0x71, // Target is hostile
-    SPELL_FAILED_TARGET_ENRAGED                 = 0x72, // Target is too enraged to be charmed
-    SPELL_FAILED_TARGET_FRIENDLY                = 0x73, // Target is friendly
-    SPELL_FAILED_TARGET_IN_COMBAT               = 0x74, // The target can't be in combat
-    SPELL_FAILED_TARGET_IS_PLAYER               = 0x75, // Can't target players
-    SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED    = 0x76, // Can't target player controlled units
-    SPELL_FAILED_TARGET_NOT_DEAD                = 0x77, // Target is alive
-    SPELL_FAILED_TARGET_NOT_IN_PARTY            = 0x78, // Target is not in your party
-    SPELL_FAILED_TARGET_NOT_LOOTED              = 0x79, // Creature must be looted first
-    SPELL_FAILED_TARGET_NOT_PLAYER              = 0x7A, // Target is not a player
-    SPELL_FAILED_TARGET_NO_POCKETS              = 0x7B, // No pockets to pick
-    SPELL_FAILED_TARGET_NO_WEAPONS              = 0x7C, // Target has no weapons equipped
-    SPELL_FAILED_TARGET_NO_RANGED_WEAPONS       = 0x7D, // Target has no ranged weapons equipped
-    SPELL_FAILED_TARGET_UNSKINNABLE             = 0x7E, // Creature is not skinnable
-    SPELL_FAILED_THIRST_SATIATED                = 0x7F,
-    SPELL_FAILED_TOO_CLOSE                      = 0x80, // Target too close
-    SPELL_FAILED_TOO_MANY_OF_ITEM               = 0x81, // You have too many of that item already
-    SPELL_FAILED_TOTEM_CATEGORY                 = 0x82, // Requires %s
-    SPELL_FAILED_TOTEMS                         = 0x83, // Requires %s
-    SPELL_FAILED_TRY_AGAIN                      = 0x84, // Failed attempt
-    SPELL_FAILED_UNIT_NOT_BEHIND                = 0x85, // Target needs to be behind you
-    SPELL_FAILED_UNIT_NOT_INFRONT               = 0x86, // Target needs to be in front of you
-    SPELL_FAILED_WRONG_PET_FOOD                 = 0x87, // Your pet doesn't like that food
-    SPELL_FAILED_NOT_WHILE_FATIGUED             = 0x88, // Can't cast while fatigued
-    SPELL_FAILED_TARGET_NOT_IN_INSTANCE         = 0x89, // Target must be in this instance
-    SPELL_FAILED_NOT_WHILE_TRADING              = 0x8A, // Can't cast while trading
-    SPELL_FAILED_TARGET_NOT_IN_RAID             = 0x8B, // Target is not in your party or raid group
-    SPELL_FAILED_TARGET_FREEFORALL              = 0x8C, // Target is currently in free-for-all PvP combat
-    SPELL_FAILED_NO_EDIBLE_CORPSES              = 0x8D, // There are no nearby corpses to eat
-    SPELL_FAILED_ONLY_BATTLEGROUNDS             = 0x8E, // Can only use in battlegrounds
-    SPELL_FAILED_TARGET_NOT_GHOST               = 0x8F, // Target is not a ghost
-    SPELL_FAILED_TRANSFORM_UNUSABLE             = 0x90, // You can't use the new item
-    SPELL_FAILED_WRONG_WEATHER                  = 0x91, // The weather isn't right for that
-    SPELL_FAILED_DAMAGE_IMMUNE                  = 0x92, // You can't do that while you are immune
-    SPELL_FAILED_PREVENTED_BY_MECHANIC          = 0x93, // Can't do that while %s
-    SPELL_FAILED_PLAY_TIME                      = 0x94, // Maximum play time exceeded
-    SPELL_FAILED_REPUTATION                     = 0x95, // Your reputation isn't high enough
-    SPELL_FAILED_MIN_SKILL                      = 0x96, // Your skill is not high enough. Requires %s(%d).
-    SPELL_FAILED_NOT_IN_ARENA                   = 0x97, // You can't do that in an arena
-    SPELL_FAILED_NOT_ON_SHAPESHIFT              = 0x98, // Cannot be cast on shapeshifted target
-    SPELL_FAILED_NOT_ON_STEALTHED               = 0x99, // Spell cannot be cast on stealthed target
-    SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE           = 0x9A, // Spell cannot be cast on a damage immune target
-    SPELL_FAILED_NOT_ON_MOUNTED                 = 0x9B, // Spell cannot be cast on a mounted unit
-    SPELL_FAILED_TOO_SHALLOW                    = 0x9C, // Water too shallow
-    SPELL_FAILED_TARGET_NOT_IN_SANCTUARY        = 0x9D, // Target is not in a sanctuary
-    SPELL_FAILED_TARGET_IS_TRIVIAL              = 0x9E, // Can't target trivial
-    SPELL_FAILED_BM_OR_INVISGOD                 = 0x9F, // The spell cannot be cast on beastmaster or invis god targets
-    SPELL_FAILED_EXPERT_RIDING_REQUIREMENT      = 0xA0, // Requires expert riding skill
-    SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT     = 0xA1, // Requires artisan riding skill
-    SPELL_FAILED_NOT_IDLE                       = 0xA2, // Can't use while Idle
-    SPELL_FAILED_NOT_INACTIVE                   = 0xA3, // Can't use while Inactive
-    SPELL_FAILED_PARTIAL_PLAYTIME               = 0xA4, // You can not do this. You have more than 3 hours of online time
-    SPELL_FAILED_NO_PLAYTIME                    = 0xA5, // You can not do this. You have more than 5 hours of online time
-    SPELL_FAILED_NOT_IN_BATTLEGROUND            = 0xA6, // You can't do that in a battleground
-    SPELL_FAILED_NOT_IN_RAID_INSTANCE           = 0xA7, // You can't do that in a raid instance
-    SPELL_FAILED_ONLY_IN_ARENA                  = 0xA8, // You can only do that in an arena
-    SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE = 0xA9, // Target is locked to another raid instance
-    SPELL_FAILED_ON_USE_ENCHANT                 = 0xAA, // That item already has an activated ability
-    SPELL_FAILED_NOT_ON_GROUND                  = 0xAB, // Cannot use on the ground
-    SPELL_FAILED_CUSTOM_ERROR                   = 0xAC,
-    SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW         = 0xAD, // You can't do that right now
-    SPELL_FAILED_TOO_MANY_SOCKETS               = 0xAE, // That item has too many sockets
-    SPELL_FAILED_INVALID_GLYPH                  = 0xAF, // That glyph cannot be inscribed there
-    SPELL_FAILED_UNIQUE_GLYPH                   = 0xB0, // That glyph is already inscribed in your spellbook
-    SPELL_FAILED_GLYPH_SOCKET_LOCKED            = 0xB1, // You cannot inscribe a glyph there yet
-    SPELL_FAILED_NO_VALID_TARGETS               = 0xB2, // No valid targets
-    SPELL_FAILED_ITEM_AT_MAX_CHARGES            = 0xB3, // Item already has the maximum number of charges
-    SPELL_FAILED_NOT_IN_BARBERSHOP              = 0xB4, // You can't do that while in the barber shop
-    SPELL_FAILED_FISHING_TOO_LOW                = 0xB5, // Requires fishing %d
-    SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW      = 0xB6, // Item cannot be enchanted in trade
-    SPELL_FAILED_SUMMON_PENDING                 = 0xB7, // A summon is already pending
-    SPELL_FAILED_MAX_SOCKETS                    = 0xB8, // That item cannot receive additional sockets
-    SPELL_FAILED_PET_CAN_RENAME                 = 0xB9, // You can already rename your pet
-    SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED   = 0xBA, // Target cannot be resurrected
-    SPELL_FAILED_UNKNOWN                        = 0xBB, // Unknown reason
-#elif VERSION_STRING == Cata
-    // Values are tested on 4.3.4 client
-    // Values without comments didn't return anything
-    SPELL_FAILED_SUCCESS                        = 0x00,
-    SPELL_FAILED_AFFECTING_COMBAT               = 0x01, // You are in combat
-    SPELL_FAILED_ALREADY_AT_FULL_HEALTH         = 0x02, // You are already at full Health
-    SPELL_FAILED_ALREADY_AT_FULL_MANA           = 0x03, // You are already at full Mana
-    SPELL_FAILED_ALREADY_AT_FULL_POWER          = 0x04, // You are already at full Rage (tested on warrior)
-    SPELL_FAILED_ALREADY_BEING_TAMED            = 0x05, // That creature is already being tamed
-    SPELL_FAILED_ALREADY_HAVE_CHARM             = 0x06, // You already control a charmed creature
-    SPELL_FAILED_ALREADY_HAVE_SUMMON            = 0x07, // You already control a summoned creature
-    SPELL_FAILED_ALREADY_HAVE_PET               = 0x08, // You must dismiss your current pet first
-    SPELL_FAILED_ALREADY_OPEN                   = 0x09, // Already open
-    SPELL_FAILED_AURA_BOUNCED                   = 0x0A, // A more powerful spell is already active
-    SPELL_FAILED_AUTOTRACK_INTERRUPTED          = 0x0B,
-    SPELL_FAILED_BAD_IMPLICIT_TARGETS           = 0x0C, // You have no target
-    SPELL_FAILED_BAD_TARGETS                    = 0x0D, // Invalid target
-    SPELL_FAILED_CANT_BE_CHARMED                = 0x0E, // Target can't be charmed
-    SPELL_FAILED_CANT_BE_DISENCHANTED           = 0x0F, // Item cannot be disenchanted
-    SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL     = 0x10, // Your enchanting skill is not high enough to disenchant that
-    SPELL_FAILED_CANT_BE_MILLED                 = 0x11, // You cannot mill that
-    SPELL_FAILED_CANT_BE_PROSPECTED             = 0x12, // There are no gems in this
-    SPELL_FAILED_CANT_CAST_ON_TAPPED            = 0x13, // Target is tapped
-    SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE      = 0x14, // You can't start a duel while invisible
-    SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED      = 0x15, // You can't start a duel while stealthed
-    SPELL_FAILED_CANT_STEALTH                   = 0x16, // You are too close to enemies
-    SPELL_FAILED_CASTER_AURASTATE               = 0x17, // You can't do that yet
-    SPELL_FAILED_CASTER_DEAD                    = 0x18, // You are dead
-    SPELL_FAILED_CHARMED                        = 0x19, // Can't do that while charmed
-    SPELL_FAILED_CHEST_IN_USE                   = 0x1A, // That is already being used
-    SPELL_FAILED_CONFUSED                       = 0x1B, // Can't do that while confused
-    SPELL_FAILED_DONT_REPORT                    = 0x1C,
-    SPELL_FAILED_EQUIPPED_ITEM                  = 0x1D, // Must have the proper item equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS            = 0x1E, // Must have a %s equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND   = 0x1F, // Must have a %s equipped in the main hand
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND    = 0x20, // Must have a %s equipped in the offhand
-    SPELL_FAILED_ERROR                          = 0x21, // Internal error
-    SPELL_FAILED_FALLING                        = 0x22, // Can't do that while falling
-    SPELL_FAILED_FIZZLE                         = 0x23, // Fizzled
-    SPELL_FAILED_FLEEING                        = 0x24, // Can't do that while fleeing
-    SPELL_FAILED_FOOD_LOWLEVEL                  = 0x25, // That food's level is not high enough for your pet
-    SPELL_FAILED_HIGHLEVEL                      = 0x26, // Target is too high level
-    SPELL_FAILED_HUNGER_SATIATED                = 0x27,
-    SPELL_FAILED_IMMUNE                         = 0x28, // Immune
-    SPELL_FAILED_INCORRECT_AREA                 = 0x29, // You are in the wrong zone
-    SPELL_FAILED_INTERRUPTED                    = 0x2A, // Interrupted
-    SPELL_FAILED_INTERRUPTED_COMBAT             = 0x2B, // Interrupted
-    SPELL_FAILED_ITEM_ALREADY_ENCHANTED         = 0x2C, // Item is already enchanted
-    SPELL_FAILED_ITEM_GONE                      = 0x2D, // Item is gone
-    SPELL_FAILED_ITEM_NOT_FOUND                 = 0x2E, // Tried to enchant an item that didn't exist
-    SPELL_FAILED_ITEM_NOT_READY                 = 0x2F, // Item is not ready yet
-    SPELL_FAILED_LEVEL_REQUIREMENT              = 0x30, // You are not high enough level
-    SPELL_FAILED_LINE_OF_SIGHT                  = 0x31, // Target not in line of sight
-    SPELL_FAILED_LOWLEVEL                       = 0x32, // Target is too low level
-    SPELL_FAILED_LOW_CASTLEVEL                  = 0x33, // Skill not high enough
-    SPELL_FAILED_MAINHAND_EMPTY                 = 0x34, // Your weapon hand is empty
-    SPELL_FAILED_MOVING                         = 0x35, // Can't do that while moving
-    SPELL_FAILED_NEED_AMMO                      = 0x36, // Ammo needs to be in the paper doll ammo slot before it can be fired
-    SPELL_FAILED_NEED_AMMO_POUCH                = 0x37, // Requires: %s
-    SPELL_FAILED_NEED_EXOTIC_AMMO               = 0x38, // Requires exotic ammo: %s
-    SPELL_FAILED_NEED_MORE_ITEMS                = 0x39, // Requires %d %s
-    SPELL_FAILED_NOPATH                         = 0x3A, // No path available
-    SPELL_FAILED_NOT_BEHIND                     = 0x3B, // You must be behind your target
-    SPELL_FAILED_NOT_FISHABLE                   = 0x3C, // Your cast didn't land in fishable water
-    SPELL_FAILED_NOT_FLYING                     = 0x3D, // You are flying
-    SPELL_FAILED_NOT_HERE                       = 0x3E, // You can't use that here
-    SPELL_FAILED_NOT_INFRONT                    = 0x3F, // You must be in front of your target
-    SPELL_FAILED_NOT_IN_CONTROL                 = 0x40, // You are not in control of your actions
-    SPELL_FAILED_NOT_KNOWN                      = 0x41, // Spell not learned
-    SPELL_FAILED_NOT_MOUNTED                    = 0x42, // You are mounted
-    SPELL_FAILED_NOT_ON_TAXI                    = 0x43, // You are in flight
-    SPELL_FAILED_NOT_ON_TRANSPORT               = 0x44, // You are on a transport
-    SPELL_FAILED_NOT_READY                      = 0x45, // Spell is not ready yet
-    SPELL_FAILED_NOT_SHAPESHIFT                 = 0x46, // You are in shapeshift form
-    SPELL_FAILED_NOT_STANDING                   = 0x47, // You must be standing to do that
-    SPELL_FAILED_NOT_TRADEABLE                  = 0x48, // You can only use this on an object you own
-    SPELL_FAILED_NOT_TRADING                    = 0x49, // Tried to enchant a trade item, but not trading
-    SPELL_FAILED_NOT_UNSHEATHED                 = 0x4A, // You have to be unsheathed to do that! (with yellow color)
-    SPELL_FAILED_NOT_WHILE_GHOST                = 0x4B, // Can't cast as ghost
-    SPELL_FAILED_NOT_WHILE_LOOTING              = 0x4C, // You are busy looting
-    SPELL_FAILED_NO_AMMO                        = 0x4D, // Out of ammo
-    SPELL_FAILED_NO_CHARGES_REMAIN              = 0x4E, // No charges remain
-    SPELL_FAILED_NO_CHAMPION                    = 0x4F, // You haven't selected a champion
-    SPELL_FAILED_NO_COMBO_POINTS                = 0x50, // That ability requires combo points
-    SPELL_FAILED_NO_DUELING                     = 0x51, // Dueling isn't allowed here
-    SPELL_FAILED_NO_ENDURANCE                   = 0x52, // Not enough endurance
-    SPELL_FAILED_NO_FISH                        = 0x53, // There aren't any fish here
-    SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED    = 0x54, // Can't use items while shapeshifted
-    SPELL_FAILED_NO_MOUNTS_ALLOWED              = 0x55, // You can't mount here
-    SPELL_FAILED_NO_PET                         = 0x56, // You do not have a pet
-    SPELL_FAILED_NO_POWER                       = 0x57, // Not enough mana (tested on warrior)
-    SPELL_FAILED_NOTHING_TO_DISPEL              = 0x58, // Nothing to dispel
-    SPELL_FAILED_NOTHING_TO_STEAL               = 0x59, // Nothing to steal
-    SPELL_FAILED_ONLY_ABOVEWATER                = 0x5A, // Cannot use while swimming
-    SPELL_FAILED_ONLY_DAYTIME                   = 0x5B, // Can only use during the day
-    SPELL_FAILED_ONLY_INDOORS                   = 0x5C, // Can only use indoors
-    SPELL_FAILED_ONLY_MOUNTED                   = 0x5D, // Can only use while mounted
-    SPELL_FAILED_ONLY_NIGHTTIME                 = 0x5E, // Can only use during the night
-    SPELL_FAILED_ONLY_OUTDOORS                  = 0x5F, // Can only use outside
-    SPELL_FAILED_ONLY_SHAPESHIFT                = 0x60, // Must be in %s
-    SPELL_FAILED_ONLY_STEALTHED                 = 0x61, // You must be in stealth mode
-    SPELL_FAILED_ONLY_UNDERWATER                = 0x62, // Can only use while swimming
-    SPELL_FAILED_OUT_OF_RANGE                   = 0x63, // Out of range
-    SPELL_FAILED_PACIFIED                       = 0x64, // Can't use that ability while pacified
-    SPELL_FAILED_POSSESSED                      = 0x65, // You are possessed
-    SPELL_FAILED_REAGENTS                       = 0x66, // Missing reagent: %s
-    SPELL_FAILED_REQUIRES_AREA                  = 0x67, // You need to be in %s
-    SPELL_FAILED_REQUIRES_SPELL_FOCUS           = 0x68, // Requires %s
-    SPELL_FAILED_ROOTED                         = 0x69, // You are unable to move
-    SPELL_FAILED_SILENCED                       = 0x6A, // Can't do that while silenced
-    SPELL_FAILED_SPELL_IN_PROGRESS              = 0x6B, // Another action is in progress
-    SPELL_FAILED_SPELL_LEARNED                  = 0x6C, // You have already learned the spell
-    SPELL_FAILED_SPELL_UNAVAILABLE              = 0x6D, // The spell is not available to you
-    SPELL_FAILED_STUNNED                        = 0x6E, // Can't do that while stunned
-    SPELL_FAILED_TARGETS_DEAD                   = 0x6F, // Your target is dead
-    SPELL_FAILED_TARGET_AFFECTING_COMBAT        = 0x70, // Target is in combat
-    SPELL_FAILED_TARGET_AURASTATE               = 0x71, // You can't do that yet
-    SPELL_FAILED_TARGET_DUELING                 = 0x72, // Target is currently dueling
-    SPELL_FAILED_TARGET_ENEMY                   = 0x73, // Target is hostile
-    SPELL_FAILED_TARGET_ENRAGED                 = 0x74, // Target is too enraged to be charmed
-    SPELL_FAILED_TARGET_FRIENDLY                = 0x75, // Target is friendly
-    SPELL_FAILED_TARGET_IN_COMBAT               = 0x76, // The target can't be in combat
-    SPELL_FAILED_TARGET_IS_PLAYER               = 0x77, // Can't target players
-    SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED    = 0x78, // Can't target player controlled units
-    SPELL_FAILED_TARGET_NOT_DEAD                = 0x79, // Target is alive
-    SPELL_FAILED_TARGET_NOT_IN_PARTY            = 0x7A, // Target is not in your party
-    SPELL_FAILED_TARGET_NOT_LOOTED              = 0x7B, // Creature must be looted first
-    SPELL_FAILED_TARGET_NOT_PLAYER              = 0x7C, // Target is not a player
-    SPELL_FAILED_TARGET_NO_POCKETS              = 0x7D, // No pockets to pick
-    SPELL_FAILED_TARGET_NO_WEAPONS              = 0x7E, // Target has no weapons equipped
-    SPELL_FAILED_TARGET_NO_RANGED_WEAPONS       = 0x7F, // Target has no ranged weapons equipped
-    SPELL_FAILED_TARGET_UNSKINNABLE             = 0x80, // Creature is not skinnable
-    SPELL_FAILED_THIRST_SATIATED                = 0x81,
-    SPELL_FAILED_TOO_CLOSE                      = 0x82, // Target too close
-    SPELL_FAILED_TOO_MANY_OF_ITEM               = 0x83, // You have too many of that item already
-    SPELL_FAILED_TOTEM_CATEGORY                 = 0x84, // Requires %s
-    SPELL_FAILED_TOTEMS                         = 0x85, // Requires %s
-    SPELL_FAILED_TRY_AGAIN                      = 0x86, // Failed attempt
-    SPELL_FAILED_UNIT_NOT_BEHIND                = 0x87, // Target needs to be behind you
-    SPELL_FAILED_UNIT_NOT_INFRONT               = 0x88, // Target needs to be in front of you
-    SPELL_FAILED_TARGET_VISION_OBSCURED         = 0x89, // Your vision of the target is obscured
-    SPELL_FAILED_WRONG_PET_FOOD                 = 0x8A, // Your pet doesn't like that food
-    SPELL_FAILED_NOT_WHILE_FATIGUED             = 0x8B, // Can't cast while fatigued
-    SPELL_FAILED_TARGET_NOT_IN_INSTANCE         = 0x8C, // Target must be in this instance
-    SPELL_FAILED_NOT_WHILE_TRADING              = 0x8D, // Can't cast while trading
-    SPELL_FAILED_TARGET_NOT_IN_RAID             = 0x8E, // Target is not in your party or raid group
-    SPELL_FAILED_TARGET_FREEFORALL              = 0x8F, // Target is currently in free-for-all PvP combat
-    SPELL_FAILED_NO_EDIBLE_CORPSES              = 0x90, // There are no nearby corpses to eat
-    SPELL_FAILED_ONLY_BATTLEGROUNDS             = 0x91, // Can only use in battlegrounds
-    SPELL_FAILED_TARGET_NOT_GHOST               = 0x92, // Target is not a ghost
-    SPELL_FAILED_TRANSFORM_UNUSABLE             = 0x93, // You can't use the new item
-    SPELL_FAILED_WRONG_WEATHER                  = 0x94, // The weather isn't right for that
-    SPELL_FAILED_DAMAGE_IMMUNE                  = 0x95, // You can't do that while you are immune
-    SPELL_FAILED_PREVENTED_BY_MECHANIC          = 0x96, // Can't do that while %s
-    SPELL_FAILED_PLAY_TIME                      = 0x97, // Maximum play time exceeded
-    SPELL_FAILED_REPUTATION                     = 0x98, // Your reputation isn't high enough
-    SPELL_FAILED_MIN_SKILL                      = 0x99, // Your skill is not high enough. Requires %s(%d).
-    SPELL_FAILED_NOT_IN_RATED_BATTLEGROUND      = 0x9A, // You can't do that in a rated battleground
-    SPELL_FAILED_NOT_ON_SHAPESHIFT              = 0x9B, // Cannot be cast on shapeshifted target
-    SPELL_FAILED_NOT_ON_STEALTHED               = 0x9C, // Spell cannot be cast on stealthed target
-    SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE           = 0x9D, // Spell cannot be cast on a damage immune target
-    SPELL_FAILED_NOT_ON_MOUNTED                 = 0x9E, // Spell cannot be cast on a mounted unit
-    SPELL_FAILED_TOO_SHALLOW                    = 0x9F, // Water too shallow
-    SPELL_FAILED_TARGET_NOT_IN_SANCTUARY        = 0xA0, // Target is not in a sanctuary
-    SPELL_FAILED_TARGET_IS_TRIVIAL              = 0xA1, // Can't target trivial
-    SPELL_FAILED_BM_OR_INVISGOD                 = 0xA2, // The spell cannot be cast on beastmaster or invis god targets
-    SPELL_FAILED_EXPERT_RIDING_REQUIREMENT      = 0xA3, // Requires expert riding skill
-    SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT     = 0xA4, // Requires artisan riding skill
-    SPELL_FAILED_NOT_IDLE                       = 0xA5, // Can't use while Idle
-    SPELL_FAILED_NOT_INACTIVE                   = 0xA6, // Can't use while Inactive
-    SPELL_FAILED_PARTIAL_PLAYTIME               = 0xA7, // You can not do this. You have more than 3 hours of online time
-    SPELL_FAILED_NO_PLAYTIME                    = 0xA8, // You can not do this. You have more than 5 hours of online time
-    SPELL_FAILED_NOT_IN_BATTLEGROUND            = 0xA9, // You can't do that in a battleground
-    SPELL_FAILED_NOT_IN_RAID_INSTANCE           = 0xAA, // You can't do that in a raid instance
-    SPELL_FAILED_ONLY_IN_ARENA                  = 0xAB, // You can only do that in an arena
-    SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE = 0xAC, // Target is locked to another raid instance
-    SPELL_FAILED_ON_USE_ENCHANT                 = 0xAD, // That item already has an activated ability
-    SPELL_FAILED_NOT_ON_GROUND                  = 0xAE, // Cannot use on the ground
-    SPELL_FAILED_CUSTOM_ERROR                   = 0xAF,
-    SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW         = 0xB0, // You can't do that right now
-    SPELL_FAILED_TOO_MANY_SOCKETS               = 0xB1, // That item has too many sockets
-    SPELL_FAILED_INVALID_GLYPH                  = 0xB2, // That glyph cannot be inscribed there
-    SPELL_FAILED_UNIQUE_GLYPH                   = 0xB3, // That glyph is already inscribed in your spellbook
-    SPELL_FAILED_GLYPH_SOCKET_LOCKED            = 0xB4, // You cannot inscribe a glyph there yet
-    SPELL_FAILED_NO_VALID_TARGETS               = 0xB5, // No valid targets
-    SPELL_FAILED_ITEM_AT_MAX_CHARGES            = 0xB6, // Item already has the maximum number of charges
-    SPELL_FAILED_NOT_IN_BARBERSHOP              = 0xB7, // You can't do that while in the barber shop
-    SPELL_FAILED_FISHING_TOO_LOW                = 0xB8, // Requires fishing %d
-    SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW      = 0xB9, // Item cannot be enchanted in trade
-    SPELL_FAILED_SUMMON_PENDING                 = 0xBA, // A summon is already pending
-    SPELL_FAILED_MAX_SOCKETS                    = 0xBB, // That item cannot receive additional sockets
-    SPELL_FAILED_PET_CAN_RENAME                 = 0xBC, // You can already rename your pet
-    SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED   = 0xBD, // Target cannot be resurrected
-    SPELL_FAILED_CANT_TAKE_ACTIONS              = 0xBE, // You can't take actions right now
-    SPELL_FAILED_CURRENCY_WEIGHT_MISMATCH       = 0xBF,
-    SPELL_FAILED_WEIGHT_NOT_ENOUGH              = 0xC0, // You have not provided enough items to cast this spell
-    SPELL_FAILED_WEIGHT_TOO_MUCH                = 0xC1, // You have provided too many items to cast this spell
-    SPELL_FAILED_NO_SEAT                        = 0xC2, // There is no available seat
-    SPELL_FAILED_REQUIRES_WATER_SURFACE         = 0xC3, // Requires water surface
-    SPELL_FAILED_NOT_WHILE_SWIMMING             = 0xC4, // Cannot use while swimming
-    SPELL_FAILED_UNUSED_197                     = 0xC5,
-    SPELL_FAILED_NO_RESURRECT_IN_COMBAT         = 0xC6, // You can no longer resurrect during combat
-    SPELL_FAILED_NOT_IN_ARENA                   = 0xC7, // You can't do that in an arena
-    SPELL_FAILED_TARGET_NOT_ON_GROUND           = 0xC8, // Target is not on the ground
-    SPELL_FAILED_EXCEEDED_WEEKLY_USAGE          = 0xC9, // You can only cast %s %d times a week
-    SPELL_FAILED_NOT_IN_LFG_DUNGEON             = 0xCA, // You can't do that in an LFG Dungeon
-    SPELL_FAILED_UNKNOWN                        = 0xCB, // Unknown reason
-#elif VERSION_STRING >= Mop
-    SPELL_FAILED_SUCCESS                        = 0x00,
-    SPELL_FAILED_AFFECTING_COMBAT               = 0x01, // You are in combat
-    SPELL_FAILED_ALREADY_AT_FULL_HEALTH         = 0x02, // You are already at full Health
-    SPELL_FAILED_ALREADY_AT_FULL_MANA           = 0x03, // You are already at full Mana
-    SPELL_FAILED_ALREADY_AT_FULL_POWER          = 0x04, // You are already at full Rage (tested on warrior)
-    SPELL_FAILED_ALREADY_BEING_TAMED            = 0x05, // That creature is already being tamed
-    SPELL_FAILED_ALREADY_HAVE_CHARM             = 0x06, // You already control a charmed creature
-    SPELL_FAILED_ALREADY_HAVE_SUMMON            = 0x07, // You already control a summoned creature
-    SPELL_FAILED_ALREADY_HAVE_PET               = 0x08, // You must dismiss your current pet first
-    SPELL_FAILED_ALREADY_OPEN                   = 0x09, // Already open
-    SPELL_FAILED_AURA_BOUNCED                   = 0x0A, // A more powerful spell is already active
-    SPELL_FAILED_AUTOTRACK_INTERRUPTED          = 0x0B,
-    SPELL_FAILED_BAD_IMPLICIT_TARGETS           = 0x0C, // You have no target
-    SPELL_FAILED_BAD_TARGETS                    = 0x0D, // Invalid target
-    SPELL_FAILED_CANT_BE_CHARMED                = 0x0E, // Target can't be charmed
-    SPELL_FAILED_CANT_BE_DISENCHANTED           = 0x0F, // Item cannot be disenchanted
-    SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL     = 0x10, // Your enchanting skill is not high enough to disenchant that
-    SPELL_FAILED_CANT_BE_MILLED                 = 0x11, // You cannot mill that
-    SPELL_FAILED_CANT_BE_PROSPECTED             = 0x12, // There are no gems in this
-    SPELL_FAILED_CANT_CAST_ON_TAPPED            = 0x13, // Target is tapped
-    SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE      = 0x14, // You can't start a duel while invisible
-    SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED      = 0x15, // You can't start a duel while stealthed
-    SPELL_FAILED_CANT_STEALTH                   = 0x16, // You are too close to enemies
-    SPELL_FAILED_CANT_UNTALENT                  = 0x17, // You can't change that talent choice while %s is on cooldown
-    SPELL_FAILED_CASTER_AURASTATE               = 0x18, // You can't do that yet
-    SPELL_FAILED_CASTER_DEAD                    = 0x19, // You are dead
-    SPELL_FAILED_CHARMED                        = 0x1A, // Can't do that while charmed
-    SPELL_FAILED_CHEST_IN_USE                   = 0x1B, // That is already being used
-    SPELL_FAILED_CONFUSED                       = 0x1C, // Can't do that while confused
-    SPELL_FAILED_DONT_REPORT                    = 0x1D,
-    SPELL_FAILED_EQUIPPED_ITEM                  = 0x1E, // Must have the proper item equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS            = 0x1F, // Must have a %s equipped
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND   = 0x20, // Must have a %s equipped in the main hand
-    SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND    = 0x21, // Must have a %s equipped in the offhand
-    SPELL_FAILED_ERROR                          = 0x22, // Internal error
-    SPELL_FAILED_FALLING                        = 0x23, // Can't do that while falling
-    SPELL_FAILED_FIZZLE                         = 0x24, // Fizzled
-    SPELL_FAILED_FLEEING                        = 0x25, // Can't do that while fleeing
-    SPELL_FAILED_FOOD_LOWLEVEL                  = 0x26, // That food's level is not high enough for your pet
-    SPELL_FAILED_HIGHLEVEL                      = 0x27, // Target is too high level
-    SPELL_FAILED_HUNGER_SATIATED                = 0x28,
-    SPELL_FAILED_IMMUNE                         = 0x29, // Immune
-    SPELL_FAILED_INCORRECT_AREA                 = 0x2A, // You are in the wrong zone
-    SPELL_FAILED_INTERRUPTED                    = 0x2B, // Interrupted
-    SPELL_FAILED_INTERRUPTED_COMBAT             = 0x2C, // Interrupted
-    SPELL_FAILED_ITEM_ALREADY_ENCHANTED         = 0x2D, // Item is already enchanted
-    SPELL_FAILED_ITEM_GONE                      = 0x2E, // Item is gone
-    SPELL_FAILED_ITEM_NOT_FOUND                 = 0x2F, // Tried to enchant an item that didn't exist
-    SPELL_FAILED_ITEM_NOT_READY                 = 0x30, // Item is not ready yet
-    SPELL_FAILED_LEVEL_REQUIREMENT              = 0x31, // You are not high enough level
-    SPELL_FAILED_LINE_OF_SIGHT                  = 0x32, // Target not in line of sight
-    SPELL_FAILED_LOWLEVEL                       = 0x33, // Target is too low level
-    SPELL_FAILED_LOW_CASTLEVEL                  = 0x34, // Skill not high enough
-    SPELL_FAILED_MAINHAND_EMPTY                 = 0x35, // Your weapon hand is empty
-    SPELL_FAILED_MOVING                         = 0x36, // Can't do that while moving
-    SPELL_FAILED_NEED_AMMO                      = 0x37, // Ammo needs to be in the paper doll ammo slot before it can be fired
-    SPELL_FAILED_NEED_AMMO_POUCH                = 0x38, // Requires: %s
-    SPELL_FAILED_NEED_EXOTIC_AMMO               = 0x39, // Requires exotic ammo: %s
-    SPELL_FAILED_NEED_MORE_ITEMS                = 0x3A, // Requires %d %s
-    SPELL_FAILED_NOPATH                         = 0x3B, // No path available
-    SPELL_FAILED_NOT_BEHIND                     = 0x3C, // You must be behind your target
-    SPELL_FAILED_NOT_FISHABLE                   = 0x3D, // Your cast didn't land in fishable water
-    SPELL_FAILED_NOT_FLYING                     = 0x3E, // You are flying
-    SPELL_FAILED_NOT_HERE                       = 0x3F, // You can't use that here
-    SPELL_FAILED_NOT_INFRONT                    = 0x40, // You must be in front of your target
-    SPELL_FAILED_NOT_IN_CONTROL                 = 0x41, // You are not in control of your actions
-    SPELL_FAILED_NOT_KNOWN                      = 0x42, // Spell not learned
-    SPELL_FAILED_NOT_MOUNTED                    = 0x43, // You are mounted
-    SPELL_FAILED_NOT_ON_TAXI                    = 0x44, // You are in flight
-    SPELL_FAILED_NOT_ON_TRANSPORT               = 0x45, // You are on a transport
-    SPELL_FAILED_NOT_READY                      = 0x46, // Spell is not ready yet
-    SPELL_FAILED_NOT_SHAPESHIFT                 = 0x47, // You are in shapeshift form
-    SPELL_FAILED_NOT_STANDING                   = 0x48, // You must be standing to do that
-    SPELL_FAILED_NOT_TRADEABLE                  = 0x49, // You can only use this on an object you own
-    SPELL_FAILED_NOT_TRADING                    = 0x4A, // Tried to enchant a trade item, but not trading
-    SPELL_FAILED_NOT_UNSHEATHED                 = 0x4B, // You have to be unsheathed to do that! (with yellow color)
-    SPELL_FAILED_NOT_WHILE_GHOST                = 0x4C, // Can't cast as ghost
-    SPELL_FAILED_NOT_WHILE_LOOTING              = 0x4D, // You are busy looting
-    SPELL_FAILED_NO_AMMO                        = 0x4E, // Out of ammo
-    SPELL_FAILED_NO_CHARGES_REMAIN              = 0x4F, // No charges remain
-    SPELL_FAILED_NO_CHAMPION                    = 0x50, // You haven't selected a champion
-    SPELL_FAILED_NO_COMBO_POINTS                = 0x51, // That ability requires combo points
-    SPELL_FAILED_NO_DUELING                     = 0x52, // Dueling isn't allowed here
-    SPELL_FAILED_NO_ENDURANCE                   = 0x53, // Not enough endurance
-    SPELL_FAILED_NO_FISH                        = 0x54, // There aren't any fish here
-    SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED    = 0x55, // Can't use items while shapeshifted
-    SPELL_FAILED_NO_MOUNTS_ALLOWED              = 0x56, // You can't mount here
-    SPELL_FAILED_NO_PET                         = 0x57, // You do not have a pet
-    SPELL_FAILED_NO_POWER                       = 0x58, // Not enough mana (tested on warrior)
-    SPELL_FAILED_NOTHING_TO_DISPEL              = 0x59, // Nothing to dispel
-    SPELL_FAILED_NOTHING_TO_STEAL               = 0x5A, // Nothing to steal
-    SPELL_FAILED_ONLY_ABOVEWATER                = 0x5B, // Cannot use while swimming
-    SPELL_FAILED_ONLY_DAYTIME                   = 0x5C, // Can only use during the day
-    SPELL_FAILED_ONLY_INDOORS                   = 0x5D, // Can only use indoors
-    SPELL_FAILED_ONLY_MOUNTED                   = 0x5E, // Can only use while mounted
-    SPELL_FAILED_ONLY_NIGHTTIME                 = 0x5F, // Can only use during the night
-    SPELL_FAILED_ONLY_OUTDOORS                  = 0x60, // Can only use outside
-    SPELL_FAILED_ONLY_SHAPESHIFT                = 0x61, // Must be in %s
-    SPELL_FAILED_ONLY_STEALTHED                 = 0x62, // You must be in stealth mode
-    SPELL_FAILED_ONLY_UNDERWATER                = 0x63, // Can only use while swimming
-    SPELL_FAILED_OUT_OF_RANGE                   = 0x64, // Out of range
-    SPELL_FAILED_PACIFIED                       = 0x65, // Can't use that ability while pacified
-    SPELL_FAILED_POSSESSED                      = 0x66, // You are possessed
-    SPELL_FAILED_REAGENTS                       = 0x67, // Missing reagent: %s
-    SPELL_FAILED_REQUIRES_AREA                  = 0x68, // You need to be in %s
-    SPELL_FAILED_REQUIRES_SPELL_FOCUS           = 0x69, // Requires %s
-    SPELL_FAILED_ROOTED                         = 0x6A, // You are unable to move
-    SPELL_FAILED_SILENCED                       = 0x6B, // Can't do that while silenced
-    SPELL_FAILED_SPELL_IN_PROGRESS              = 0x6C, // Another action is in progress
-    SPELL_FAILED_SPELL_LEARNED                  = 0x6D, // You have already learned the spell
-    SPELL_FAILED_SPELL_UNAVAILABLE              = 0x6E, // The spell is not available to you
-    SPELL_FAILED_STUNNED                        = 0x6F, // Can't do that while stunned
-    SPELL_FAILED_TARGETS_DEAD                   = 0x70, // Your target is dead
-    SPELL_FAILED_TARGET_AFFECTING_COMBAT        = 0x71, // Target is in combat
-    SPELL_FAILED_TARGET_AURASTATE               = 0x72, // You can't do that yet
-    SPELL_FAILED_TARGET_DUELING                 = 0x73, // Target is currently dueling
-    SPELL_FAILED_TARGET_ENEMY                   = 0x74, // Target is hostile
-    SPELL_FAILED_TARGET_ENRAGED                 = 0x75, // Target is too enraged to be charmed
-    SPELL_FAILED_TARGET_FRIENDLY                = 0x76, // Target is friendly
-    SPELL_FAILED_TARGET_IN_COMBAT               = 0x77, // The target can't be in combat
-    SPELL_FAILED_TARGET_IN_PET_BATTLE           = 0X78, // The target can't be in a pet battle
-    SPELL_FAILED_TARGET_IS_PLAYER               = 0x79, // Can't target players
-    SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED    = 0x7A, // Can't target player controlled units
-    SPELL_FAILED_TARGET_NOT_DEAD                = 0x7B, // Target is alive
-    SPELL_FAILED_TARGET_NOT_IN_PARTY            = 0x7C, // Target is not in your party
-    SPELL_FAILED_TARGET_NOT_LOOTED              = 0x7D, // Creature must be looted first
-    SPELL_FAILED_TARGET_NOT_PLAYER              = 0x7E, // Target is not a player
-    SPELL_FAILED_TARGET_NO_POCKETS              = 0x7F, // No pockets to pick
-    SPELL_FAILED_TARGET_NO_WEAPONS              = 0x80, // Target has no weapons equipped
-    SPELL_FAILED_TARGET_NO_RANGED_WEAPONS       = 0x81, // Target has no ranged weapons equipped
-    SPELL_FAILED_TARGET_UNSKINNABLE             = 0x82, // Creature is not skinnable
-    SPELL_FAILED_THIRST_SATIATED                = 0x83,
-    SPELL_FAILED_TOO_CLOSE                      = 0x84, // Target too close
-    SPELL_FAILED_TOO_MANY_OF_ITEM               = 0x85, // You have too many of that item already
-    SPELL_FAILED_TOTEM_CATEGORY                 = 0x86, // Requires %s
-    SPELL_FAILED_TOTEMS                         = 0x87, // Requires %s
-    SPELL_FAILED_TRY_AGAIN                      = 0x88, // Failed attempt
-    SPELL_FAILED_UNIT_NOT_BEHIND                = 0x89, // Target needs to be behind you
-    SPELL_FAILED_UNIT_NOT_INFRONT               = 0x8A, // Target needs to be in front of you
-    SPELL_FAILED_TARGET_VISION_OBSCURED         = 0x8B, // Your vision of the target is obscured
-    SPELL_FAILED_WRONG_PET_FOOD                 = 0x8C, // Your pet doesn't like that food
-    SPELL_FAILED_NOT_WHILE_FATIGUED             = 0x8D, // Can't cast while fatigued
-    SPELL_FAILED_TARGET_NOT_IN_INSTANCE         = 0x8E, // Target must be in this instance
-    SPELL_FAILED_NOT_WHILE_TRADING              = 0x8F, // Can't cast while trading
-    SPELL_FAILED_TARGET_NOT_IN_RAID             = 0x90, // Target is not in your party or raid group
-    SPELL_FAILED_TARGET_FREEFORALL              = 0x91, // Target is currently in free-for-all PvP combat
-    SPELL_FAILED_NO_EDIBLE_CORPSES              = 0x92, // There are no nearby corpses to eat
-    SPELL_FAILED_ONLY_BATTLEGROUNDS             = 0x93, // Can only use in battlegrounds
-    SPELL_FAILED_TARGET_NOT_GHOST               = 0x94, // Target is not a ghost
-    SPELL_FAILED_TRANSFORM_UNUSABLE             = 0x95, // You can't use the new item
-    SPELL_FAILED_WRONG_WEATHER                  = 0x96, // The weather isn't right for that
-    SPELL_FAILED_DAMAGE_IMMUNE                  = 0x97, // You can't do that while you are immune
-    SPELL_FAILED_PREVENTED_BY_MECHANIC          = 0x98, // Can't do that while %s
-    SPELL_FAILED_PLAY_TIME                      = 0x99, // Maximum play time exceeded
-    SPELL_FAILED_REPUTATION                     = 0x9A, // Your reputation isn't high enough
-    SPELL_FAILED_MIN_SKILL                      = 0x9B, // Your skill is not high enough. Requires %s(%d).
-    SPELL_FAILED_NOT_IN_RATED_BATTLEGROUND      = 0x9C, // You can't do that in a rated battleground
-    SPELL_FAILED_NOT_ON_SHAPESHIFT              = 0x9D, // Cannot be cast on shapeshifted target
-    SPELL_FAILED_NOT_ON_STEALTHED               = 0x9E, // Spell cannot be cast on stealthed target
-    SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE           = 0x9F, // Spell cannot be cast on a damage immune target
-    SPELL_FAILED_NOT_ON_MOUNTED                 = 0xA0, // Spell cannot be cast on a mounted unit
-    SPELL_FAILED_TOO_SHALLOW                    = 0xA1, // Water too shallow
-    SPELL_FAILED_TARGET_NOT_IN_SANCTUARY        = 0xA2, // Target is not in a sanctuary
-    SPELL_FAILED_TARGET_IS_TRIVIAL              = 0xA3, // Can't target trivial
-    SPELL_FAILED_BM_OR_INVISGOD                 = 0xA4, // The spell cannot be cast on beastmaster or invis god targets
-    SPELL_FAILED_APPRENTICE_RIDING_REQUIREMENT  = 0XA5, // Requires apprentice riding skill
-    SPELL_FAILED_JOURNEYMAN_RIDING_REQUIREMENT  = 0XA6, // Requires journeyman riding skill
-    SPELL_FAILED_EXPERT_RIDING_REQUIREMENT      = 0xA7, // Requires expert riding skill
-    SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT     = 0xA8, // Requires artisan riding skill
-    SPELL_FAILED_MASTER_RIDING_REQUIREMENT      = 0xA9, // Requires master riding skill
-    SPELL_FAILED_COLD_RIDING_REQUIREMENT        = 0xAA, // Requires Cold Weather flying skill
-    SPELL_FAILED_FLIGHT_MASTER_REQUIREMENT      = 0xAB, // Requires Flight Master's license skill
-    SPELL_FAILED_CS_RIDING_REQUIREMENT          = 0xAC, // Requires Cloud Serpent riding skill
-    SPELL_FAILED_PANDA_RIDING_REQUIREMENT       = 0xAD, // Requires Wisdom of the Four Winds skill
-    SPELL_FAILED_NOT_IDLE                       = 0xAE, // Can't use while Idle
-    SPELL_FAILED_NOT_INACTIVE                   = 0xAF, // Can't use while Inactive
-    SPELL_FAILED_PARTIAL_PLAYTIME               = 0xB0, // You can not do this. You have more than 3 hours of online time
-    SPELL_FAILED_NO_PLAYTIME                    = 0xB1, // You can not do this. You have more than 5 hours of online time
-    SPELL_FAILED_NOT_IN_BATTLEGROUND            = 0xB2, // You can't do that in a battleground
-    SPELL_FAILED_NOT_IN_RAID_INSTANCE           = 0xB3, // You can't do that in a raid instance
-    SPELL_FAILED_ONLY_IN_ARENA                  = 0xB4, // You can only do that in an arena
-    SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE = 0xB5, // Target is locked to another raid instance
-    SPELL_FAILED_ON_USE_ENCHANT                 = 0xB6, // That item already has an activated ability
-    SPELL_FAILED_NOT_ON_GROUND                  = 0xB7, // Cannot use on the ground
-    SPELL_FAILED_CUSTOM_ERROR                   = 0xB8,
-    SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW         = 0xB9, // You can't do that right now
-    SPELL_FAILED_TOO_MANY_SOCKETS               = 0xBA, // That item has too many sockets
-    SPELL_FAILED_INVALID_GLYPH                  = 0xBB, // That glyph cannot be inscribed there
-    SPELL_FAILED_UNIQUE_GLYPH                   = 0xBC, // That glyph is already inscribed in your spellbook
-    SPELL_FAILED_GLYPH_SOCKET_LOCKED            = 0xBD, // You cannot inscribe a glyph there yet
-    SPELL_FAILED_NO_VALID_TARGETS               = 0xBE, // No valid targets
-    SPELL_FAILED_ITEM_AT_MAX_CHARGES            = 0xBF, // Item already has the maximum number of charges
-    SPELL_FAILED_NOT_IN_BARBERSHOP              = 0xC0, // You can't do that while in the barber shop
-    SPELL_FAILED_FISHING_TOO_LOW                = 0xC1, // Requires fishing %d
-    SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW      = 0xC2, // Item cannot be enchanted in trade
-    SPELL_FAILED_SUMMON_PENDING                 = 0xC3, // A summon is already pending
-    SPELL_FAILED_MAX_SOCKETS                    = 0xC4, // That item cannot receive additional sockets
-    SPELL_FAILED_PET_CAN_RENAME                 = 0xC5, // You can already rename your pet
-    SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED   = 0xC6, // Target cannot be resurrected
-    SPELL_FAILED_CANT_TAKE_ACTIONS              = 0xC7, // You can't take actions right now
-    SPELL_FAILED_CURRENCY_WEIGHT_MISMATCH       = 0xC8,
-    SPELL_FAILED_WEIGHT_NOT_ENOUGH              = 0xC9, // You have not provided enough items to cast this spell
-    SPELL_FAILED_WEIGHT_TOO_MUCH                = 0xCA, // You have provided too many items to cast this spell
-    SPELL_FAILED_NO_SEAT                        = 0xCB, // There is no available seat
-    SPELL_FAILED_REQUIRES_WATER_SURFACE         = 0xCC, // Requires water surface
-    SPELL_FAILED_NOT_WHILE_SWIMMING             = 0xCD, // Cannot use while swimming
-    SPELL_FAILED_UNUSED_197                     = 0xCE,
-    SPELL_FAILED_NO_RESURRECT_IN_COMBAT         = 0xCF, // You can no longer resurrect during combat
-    SPELL_FAILED_NOT_IN_ARENA                   = 0xD0, // You can't do that in an arena
-    SPELL_FAILED_TARGET_NOT_ON_GROUND           = 0xD1, // Target is not on the ground
-    SPELL_FAILED_EXCEEDED_WEEKLY_USAGE          = 0xD2, // You can only cast %s %d times a week
-    SPELL_FAILED_NOT_IN_LFG_DUNGEON             = 0xD3, // You can't do that in an LFG Dungeon
-    SPELL_FAILED_BAD_TARGET_FILTER              = 0xD4,
-    SPELL_FAILED_NOT_ENOUGH_TARGETS             = 0xD5,
-    SPELL_FAILED_NO_SPEC                        = 0XD6, // You need to choose a character specialization
-    SPELL_FAILED_CANT_ADD_BATTLE_PET            = 0XD7, // Can't add Companion to your account
-    SPELL_FAILED_CANT_UPGRADE_BATTLE_PET        = 0XD8, // Failed to Upgrade Pet
-    SPELL_FAILED_WRONG_BATTLE_PET_TYPE          = 0XD9, // Wrong Pet type
-    SPELL_FAILED_NO_DUNGEON_ENCOUNTER           = 0XDA, // Requires engaging %s
-    SPELL_FAILED_NO_TELEPORT_FROM_DUNGEON       = 0XDB,
-    SPELL_FAILED_MAX_LEVEL_TOO_LOW              = 0XDC,
-    SPELL_FAILED_UNKNOWN                        = 0xDD, // Unknown reason
-#endif
-    SPELL_CAST_SUCCESS                          = 0xFF // Custom serverside value
+    SPELL_FAILED_SUCCESS                        = 0x00, // WotLK - Midnight:
+    SPELL_FAILED_AFFECTING_COMBAT               = 0x01, // Classic - Midnight: You are in combat
+    SPELL_FAILED_ALREADY_AT_FULL_HEALTH         = 0x02, // Classic - Midnight: You are already at full Health
+    SPELL_FAILED_ALREADY_AT_FULL_MANA           = 0x03, // TBC - Midnight: You are already at full Mana
+    SPELL_FAILED_ALREADY_AT_FULL_POWER          = 0x04, // Classic - Midnight: You are already at full Rage (tested on warrior)
+    SPELL_FAILED_ALREADY_BEING_TAMED            = 0x05, // Classic - Midnight: That creature is already being tamed
+    SPELL_FAILED_ALREADY_HAVE_CHARM             = 0x06, // Classic - Midnight: You already control a charmed creature
+    SPELL_FAILED_ALREADY_HAVE_SUMMON            = 0x07, // Classic - Midnight: You already control a summoned creature
+    SPELL_FAILED_ALREADY_HAVE_PET               = 0x08, // Cata - Midnight: You must dismiss your current pet first
+    SPELL_FAILED_ALREADY_OPEN                   = 0x09, // Classic - Midnight: Already open
+    SPELL_FAILED_AURA_BOUNCED                   = 0x0A, // Classic - Midnight: A more powerful spell is already active
+    SPELL_FAILED_AUTOTRACK_INTERRUPTED          = 0x0B, // Classic - Midnight:
+    SPELL_FAILED_BAD_IMPLICIT_TARGETS           = 0x0C, // Classic - Midnight: You have no target
+    SPELL_FAILED_BAD_TARGETS                    = 0x0D, // Classic - Midnight: Invalid target
+    SPELL_FAILED_CANT_BE_CHARMED                = 0x0E, // Classic - Midnight: Target can't be charmed
+    SPELL_FAILED_CANT_BE_DISENCHANTED           = 0x0F, // Classic - Shadowlands: Item cannot be disenchanted
+    SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL     = 0x10, // TBC - Shadowlands: Your enchanting skill is not high enough to disenchant that
+    SPELL_FAILED_CANT_BE_MILLED                 = 0x11, // WotLK - Midnight: You cannot mill that
+    SPELL_FAILED_CANT_BE_PROSPECTED             = 0x12, // Classic - Midnight: There are no gems in this
+    SPELL_FAILED_CANT_CAST_ON_TAPPED            = 0x13, // Classic - Midnight: Target is tapped
+    SPELL_FAILED_CANT_DUEL_WHILE_INVISIBLE      = 0x14, // Classic - Midnight: You can't start a duel while invisible
+    SPELL_FAILED_CANT_DUEL_WHILE_STEALTHED      = 0x15, // Classic - Midnight: You can't start a duel while stealthed
+    SPELL_FAILED_CANT_STEALTH                   = 0x16, // Classic - Midnight: You are too close to enemies
+    SPELL_FAILED_CANT_UNTALENT                  = 0x17, // MoP - Midnight: You can't change that talent choice while %s is on cooldown
+    SPELL_FAILED_CASTER_AURASTATE               = 0x18, // Classic - Midnight: You can't do that yet
+    SPELL_FAILED_CASTER_DEAD                    = 0x19, // Classic - Midnight: You are dead
+    SPELL_FAILED_CHARMED                        = 0x1A, // Classic - Midnight: Can't do that while charmed
+    SPELL_FAILED_CHEST_IN_USE                   = 0x1B, // Classic - Midnight: That is already being used
+    SPELL_FAILED_CONFUSED                       = 0x1C, // Classic - Midnight: Can't do that while confused
+    SPELL_FAILED_DONT_REPORT                    = 0x1D, // Classic - Midnight:
+    SPELL_FAILED_EQUIPPED_ITEM                  = 0x1E, // Classic - Midnight: Must have the proper item equipped
+    SPELL_FAILED_EQUIPPED_ITEM_CLASS            = 0x1F, // Classic - Midnight: Must have a %s equipped
+    SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND   = 0x20, // Classic - Midnight: Must have a %s equipped in the main hand
+    SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND    = 0x21, // Classic - Midnight: Must have a %s equipped in the offhand
+    SPELL_FAILED_ERROR                          = 0x22, // Classic - Midnight: Internal error
+    SPELL_FAILED_FALLING                        = 0x23, // Cata - Midnight: Can't do that while falling
+    SPELL_FAILED_FIZZLE                         = 0x24, // Classic - Midnight: Fizzled
+    SPELL_FAILED_FLEEING                        = 0x25, // Classic - Midnight: Can't do that while fleeing
+    SPELL_FAILED_FOOD_LOWLEVEL                  = 0x26, // Classic - Midnight: That food's level is not high enough for your pet
+    SPELL_FAILED_HIGHLEVEL                      = 0x27, // Classic - Midnight: Target is too high level
+    SPELL_FAILED_HUNGER_SATIATED                = 0x28, // Classic - Midnight:
+    SPELL_FAILED_IMMUNE                         = 0x29, // Classic - Midnight: Immune
+    SPELL_FAILED_INCORRECT_AREA                 = 0x2A, // WotLK - Midnight: You are in the wrong zone
+    SPELL_FAILED_INTERRUPTED                    = 0x2B, // Classic - Midnight: Interrupted
+    SPELL_FAILED_INTERRUPTED_COMBAT             = 0x2C, // Classic - Midnight: Interrupted
+    SPELL_FAILED_ITEM_ALREADY_ENCHANTED         = 0x2D, // Classic - Midnight: Item is already enchanted
+    SPELL_FAILED_ITEM_GONE                      = 0x2E, // Classic - Midnight: Item is gone
+    SPELL_FAILED_ITEM_NOT_FOUND                 = 0x2F, // Classic - Midnight: Tried to enchant an item that didn't exist
+    SPELL_FAILED_ITEM_NOT_READY                 = 0x30, // Classic - Midnight: Item is not ready yet
+    SPELL_FAILED_LEVEL_REQUIREMENT              = 0x31, // Classic - Midnight: You are not high enough level
+    SPELL_FAILED_LINE_OF_SIGHT                  = 0x32, // Classic - Midnight: Target not in line of sight
+    SPELL_FAILED_LOWLEVEL                       = 0x33, // Classic - Midnight: Target is too low level
+    SPELL_FAILED_LOW_CASTLEVEL                  = 0x34, // Classic - Midnight: Skill not high enough
+    SPELL_FAILED_MAINHAND_EMPTY                 = 0x35, // Classic - Midnight: Your weapon hand is empty
+    SPELL_FAILED_MOVING                         = 0x36, // Classic - Midnight: Can't do that while moving
+    SPELL_FAILED_NEED_AMMO                      = 0x37, // Classic - Midnight: Ammo needs to be in the paper doll ammo slot before it can be fired
+    SPELL_FAILED_NEED_AMMO_POUCH                = 0x38, // Classic - Midnight: Requires: %s
+    SPELL_FAILED_NEED_EXOTIC_AMMO               = 0x39, // Classic - Midnight: Requires exotic ammo: %s
+    SPELL_FAILED_NEED_MORE_ITEMS                = 0x3A, // WotLK - Midnight: Requires %d %s
+    SPELL_FAILED_NOPATH                         = 0x3B, // Classic - Midnight: No path available
+    SPELL_FAILED_NOT_BEHIND                     = 0x3C, // Classic - Midnight: You must be behind your target
+    SPELL_FAILED_NOT_FISHABLE                   = 0x3D, // Classic - Midnight: Your cast didn't land in fishable water
+    SPELL_FAILED_NOT_FLYING                     = 0x3E, // TBC - Midnight: You are flying
+    SPELL_FAILED_NOT_HERE                       = 0x3F, // Classic - Midnight: You can't use that here
+    SPELL_FAILED_NOT_INFRONT                    = 0x40, // Classic - Midnight: You must be in front of your target
+    SPELL_FAILED_NOT_IN_CONTROL                 = 0x41, // Classic - Midnight: You are not in control of your actions
+    SPELL_FAILED_NOT_KNOWN                      = 0x42, // Classic - Midnight: Spell not learned
+    SPELL_FAILED_NOT_MOUNTED                    = 0x43, // Classic - Midnight: You are mounted
+    SPELL_FAILED_NOT_ON_TAXI                    = 0x44, // Classic - Midnight: You are in flight
+    SPELL_FAILED_NOT_ON_TRANSPORT               = 0x45, // Classic - Midnight: You are on a transport
+    SPELL_FAILED_NOT_READY                      = 0x46, // Classic - Midnight: Spell is not ready yet
+    SPELL_FAILED_NOT_SHAPESHIFT                 = 0x47, // Classic - Midnight: You are in shapeshift form
+    SPELL_FAILED_NOT_STANDING                   = 0x48, // Classic - Midnight: You must be standing to do that
+    SPELL_FAILED_NOT_TRADEABLE                  = 0x49, // Classic - Midnight: You can only use this on an object you own
+    SPELL_FAILED_NOT_TRADING                    = 0x4A, // Classic - Midnight: Tried to enchant a trade item, but not trading
+    SPELL_FAILED_NOT_UNSHEATHED                 = 0x4B, // Classic - Midnight: You have to be unsheathed to do that! (with yellow color)
+    SPELL_FAILED_NOT_WHILE_GHOST                = 0x4C, // Classic - Midnight: Can't cast as ghost
+    SPELL_FAILED_NOT_WHILE_LOOTING              = 0x4D, // WotLK - Midnight: You are busy looting
+    SPELL_FAILED_NO_AMMO                        = 0x4E, // Classic - Midnight: Out of ammo
+    SPELL_FAILED_NO_CHARGES_REMAIN              = 0x4F, // Classic - Midnight: No charges remain
+    SPELL_FAILED_NO_CHAMPION                    = 0x50, // Classic - WoD: You haven't selected a champion
+    SPELL_FAILED_NO_COMBO_POINTS                = 0x51, // Classic - Midnight: That ability requires combo points
+    SPELL_FAILED_NO_DUELING                     = 0x52, // Classic - Midnight: Dueling isn't allowed here
+    SPELL_FAILED_NO_ENDURANCE                   = 0x53, // Classic - Midnight: Not enough endurance
+    SPELL_FAILED_NO_FISH                        = 0x54, // Classic - Midnight: There aren't any fish here
+    SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED    = 0x55, // Classic - Midnight: Can't use items while shapeshifted
+    SPELL_FAILED_NO_MOUNTS_ALLOWED              = 0x56, // Classic - Midnight: You can't mount here
+    SPELL_FAILED_NO_PET                         = 0x57, // Classic - Midnight: You do not have a pet
+    SPELL_FAILED_NO_POWER                       = 0x58, // Classic - Midnight: Not enough mana (tested on warrior)
+    SPELL_FAILED_NOTHING_TO_DISPEL              = 0x59, // Classic - Midnight: Nothing to dispel
+    SPELL_FAILED_NOTHING_TO_STEAL               = 0x5A, // Classic - Midnight: Nothing to steal
+    SPELL_FAILED_ONLY_ABOVEWATER                = 0x5B, // Classic - Midnight: Cannot use while swimming
+    SPELL_FAILED_ONLY_DAYTIME                   = 0x5C, // Classic - WoD: Can only use during the day
+    SPELL_FAILED_ONLY_INDOORS                   = 0x5D, // Classic - Midnight: Can only use indoors
+    SPELL_FAILED_ONLY_MOUNTED                   = 0x5E, // Classic - Midnight: Can only use while mounted
+    SPELL_FAILED_ONLY_NIGHTTIME                 = 0x5F, // Classic - WoD: Can only use during the night
+    SPELL_FAILED_ONLY_OUTDOORS                  = 0x60, // Classic - Midnight: Can only use outside
+    SPELL_FAILED_ONLY_SHAPESHIFT                = 0x61, // Classic - Midnight: Must be in %s
+    SPELL_FAILED_ONLY_STEALTHED                 = 0x62, // Classic - Midnight: You must be in stealth mode
+    SPELL_FAILED_ONLY_UNDERWATER                = 0x63, // Classic - Midnight: Can only use while swimming
+    SPELL_FAILED_OUT_OF_RANGE                   = 0x64, // Classic - Midnight: Out of range
+    SPELL_FAILED_PACIFIED                       = 0x65, // Classic - Midnight: Can't use that ability while pacified
+    SPELL_FAILED_POSSESSED                      = 0x66, // Classic - Midnight: You are possessed
+    SPELL_FAILED_REAGENTS                       = 0x67, // Classic - Midnight: Missing reagent: %s
+    SPELL_FAILED_REQUIRES_AREA                  = 0x68, // Classic - Midnight: You need to be in %s
+    SPELL_FAILED_REQUIRES_SPELL_FOCUS           = 0x69, // Classic - Midnight: Requires %s
+    SPELL_FAILED_ROOTED                         = 0x6A, // Classic - Midnight: You are unable to move
+    SPELL_FAILED_SILENCED                       = 0x6B, // Classic - Midnight: Can't do that while silenced
+    SPELL_FAILED_SPELL_IN_PROGRESS              = 0x6C, // Classic - Midnight: Another action is in progress
+    SPELL_FAILED_SPELL_LEARNED                  = 0x6D, // Classic - Midnight: You have already learned the spell
+    SPELL_FAILED_SPELL_UNAVAILABLE              = 0x6E, // Classic - Midnight: The spell is not available to you
+    SPELL_FAILED_STUNNED                        = 0x6F, // Classic - Midnight: Can't do that while stunned
+    SPELL_FAILED_TARGETS_DEAD                   = 0x70, // Classic - Midnight: Your target is dead
+    SPELL_FAILED_TARGET_AFFECTING_COMBAT        = 0x71, // Classic - Midnight: Target is in combat
+    SPELL_FAILED_TARGET_AURASTATE               = 0x72, // Classic - Midnight: You can't do that yet
+    SPELL_FAILED_TARGET_DUELING                 = 0x73, // Classic - Midnight: Target is currently dueling
+    SPELL_FAILED_TARGET_ENEMY                   = 0x74, // Classic - Midnight: Target is hostile
+    SPELL_FAILED_TARGET_ENRAGED                 = 0x75, // Classic - Midnight: Target is too enraged to be charmed
+    SPELL_FAILED_TARGET_FRIENDLY                = 0x76, // Classic - Midnight: Target is friendly
+    SPELL_FAILED_TARGET_IN_COMBAT               = 0x77, // Classic - Midnight: The target can't be in combat
+    SPELL_FAILED_TARGET_IN_PET_BATTLE           = 0X78, // MoP - Midnight: The target can't be in a pet battle
+    SPELL_FAILED_TARGET_IS_PLAYER               = 0x79, // Classic - Midnight: Can't target players
+    SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED    = 0x7A, // TBC - Midnight: Can't target player controlled units
+    SPELL_FAILED_TARGET_NOT_DEAD                = 0x7B, // Classic - Midnight: Target is alive
+    SPELL_FAILED_TARGET_NOT_IN_PARTY            = 0x7C, // Classic - Midnight: Target is not in your party
+    SPELL_FAILED_TARGET_NOT_LOOTED              = 0x7D, // Classic - Midnight: Creature must be looted first
+    SPELL_FAILED_TARGET_NOT_PLAYER              = 0x7E, // Classic - Midnight: Target is not a player
+    SPELL_FAILED_TARGET_NO_POCKETS              = 0x7F, // Classic - Midnight: No pockets to pick
+    SPELL_FAILED_TARGET_NO_WEAPONS              = 0x80, // Classic - Midnight: Target has no weapons equipped
+    SPELL_FAILED_TARGET_NO_RANGED_WEAPONS       = 0x81, // WotLK - Midnight: Target has no ranged weapons equipped
+    SPELL_FAILED_TARGET_UNSKINNABLE             = 0x82, // Classic - Midnight: Creature is not skinnable
+    SPELL_FAILED_THIRST_SATIATED                = 0x83, // Classic - Midnight:
+    SPELL_FAILED_TOO_CLOSE                      = 0x84, // Classic - Midnight: Target too close
+    SPELL_FAILED_TOO_MANY_OF_ITEM               = 0x85, // Classic - Midnight: You have too many of that item already
+    SPELL_FAILED_TOTEM_CATEGORY                 = 0x86, // TBC - Midnight: Requires %s
+    SPELL_FAILED_TOTEMS                         = 0x87, // Classic - Midnight: Requires %s
+    SPELL_FAILED_TRY_AGAIN                      = 0x88, // Classic - Midnight: Failed attempt
+    SPELL_FAILED_UNIT_NOT_BEHIND                = 0x89, // Classic - Midnight: Target needs to be behind you
+    SPELL_FAILED_UNIT_NOT_INFRONT               = 0x8A, // Classic - Midnight: Target needs to be in front of you
+    SPELL_FAILED_TARGET_VISION_OBSCURED         = 0x8B, // Cata - Midnight: Your vision of the target is obscured
+    SPELL_FAILED_WRONG_PET_FOOD                 = 0x8C, // Classic - Midnight: Your pet doesn't like that food
+    SPELL_FAILED_NOT_WHILE_FATIGUED             = 0x8D, // Classic - Midnight: Can't cast while fatigued
+    SPELL_FAILED_TARGET_NOT_IN_INSTANCE         = 0x8E, // Classic - Midnight: Target must be in this instance
+    SPELL_FAILED_NOT_WHILE_TRADING              = 0x8F, // Classic - Midnight: Can't cast while trading
+    SPELL_FAILED_TARGET_NOT_IN_RAID             = 0x90, // Classic - Midnight: Target is not in your party or raid group
+    SPELL_FAILED_TARGET_FREEFORALL              = 0x91, // Classic - Midnight: Target is currently in free-for-all PvP combat
+    SPELL_FAILED_NO_EDIBLE_CORPSES              = 0x92, // Classic - Midnight: There are no nearby corpses to eat
+    SPELL_FAILED_ONLY_BATTLEGROUNDS             = 0x93, // Classic - Midnight: Can only use in battlegrounds
+    SPELL_FAILED_TARGET_NOT_GHOST               = 0x94, // Classic - Midnight: Target is not a ghost
+    SPELL_FAILED_TRANSFORM_UNUSABLE             = 0x95, // Classic - Midnight: You can't use the new item
+    SPELL_FAILED_WRONG_WEATHER                  = 0x96, // Classic - Midnight: The weather isn't right for that
+    SPELL_FAILED_DAMAGE_IMMUNE                  = 0x97, // Classic - Midnight: You can't do that while you are immune
+    SPELL_FAILED_PREVENTED_BY_MECHANIC          = 0x98, // Classic - Midnight: Can't do that while %s
+    SPELL_FAILED_PLAY_TIME                      = 0x99, // Classic - Midnight: Maximum play time exceeded
+    SPELL_FAILED_REPUTATION                     = 0x9A, // Classic - Midnight: Your reputation isn't high enough
+    SPELL_FAILED_MIN_SKILL                      = 0x9B, // Classic - Midnight: Your skill is not high enough. Requires %s(%d).
+    SPELL_FAILED_NOT_IN_RATED_BATTLEGROUND      = 0x9C, // Cata - Midnight: You can't do that in a rated battleground
+    SPELL_FAILED_NOT_ON_SHAPESHIFT              = 0x9D, // TBC - Midnight: Cannot be cast on shapeshifted target
+    SPELL_FAILED_NOT_ON_STEALTHED               = 0x9E, // TBC - Midnight: Spell cannot be cast on stealthed target
+    SPELL_FAILED_NOT_ON_DAMAGE_IMMUNE           = 0x9F, // TBC - Midnight: Spell cannot be cast on a damage immune target
+    SPELL_FAILED_NOT_ON_MOUNTED                 = 0xA0, // TBC - Midnight: Spell cannot be cast on a mounted unit
+    SPELL_FAILED_TOO_SHALLOW                    = 0xA1, // TBC - Midnight: Water too shallow
+    SPELL_FAILED_TARGET_NOT_IN_SANCTUARY        = 0xA2, // TBC - Midnight: Target is not in a sanctuary
+    SPELL_FAILED_TARGET_IS_TRIVIAL              = 0xA3, // TBC - Midnight: Can't target trivial
+    SPELL_FAILED_BM_OR_INVISGOD                 = 0xA4, // TBC - Midnight: The spell cannot be cast on beastmaster or invis god targets
+    SPELL_FAILED_APPRENTICE_RIDING_REQUIREMENT  = 0XA5, // MoP - Midnight: Requires apprentice riding skill
+    SPELL_FAILED_JOURNEYMAN_RIDING_REQUIREMENT  = 0XA6, // MoP - Midnight: Requires journeyman riding skill
+    SPELL_FAILED_EXPERT_RIDING_REQUIREMENT      = 0xA7, // TBC - Midnight: Requires expert riding skill
+    SPELL_FAILED_ARTISAN_RIDING_REQUIREMENT     = 0xA8, // TBC - Midnight: Requires artisan riding skill
+    SPELL_FAILED_MASTER_RIDING_REQUIREMENT      = 0xA9, // MoP - Midnight: Requires master riding skill
+    SPELL_FAILED_COLD_RIDING_REQUIREMENT        = 0xAA, // MoP - Midnight: Requires Cold Weather flying skill
+    SPELL_FAILED_FLIGHT_MASTER_REQUIREMENT      = 0xAB, // MoP - Midnight: Requires Flight Master's license skill
+    SPELL_FAILED_CS_RIDING_REQUIREMENT          = 0xAC, // MoP - Midnight: Requires Cloud Serpent riding skill
+    SPELL_FAILED_PANDA_RIDING_REQUIREMENT       = 0xAD, // MoP - Midnight: Requires Wisdom of the Four Winds skill
+    SPELL_FAILED_NOT_IDLE                       = 0xAE, // TBC - Midnight: Can't use while Idle
+    SPELL_FAILED_NOT_INACTIVE                   = 0xAF, // TBC - Midnight: Can't use while Inactive
+    SPELL_FAILED_PARTIAL_PLAYTIME               = 0xB0, // TBC - Midnight: You can not do this. You have more than 3 hours of online time
+    SPELL_FAILED_NO_PLAYTIME                    = 0xB1, // TBC - Midnight: You can not do this. You have more than 5 hours of online time
+    SPELL_FAILED_NOT_IN_BATTLEGROUND            = 0xB2, // TBC - Midnight: You can't do that in a battleground
+    SPELL_FAILED_NOT_IN_RAID_INSTANCE           = 0xB3, // WotLK - Midnight: You can't do that in a raid instance
+    SPELL_FAILED_ONLY_IN_ARENA                  = 0xB4, // TBC - Midnight: You can only do that in an arena
+    SPELL_FAILED_TARGET_LOCKED_TO_RAID_INSTANCE = 0xB5, // TBC - Midnight: Target is locked to another raid instance
+    SPELL_FAILED_ON_USE_ENCHANT                 = 0xB6, // WotLK - Midnight: That item already has an activated ability
+    SPELL_FAILED_NOT_ON_GROUND                  = 0xB7, // WotLK - Midnight: Cannot use on the ground
+    SPELL_FAILED_CUSTOM_ERROR                   = 0xB8, // WotLK - Midnight:
+    SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW         = 0xB9, // WotLK - Midnight: You can't do that right now
+    SPELL_FAILED_TOO_MANY_SOCKETS               = 0xBA, // WotLK - Midnight: That item has too many sockets
+    SPELL_FAILED_INVALID_GLYPH                  = 0xBB, // WotLK - Midnight: That glyph cannot be inscribed there
+    SPELL_FAILED_UNIQUE_GLYPH                   = 0xBC, // WotLK - Midnight: That glyph is already inscribed in your spellbook
+    SPELL_FAILED_GLYPH_SOCKET_LOCKED            = 0xBD, // WotLK - Midnight: You cannot inscribe a glyph there yet
+    SPELL_FAILED_NO_VALID_TARGETS               = 0xBE, // WotLK - Midnight: No valid targets
+    SPELL_FAILED_ITEM_AT_MAX_CHARGES            = 0xBF, // WotLK - Midnight: Item already has the maximum number of charges
+    SPELL_FAILED_NOT_IN_BARBERSHOP              = 0xC0, // WotLK - Midnight: You can't do that while in the barber shop
+    SPELL_FAILED_FISHING_TOO_LOW                = 0xC1, // WotLK - Midnight: Requires fishing %d
+    SPELL_FAILED_ITEM_ENCHANT_TRADE_WINDOW      = 0xC2, // WotLK - Midnight: Item cannot be enchanted in trade
+    SPELL_FAILED_SUMMON_PENDING                 = 0xC3, // WotLK - Midnight: A summon is already pending
+    SPELL_FAILED_MAX_SOCKETS                    = 0xC4, // WotLK - Midnight: That item cannot receive additional sockets
+    SPELL_FAILED_PET_CAN_RENAME                 = 0xC5, // WotLK - Midnight: You can already rename your pet
+    SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED   = 0xC6, // WotLK - Midnight: Target cannot be resurrected
+    SPELL_FAILED_CANT_TAKE_ACTIONS              = 0xC7, // Cata - Midnight: You can't take actions right now
+    SPELL_FAILED_CURRENCY_WEIGHT_MISMATCH       = 0xC8, // Cata - Midnight:
+    SPELL_FAILED_WEIGHT_NOT_ENOUGH              = 0xC9, // Cata - Midnight: You have not provided enough items to cast this spell
+    SPELL_FAILED_WEIGHT_TOO_MUCH                = 0xCA, // Cata - Midnight: You have provided too many items to cast this spell
+    SPELL_FAILED_NO_SEAT                        = 0xCB, // Cata - Midnight: There is no available seat
+    SPELL_FAILED_REQUIRES_WATER_SURFACE         = 0xCC, // Cata - Midnight: Requires water surface
+    SPELL_FAILED_NOT_WHILE_SWIMMING             = 0xCD, // Cata - Midnight: Cannot use while swimming
+    SPELL_FAILED_UNUSED_197                     = 0xCE, // Cata - MoP:
+    SPELL_FAILED_NO_RESURRECT_IN_COMBAT         = 0xCF, // Cata - Midnight: You can no longer resurrect during combat
+    SPELL_FAILED_NOT_IN_ARENA                   = 0xD0, // TBC - Midnight: You can't do that in an arena
+    SPELL_FAILED_TARGET_NOT_ON_GROUND           = 0xD1, // Cata - Midnight: Target is not on the ground
+    SPELL_FAILED_EXCEEDED_WEEKLY_USAGE          = 0xD2, // Cata - Midnight: You can only cast %s %d times a week
+    SPELL_FAILED_NOT_IN_LFG_DUNGEON             = 0xD3, // Cata - Midnight: You can't do that in an LFG Dungeon
+    SPELL_FAILED_BAD_TARGET_FILTER              = 0xD4, // MoP - Midnight:
+    SPELL_FAILED_NOT_ENOUGH_TARGETS             = 0xD5, // MoP - Midnight:
+    SPELL_FAILED_NO_SPEC                        = 0XD6, // MoP - Midnight: You need to choose a character specialization
+    SPELL_FAILED_CANT_ADD_BATTLE_PET            = 0XD7, // MoP - Midnight: Can't add Companion to your account
+    SPELL_FAILED_CANT_UPGRADE_BATTLE_PET        = 0XD8, // MoP - Midnight: Failed to Upgrade Pet
+    SPELL_FAILED_WRONG_BATTLE_PET_TYPE          = 0XD9, // MoP - Midnight: Wrong Pet type
+    SPELL_FAILED_NO_DUNGEON_ENCOUNTER           = 0XDA, // MoP - Midnight: Requires engaging %s
+    SPELL_FAILED_NO_TELEPORT_FROM_DUNGEON       = 0XDB, // MoP - Midnight:
+    SPELL_FAILED_MAX_LEVEL_TOO_LOW              = 0XDC, // MoP - Midnight:
+    SPELL_FAILED_UNKNOWN                        = 0xDD, // Classic - Midnight: Unknown reason
+    SPELL_FAILED_DISENCHANT_WHILE_LOOTING       = 0xDE, // Classic - TBC:
+    SPELL_FAILED_PROSPECT_NEED_MORE             = 0xDF, // TBC:
+    SPELL_FAILED_PROSPECT_WHILE_LOOTING         = 0xE0, // Classic - TBC:
+    SPELL_FAILED_TOO_MANY_SKILLS                = 0xE1, // Classic - TBC, Shadowlands - Midnight:
+    SPELL_FAILED_TRAINING_POINTS                = 0xE2, // Classic - TBC, Shadowlands - Midnight:
+    SPELL_FAILED_PVP_TARGET_WHILE_UNFLAGGED     = 0xE3, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_NOT_OWNED             = 0xE4, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_OWNED                 = 0xE5, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_MAX_LEVEL             = 0xE6, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_NOT_UPGRADEABLE       = 0xE7, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_ON_MISSION   = 0xE8, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_IN_BUILDING  = 0xE9, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_MAX_LEVEL    = 0xEA, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_MAX_ITEM_LEVEL = 0xEB, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_MAX_QUALITY  = 0xEC, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_NOT_MAX_LEVEL = 0xED, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_HAS_ABILITY = 0xEE, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_HAS_SINGLE_MISSION_ABILITY = 0xEF, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_MISSION_NOT_IN_PROGRESS = 0xF0, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_MISSION_COMPLETE      = 0xF1, // WoD - Midnight:
+    SPELL_FAILED_GARRISON_NO_MISSIONS_AVAILABLE = 0xF2, // WoD - Midnight:
+    SPELL_FAILED_GROUND_MOUNT_NOT_ALLOWED       = 0xF3, // WoD - Midnight:
+    SPELL_FAILED_FLOATING_MOUNT_NOT_ALLOWED     = 0xF4, // WoD - Midnight:
+    SPELL_FAILED_UNDERWATER_MOUNT_NOT_ALLOWED   = 0xF5, // WoD - Midnight:
+    SPELL_FAILED_FLYING_MOUNT_NOT_ALLOWED       = 0xF6, // WoD - Midnight:
+    SPELL_FAILED_DRAENOR_RIDING_REQUIREMENT     = 0xF7, // WoD - Midnight:
+    SPELL_FAILED_MOUNT_NO_FLOAT_HERE            = 0xF8, // WoD - Midnight:
+    SPELL_FAILED_MOUNT_NO_UNDERWATER_HERE       = 0xF9, // WoD - Midnight:
+    SPELL_FAILED_MOUNT_ABOVE_WATER_HERE         = 0xFA, // WoD - Midnight:
+    SPELL_FAILED_MOUNT_COLLECTED_ON_OTHER_CHAR  = 0xFB, // WoD - Midnight:
+    SPELL_FAILED_GLYPH_EXCLUSIVE_CATEGORY       = 0xFC, // WoD - Midnight:
+    SPELL_FAILED_GLYPH_INVALID_SPEC             = 0xFD, // WoD - Midnight:
+    SPELL_FAILED_GLYPH_NO_SPEC                  = 0xFE, // WoD - Midnight:
+    SPELL_FAILED_TARGET_HAS_RESURRECT_PENDING   = 0xFF, // WoD - Midnight:
+    SPELL_FAILED_BY_NOT_MOVING                  = 0x100, // WoD - Midnight:
+    SPELL_FAILED_CANT_REPLACE_ITEM_BONUS        = 0x101, // WoD - Midnight:
+    SPELL_FAILED_GRANT_PET_LEVEL_FAIL           = 0x102, // WoD - Midnight:
+    SPELL_FAILED_SKILL_LINE_NOT_KNOWN           = 0x103, // WoD - Midnight:
+    SPELL_FAILED_BLUEPRINT_KNOWN                = 0x104, // WoD - Midnight:
+    SPELL_FAILED_FOLLOWER_KNOWN                 = 0x105, // WoD - Midnight:
+    SPELL_FAILED_CANT_OVERRIDE_ENCHANT_VISUAL   = 0x106, // WoD - Midnight:
+    SPELL_FAILED_ITEM_NOT_A_WEAPON              = 0x107, // WoD - Midnight:
+    SPELL_FAILED_SAME_ENCHANT_VISUAL            = 0x108, // WoD - Midnight:
+    SPELL_FAILED_TOY_USE_LIMIT_REACHED          = 0x109, // WoD - Midnight:
+    SPELL_FAILED_TOY_ALREADY_KNOWN              = 0x10A, // WoD - Midnight:
+    SPELL_FAILED_SHIPMENTS_FULL                 = 0x10B, // WoD - Midnight:
+    SPELL_FAILED_NO_SHIPMENTS_FOR_CONTAINER     = 0x10C, // WoD - Midnight:
+    SPELL_FAILED_NO_BUILDING_FOR_SHIPMENT       = 0x10D, // WoD - Midnight:
+    SPELL_FAILED_NOT_ENOUGH_SHIPMENTS_FOR_CONTAINER = 0x10E, // WoD - Midnight:
+    SPELL_FAILED_HAS_MISSION                    = 0x10F, // WoD - Midnight:
+    SPELL_FAILED_BUILDING_ACTIVATE_NOT_READY    = 0x110, // WoD - Midnight:
+    SPELL_FAILED_NOT_SOULBOUND                  = 0x111, // WoD - Midnight:
+    SPELL_FAILED_RIDING_VEHICLE                 = 0x112, // WoD - Midnight:
+    SPELL_FAILED_VETERAN_TRIAL_ABOVE_SKILL_RANK_MAX = 0x113, // WoD - Midnight:
+    SPELL_FAILED_NOT_WHILE_MERCENARY            = 0x114, // WoD - Midnight:
+    SPELL_FAILED_AP_ITEM_FROM_PREVIOUS_TIER     = 0x115, // Legion - Midnight:
+    SPELL_FAILED_AREA_TRIGGER_CREATION          = 0x116, // Legion - Midnight:
+    SPELL_FAILED_ARTIFACT_AT_FULL_POWER         = 0x117, // Legion - Midnight:
+    SPELL_FAILED_BROKEN_ISLES_RIDING_REQUIREMENT = 0x118, // Legion - Midnight:
+    SPELL_FAILED_CANT_BE_OBLITERATED            = 0x119, // Legion - Midnight:
+    SPELL_FAILED_DISABLED_BY_AURA_LABEL         = 0x11A, // Legion - Midnight:
+    SPELL_FAILED_DISABLED_BY_MAX_USABLE_LEVEL   = 0x11B, // Legion - Midnight:
+    SPELL_FAILED_FOLLOWER_CLASS_SPEC_CAP        = 0x11C, // Legion - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_MIN_ITEM_LEVEL = 0x11D, // Legion - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_REQUIRES_EPIC = 0x11E, // Legion - Midnight:
+    SPELL_FAILED_MUST_KNOW_SUPERCEDING_SPELL    = 0x11F, // Legion - Midnight:
+    SPELL_FAILED_NEED_ALL_PARTY_MEMBERS         = 0x120, // Legion - Midnight:
+    SPELL_FAILED_NO_ACTIVE_GLYPHS               = 0x121, // Legion - Midnight:
+    SPELL_FAILED_NO_ARTIFACT_EQUIPPED           = 0x122, // Legion - Midnight:
+    SPELL_FAILED_SPEC_DISABLED                  = 0x123, // Legion - Midnight:
+    SPELL_FAILED_SPELL_ALREADY_KNOWN            = 0x124, // Legion - Midnight:
+    SPELL_FAILED_SPELL_EFFECT_FAILED            = 0x125, // Legion - Midnight:
+    SPELL_FAILED_TARGET_IS_UNTARGETABLE_BY_ANYONE = 0x126, // Legion - Midnight:
+    SPELL_FAILED_TRANSMOG_SET_ALREADY_KNOWN     = 0x127, // Legion - Midnight:
+    SPELL_FAILED_TRANSPORT_NOT_READY            = 0x128, // Legion - Midnight:
+    SPELL_FAILED_WRONG_ARTIFACT_EQUIPPED        = 0x129, // Legion - Midnight:
+    SPELL_FAILED_YOU_CANNOT_USE_THAT_IN_PVP_INSTANCE = 0x12A, // Legion - Midnight:
+    SPELL_FAILED_AZERITE_EMPOWERED_NO_CHOICES_TO_UNDO = 0x12B, // BfA - Midnight:
+    SPELL_FAILED_AZERITE_EMPOWERED_ONLY         = 0x12C, // BfA - Midnight:
+    SPELL_FAILED_BATTLE_FOR_AZEROTH_RIDING_REQUIREMENT = 0x12D, // BfA - Midnight:
+    SPELL_FAILED_CANT_BE_SCRAPPED               = 0x12E, // BfA - Midnight:
+    SPELL_FAILED_DISABLED_BY_POWER_SCALING      = 0x12F, // BfA - Midnight:
+    SPELL_FAILED_LEVEL_LINKED_LOW_LEVEL         = 0x130, // BfA - Midnight:
+    SPELL_FAILED_MOUNT_EQUIPMENT_ERROR          = 0x131, // BfA - Midnight:
+    SPELL_FAILED_NOT_ENOUGH_CURRENCY            = 0x132, // BfA - Midnight:
+    SPELL_FAILED_NOT_WHILE_LEVEL_LINKED         = 0x133, // BfA - Midnight:
+    SPELL_FAILED_SUMMON_MAP_CONDITION           = 0x134, // BfA - Midnight:
+    SPELL_FAILED_WRONG_FACTION                  = 0x135, // BfA - Midnight:
+    SPELL_FAILED_CANT_BE_ENCHANTED              = 0x136, // Shadowlands - Midnight:
+    SPELL_FAILED_GARRISON_FOLLOWER_AT_MIN_LEVEL = 0x137, // Shadowlands - Midnight:
+    SPELL_FAILED_INELIGIBLE_WEAPON_APPEARANCE   = 0x138, // Shadowlands - Midnight:
+    SPELL_FAILED_LEGACY_SPELL                   = 0x139, // Shadowlands - Midnight:
+    SPELL_FAILED_NOT_IN_MAGE_TOWER              = 0x13A, // Shadowlands - Midnight:
+    SPELL_FAILED_NOT_WHILE_CHROMIE_TIMED        = 0x13B, // Shadowlands - Midnight:
+    SPELL_FAILED_CRAFTING_REAGENTS              = 0x13C, // Shadowlands - Midnight:
+    SPELL_FAILED_PLAYER_CONDITION               = 0x13D, // Shadowlands - Midnight:
+    SPELL_FAILED_RUNEFORGE_LEGENDARY_UPGRADE    = 0x13E, // Shadowlands - Midnight:
+    SPELL_FAILED_SET_CHROMIE_TIME_ERROR         = 0x13F, // Shadowlands - Midnight:
+    SPELL_FAILED_SET_COVENANT_ERROR             = 0x140, // Shadowlands - Midnight:
+    SPELL_FAILED_SHADOWLANDS_RIDING_REQUIREMENT = 0x141, // Shadowlands - Midnight:
+    SPELL_FAILED_SOULBIND_CONDUIT_LEARN_FAILED_INVALID_COVENANT = 0x142, // Shadowlands - Midnight:
+    SPELL_FAILED_SPECTATOR_OR_COMMENTATOR       = 0x143, // Shadowlands - Midnight:
+    SPELL_FAILED_CANT_BE_RECRAFTED              = 0x144, // Dragonflight - Midnight:
+    SPELL_FAILED_CANT_BE_SALVAGED               = 0x145, // Dragonflight - Midnight:
+    SPELL_FAILED_CANT_BE_SALVAGED_SKILL         = 0x146, // Dragonflight - Midnight:
+    SPELL_FAILED_CANT_FLY_HERE                  = 0x147, // Dragonflight - Midnight:
+    SPELL_FAILED_DRAGONRIDING_RIDING_REQUIREMENT = 0x148, // Dragonflight - Midnight:
+    SPELL_FAILED_ITEM_MOD_APPEARANCE_GROUP_ALREADY_KNOWN = 0x149, // Dragonflight - Midnight:
+    SPELL_FAILED_PASSIVE_REPLACED               = 0x14A, // Dragonflight - Midnight:
+    SPELL_FAILED_ITEM_CREATION_DISABLED_FOR_EVENT = 0x14B, // TWW - Midnight:
+    SPELL_FAILED_WARBAND_SCENE_ALREADY_KNOWN    = 0x14C, // TWW - Midnight:
+    SPELL_FAILED_TRANSMOG_OUTFIT_ALREADY_KNOWN  = 0x14D, // Midnight:
+    SPELL_CAST_SUCCESS                          = 0xFFFF // Custom serverside value
 };
 
 // Extra error messages, used with SPELL_FAILED_CUSTOM_ERROR
@@ -1103,152 +499,331 @@ enum DismountFailure : uint8_t
     ERR_DISMOUNT_NOTYOURPET                     = 2 // INTERNAL ERROR, DISMOUNTING A NON-PET
 };
 
-// -- client cast results, generated by generate_spell_failure_client.py from the client enums, not edited by hand --
-// The clients from 6.x on renumber SpellCastResult, the server keeps the 5.4.8 numbering of the enum above;
-// the tables are indexed by the server value, unmatched names map to the error value of the client.
+// SpellCastResult values are server-side identifiers; these tables translate them to the corresponding
+// client-side result codes for each expansion.
 namespace SpellFailureClient
 {
-#if VERSION_STRING >= Mop
-    constexpr uint16_t Count = 222;
+    constexpr uint16_t Count = 334;
 
-    constexpr uint16_t wod[Count] =
+    constexpr std::array<uint16_t, Count> classic =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-        33, 34, 35, 36, 37, 38, 39, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-        64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-        80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
-        96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
-        112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,
-        128, 129, 130, 131, 132, 133, 134, 135, 35, 137, 138, 139, 140, 141, 142, 143,
-        144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 35, 156, 157, 158, 159,
-        160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175,
-        176, 177, 178, 179, 180, 35, 35, 187, 188, 189, 190, 35, 192, 193, 199, 200,
-        201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 218, 219,
-        220, 221, 222, 223, 224, 225, 226, 35, 229, 230, 231, 35, 35, 35, 35, 35,
-        237, 35, 239, 240, 241, 242, 35, 35, 35, 35, 35, 35, 35, 270,
+        0x1C, 0x00, 0x01, 0x1C, 0x02, 0x03, 0x04, 0x05, 0x1C, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
+        0x1C, 0x1C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x1C, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
+        0x1A, 0x1B, 0x1C, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x1C, 0x23, 0x24, 0x25, 0x26, 0x27,
+        0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x1C, 0x32, 0x33, 0x34, 0x1C, 0x35,
+        0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x1C, 0x43, 0x44,
+        0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+        0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64,
+        0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x1C, 0x6D, 0x1C, 0x6E, 0x6F, 0x70, 0x71, 0x72,
+        0x73, 0x1C, 0x74, 0x75, 0x76, 0x77, 0x1C, 0x78, 0x7A, 0x7B, 0x7C, 0x1C, 0x7D, 0x7E, 0x7F, 0x80,
+        0x81, 0x85, 0x86, 0x87, 0x88, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0xA8, 0x82, 0x1C,
+        0x83, 0x89, 0x79, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
+        0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C, 0x1C,
     };
 
-    constexpr uint16_t legion[Count] =
+    constexpr std::array<uint16_t, Count> tbc =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-        33, 34, 35, 36, 37, 38, 39, 57, 58, 59, 60, 61, 62, 63, 64, 65,
-        66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
-        82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97,
-        35, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 35, 109, 110, 35,
-        111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
-        127, 128, 129, 130, 131, 132, 133, 134, 35, 136, 137, 138, 139, 140, 141, 142,
-        143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 35, 155, 156, 157, 158,
-        159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174,
-        175, 176, 177, 178, 179, 35, 35, 186, 187, 188, 189, 35, 191, 192, 199, 200,
-        201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 219, 220,
-        221, 222, 223, 224, 225, 226, 227, 35, 230, 231, 232, 35, 35, 35, 35, 35,
-        238, 35, 240, 241, 242, 243, 35, 35, 35, 35, 35, 35, 35, 289,
+        0x1E, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x1E, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
+        0x0E, 0x1E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x1E, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B,
+        0x1C, 0x1D, 0x1E, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x1E, 0x25, 0x26, 0x27, 0x28, 0x29,
+        0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x1E, 0x34, 0x35, 0x36, 0x37, 0x38,
+        0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x1E, 0x46, 0x47,
+        0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
+        0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
+        0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x1E, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76,
+        0x77, 0x1E, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7F, 0x80, 0x81, 0x1E, 0x82, 0x83, 0x84, 0x85,
+        0x86, 0x8A, 0x8B, 0x8C, 0x8D, 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x1E, 0x97, 0x98, 0x99,
+        0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x1E, 0x1E, 0x9F, 0xA0, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0xA1, 0xA2,
+        0xA3, 0xA4, 0xA5, 0x1E, 0xA6, 0xA7, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x96, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0xA8, 0x87, 0x89,
+        0x88, 0x8E, 0x7E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
+        0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E, 0x1E,
     };
 
-    constexpr uint16_t bfa[Count] =
+    constexpr std::array<uint16_t, Count> wotlk =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33,
-        34, 35, 36, 37, 38, 39, 40, 58, 59, 60, 61, 62, 63, 64, 65, 66,
-        67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82,
-        83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,
-        36, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 36, 110, 111, 36,
-        112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,
-        128, 129, 130, 131, 132, 133, 134, 135, 36, 137, 138, 139, 140, 141, 142, 143,
-        144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 36, 156, 157, 158, 159,
-        160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175,
-        176, 177, 178, 179, 180, 36, 36, 187, 188, 189, 190, 36, 192, 193, 200, 201,
-        202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 220, 221,
-        222, 223, 224, 225, 226, 227, 228, 36, 231, 232, 233, 36, 36, 36, 36, 36,
-        239, 36, 241, 242, 243, 244, 36, 36, 36, 36, 36, 36, 36, 300,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x20, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
+        0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x20, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D,
+        0x1E, 0x1F, 0x20, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C,
+        0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C,
+        0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C,
+        0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C,
+        0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C,
+        0x6D, 0x6E, 0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x20, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B,
+        0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x20, 0x87, 0x88, 0x89, 0x8A,
+        0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x20, 0x98, 0x99, 0x9A,
+        0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0x20, 0x20, 0xA0, 0xA1, 0x20, 0x20, 0x20, 0x20, 0x20, 0xA2, 0xA3,
+        0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3,
+        0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x97, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0xBB, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
     };
 
-    constexpr uint16_t shadowlands[Count] =
+    constexpr std::array<uint16_t, Count> cata =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16,
-        17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34,
-        35, 36, 37, 38, 39, 40, 41, 59, 60, 61, 62, 63, 64, 65, 66, 67,
-        68, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
-        85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-        37, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 37, 112, 113, 37,
-        114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
-        130, 131, 132, 133, 134, 135, 136, 137, 37, 139, 140, 141, 142, 143, 144, 145,
-        146, 147, 148, 149, 150, 151, 152, 153, 155, 156, 157, 37, 159, 160, 161, 162,
-        163, 164, 165, 166, 167, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
-        180, 181, 182, 183, 184, 37, 37, 191, 192, 193, 194, 37, 196, 197, 204, 205,
-        206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 224, 225,
-        226, 227, 228, 229, 230, 231, 232, 37, 235, 236, 237, 37, 37, 37, 37, 37,
-        243, 37, 245, 246, 247, 248, 37, 37, 37, 37, 37, 37, 37, 316,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x21, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E,
+        0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E,
+        0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E,
+        0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E,
+        0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E,
+        0x5F, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E,
+        0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x21, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D,
+        0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D,
+        0x8E, 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D,
+        0x9E, 0x9F, 0xA0, 0xA1, 0xA2, 0x21, 0x21, 0xA3, 0xA4, 0x21, 0x21, 0x21, 0x21, 0x21, 0xA5, 0xA6,
+        0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6,
+        0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6,
+        0xC7, 0xC8, 0xC9, 0xCA, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0xCB, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
+        0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21, 0x21,
     };
 
-    constexpr uint16_t dragonflight[Count] =
+    constexpr std::array<uint16_t, Count> mop =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 37,
-        37, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34,
-        35, 36, 37, 38, 39, 40, 41, 59, 60, 61, 62, 63, 64, 65, 66, 67,
-        68, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
-        85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-        37, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 37, 112, 113, 37,
-        114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
-        130, 131, 132, 133, 134, 135, 136, 137, 37, 139, 140, 141, 142, 143, 144, 145,
-        146, 147, 148, 149, 150, 151, 152, 153, 155, 156, 157, 37, 159, 160, 161, 162,
-        163, 164, 165, 166, 167, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
-        180, 181, 182, 183, 184, 37, 37, 191, 192, 193, 194, 37, 196, 197, 204, 205,
-        206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 224, 225,
-        226, 227, 228, 229, 230, 231, 232, 37, 235, 236, 237, 37, 37, 37, 37, 37,
-        243, 37, 245, 246, 247, 248, 37, 37, 37, 37, 37, 37, 37, 321,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+        0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+        0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+        0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+        0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+        0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
+        0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+        0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+        0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+        0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+        0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
+        0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
+        0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
+        0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22,
     };
 
-    constexpr uint16_t theWarWithin[Count] =
+    constexpr std::array<uint16_t, Count> wod =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 37,
-        37, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34,
-        35, 36, 37, 38, 39, 40, 41, 59, 60, 61, 62, 63, 64, 65, 66, 67,
-        68, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
-        85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-        37, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 37, 112, 113, 37,
-        114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
-        130, 131, 132, 133, 134, 135, 136, 137, 37, 139, 140, 141, 142, 143, 144, 145,
-        146, 147, 148, 149, 150, 151, 152, 153, 155, 156, 157, 37, 159, 160, 161, 162,
-        163, 164, 165, 166, 167, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
-        180, 181, 182, 183, 184, 37, 37, 191, 192, 193, 194, 37, 196, 197, 204, 205,
-        206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 224, 225,
-        226, 227, 228, 229, 230, 231, 232, 37, 235, 236, 237, 37, 37, 37, 37, 37,
-        243, 37, 245, 246, 247, 248, 37, 37, 37, 37, 37, 37, 37, 323,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
+        0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+        0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+        0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
+        0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
+        0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+        0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+        0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+        0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+        0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC7, 0xC8,
+        0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xDA, 0xDB,
+        0xDC, 0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0x23, 0xEC,
+        0xED, 0xEE, 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0x10E, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x0E, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33,
+        0x34, 0x35, 0x36, 0xB5, 0xB6, 0xB7, 0xB8, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xD7, 0xD8, 0xD9, 0xE3,
+        0xEB, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108,
+        0x109, 0x10A, 0x10B, 0x10C, 0x10D, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23,
     };
 
-    constexpr uint16_t midnight[Count] =
+    constexpr std::array<uint16_t, Count> legion =
     {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 37,
-        37, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 32, 33, 34,
-        35, 36, 37, 38, 39, 40, 41, 59, 60, 61, 62, 63, 64, 65, 66, 67,
-        68, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
-        85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
-        37, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 37, 112, 113, 37,
-        114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
-        130, 131, 132, 133, 134, 135, 136, 137, 37, 139, 140, 141, 142, 143, 144, 145,
-        146, 147, 148, 149, 150, 151, 152, 153, 155, 156, 157, 37, 159, 160, 161, 162,
-        163, 164, 165, 166, 167, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
-        180, 181, 182, 183, 184, 37, 37, 191, 192, 193, 194, 37, 196, 197, 204, 205,
-        206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 224, 225,
-        226, 227, 228, 229, 230, 231, 232, 37, 235, 236, 237, 37, 37, 37, 37, 37,
-        243, 37, 245, 246, 247, 248, 37, 37, 37, 37, 37, 37, 37, 324,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20,
+        0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41,
+        0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51,
+        0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61,
+        0x23, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x23, 0x6D, 0x6E, 0x23,
+        0x6F, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E,
+        0x7F, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E,
+        0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E,
+        0x9F, 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE,
+        0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC7, 0xC8,
+        0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xDB, 0xDC,
+        0xDD, 0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0x23, 0xED,
+        0xEE, 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0x121, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x0E, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x30, 0x31, 0x32, 0x33, 0x34,
+        0x36, 0x37, 0x38, 0xB4, 0xB5, 0xB6, 0xB7, 0xC1, 0xC3, 0xC4, 0xC5, 0xC6, 0xD7, 0xD8, 0xD9, 0xE4,
+        0xEC, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108, 0x109,
+        0x10A, 0x10B, 0x10C, 0x10D, 0x10E, 0x11F, 0x120, 0x11E, 0xC2, 0x110, 0x114, 0x115, 0x111, 0x2F, 0x35, 0x117,
+        0x11D, 0xDA, 0x119, 0x10F, 0x116, 0x11C, 0x11B, 0x113, 0x112, 0x11A, 0x118, 0x23, 0x23, 0x23, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23,
+        0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23, 0x23,
     };
 
-#endif
-
-    // the value of a cast result for the client of the protocol, the own value for every client up to 5.x
-    inline uint32_t castResultFor(WoW::ClientProtocol const& protocol, uint32_t result)
+    constexpr std::array<uint16_t, Count> bfa =
     {
-#if VERSION_STRING >= Mop
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1F, 0x20, 0x21,
+        0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42,
+        0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52,
+        0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62,
+        0x24, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x24, 0x6E, 0x6F, 0x24,
+        0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
+        0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
+        0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
+        0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+        0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC8, 0xC9,
+        0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xDC, 0xDD,
+        0xDE, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0x24, 0xEE,
+        0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0x12C, 0x24, 0x24,
+        0x24, 0x24, 0x24, 0x0E, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x31, 0x32, 0x33, 0x34, 0x35,
+        0x37, 0x38, 0x39, 0xB5, 0xB6, 0xB7, 0xB8, 0xC2, 0xC4, 0xC5, 0xC6, 0xC7, 0xD8, 0xD9, 0xDA, 0xE5,
+        0xED, 0xFC, 0xFD, 0xFE, 0xFF, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10A,
+        0x10B, 0x10C, 0x10D, 0x10E, 0x10F, 0x121, 0x122, 0x120, 0xC3, 0x111, 0x116, 0x117, 0x113, 0x30, 0x36, 0x119,
+        0x11F, 0xDB, 0x11B, 0x110, 0x118, 0x11E, 0x11D, 0x115, 0x114, 0x11C, 0x11A, 0x124, 0x123, 0x127, 0x112, 0x1E,
+        0x12A, 0x128, 0x126, 0x129, 0x12B, 0x125, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24,
+        0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24, 0x24,
+    };
+
+    constexpr std::array<uint16_t, Count> shadowlands =
+    {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x10,
+        0x11, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x20, 0x21, 0x22,
+        0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43,
+        0x44, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+        0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64,
+        0x25, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x25, 0x70, 0x71, 0x25,
+        0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81,
+        0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91,
+        0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2,
+        0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3,
+        0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xCC, 0xCD,
+        0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xE0, 0xE1,
+        0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0x25, 0xF2,
+        0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x13C, 0x25, 0x25,
+        0x25, 0xA8, 0x9A, 0x0E, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x32, 0x33, 0x34, 0x35, 0x36,
+        0x38, 0x39, 0x3A, 0xB9, 0xBA, 0xBB, 0xBC, 0xC6, 0xC8, 0xC9, 0xCA, 0xCB, 0xDC, 0xDD, 0xDE, 0xE9,
+        0xF1, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10A, 0x10B, 0x10C, 0x10D, 0x10E,
+        0x10F, 0x110, 0x111, 0x112, 0x113, 0x125, 0x126, 0x124, 0xC7, 0x115, 0x11A, 0x11B, 0x117, 0x31, 0x37, 0x11D,
+        0x123, 0xDF, 0x11F, 0x114, 0x11C, 0x122, 0x121, 0x119, 0x118, 0x120, 0x11E, 0x128, 0x127, 0x12B, 0x116, 0x1F,
+        0x12E, 0x12C, 0x12A, 0x12D, 0x12F, 0x129, 0x12, 0x13B, 0x133, 0x45, 0x13A, 0x135, 0x136, 0x134, 0x131, 0x132,
+        0x130, 0x139, 0x138, 0x137, 0x25, 0x25, 0x25, 0x25, 0x25, 0x25, 0x25, 0x25, 0x25, 0x25,
+    };
+
+    constexpr std::array<uint16_t, Count> dragonflight =
+    {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x25,
+        0x25, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x20, 0x21, 0x22,
+        0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43,
+        0x44, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+        0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64,
+        0x25, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x25, 0x70, 0x71, 0x25,
+        0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81,
+        0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91,
+        0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2,
+        0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3,
+        0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xCC, 0xCD,
+        0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xE0, 0xE1,
+        0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0x25, 0xF2,
+        0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x141, 0x25, 0x25,
+        0x25, 0xA8, 0x9A, 0x0E, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x32, 0x33, 0x34, 0x35, 0x36,
+        0x38, 0x39, 0x3A, 0xB9, 0xBA, 0xBB, 0xBC, 0xC6, 0xC8, 0xC9, 0xCA, 0xCB, 0xDC, 0xDD, 0xDE, 0xE9,
+        0xF1, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10A, 0x10B, 0x10C, 0x10D, 0x10E,
+        0x10F, 0x110, 0x111, 0x112, 0x113, 0x125, 0x126, 0x124, 0xC7, 0x115, 0x11A, 0x11B, 0x117, 0x31, 0x37, 0x11D,
+        0x123, 0xDF, 0x11F, 0x114, 0x11C, 0x122, 0x121, 0x119, 0x118, 0x120, 0x11E, 0x128, 0x127, 0x12B, 0x116, 0x1F,
+        0x12E, 0x12C, 0x12A, 0x12D, 0x12F, 0x129, 0x12, 0x13B, 0x133, 0x45, 0x13A, 0x135, 0x136, 0x134, 0x131, 0x132,
+        0x130, 0x139, 0x138, 0x137, 0x13C, 0x10, 0x11, 0x13E, 0x13F, 0x140, 0x13D, 0x25, 0x25, 0x25,
+    };
+
+    constexpr std::array<uint16_t, Count> theWarWithin =
+    {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x25,
+        0x25, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x20, 0x21, 0x22,
+        0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43,
+        0x44, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+        0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64,
+        0x25, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x25, 0x70, 0x71, 0x25,
+        0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81,
+        0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91,
+        0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2,
+        0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3,
+        0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xCC, 0xCD,
+        0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xE0, 0xE1,
+        0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0x25, 0xF2,
+        0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x143, 0x25, 0x25,
+        0x25, 0xA8, 0x9A, 0x0E, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x32, 0x33, 0x34, 0x35, 0x36,
+        0x38, 0x39, 0x3A, 0xB9, 0xBA, 0xBB, 0xBC, 0xC6, 0xC8, 0xC9, 0xCA, 0xCB, 0xDC, 0xDD, 0xDE, 0xE9,
+        0xF1, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10A, 0x10B, 0x10C, 0x10D, 0x10E,
+        0x10F, 0x110, 0x111, 0x112, 0x113, 0x125, 0x126, 0x124, 0xC7, 0x115, 0x11A, 0x11B, 0x117, 0x31, 0x37, 0x11D,
+        0x123, 0xDF, 0x11F, 0x114, 0x11C, 0x122, 0x121, 0x119, 0x118, 0x120, 0x11E, 0x128, 0x127, 0x12B, 0x116, 0x1F,
+        0x12E, 0x12C, 0x12A, 0x12D, 0x12F, 0x129, 0x12, 0x13B, 0x133, 0x45, 0x13A, 0x135, 0x136, 0x134, 0x131, 0x132,
+        0x130, 0x139, 0x138, 0x137, 0x13C, 0x10, 0x11, 0x13E, 0x13F, 0x140, 0x13D, 0x141, 0x142, 0x25,
+    };
+
+    constexpr std::array<uint16_t, Count> midnight =
+    {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F, 0x25,
+        0x25, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x20, 0x21, 0x22,
+        0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43,
+        0x44, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+        0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63, 0x64,
+        0x25, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x25, 0x70, 0x71, 0x25,
+        0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81,
+        0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91,
+        0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, 0xA0, 0xA1, 0xA2,
+        0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3,
+        0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xBD, 0xBE, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xCC, 0xCD,
+        0xCE, 0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xE0, 0xE1,
+        0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF, 0xF0, 0x25, 0xF2,
+        0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x144, 0x25, 0x25,
+        0x25, 0xA8, 0x9A, 0x0E, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x32, 0x33, 0x34, 0x35, 0x36,
+        0x38, 0x39, 0x3A, 0xB9, 0xBA, 0xBB, 0xBC, 0xC6, 0xC8, 0xC9, 0xCA, 0xCB, 0xDC, 0xDD, 0xDE, 0xE9,
+        0xF1, 0x100, 0x101, 0x102, 0x103, 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10A, 0x10B, 0x10C, 0x10D, 0x10E,
+        0x10F, 0x110, 0x111, 0x112, 0x113, 0x125, 0x126, 0x124, 0xC7, 0x115, 0x11A, 0x11B, 0x117, 0x31, 0x37, 0x11D,
+        0x123, 0xDF, 0x11F, 0x114, 0x11C, 0x122, 0x121, 0x119, 0x118, 0x120, 0x11E, 0x128, 0x127, 0x12B, 0x116, 0x1F,
+        0x12E, 0x12C, 0x12A, 0x12D, 0x12F, 0x129, 0x12, 0x13B, 0x133, 0x45, 0x13A, 0x135, 0x136, 0x134, 0x131, 0x132,
+        0x130, 0x139, 0x138, 0x137, 0x13C, 0x10, 0x11, 0x13E, 0x13F, 0x140, 0x13D, 0x141, 0x142, 0x143,
+    };
+
+    // the value of a cast result for the client of the protocol
+    inline uint16_t castResultFor(WoW::ClientProtocol const& protocol, uint16_t result)
+    {
         if (result >= Count)
             return result;
 
         // the 1.60 client takes the 12.x values
         switch (WoW::getComparedExpansion(protocol.expansion))
         {
+            case WoW::Expansion::_Classic:
+                return classic[result];
+            case WoW::Expansion::_TBC:
+                return tbc[result];
+            case WoW::Expansion::_WotLK:
+                return wotlk[result];
+            case WoW::Expansion::_Cata:
+                return cata[result];
+            case WoW::Expansion::_Mop:
+                return mop[result];
             case WoW::Expansion::_WoD:
                 return wod[result];
             case WoW::Expansion::_Legion:
@@ -1266,10 +841,5 @@ namespace SpellFailureClient
             default:
                 return result;
         }
-#else
-        (void)protocol;
-        return result;
-#endif
     }
 }
-// -- client cast results end --

@@ -73,7 +73,7 @@ namespace MovementMgr
 }
 
 enum MovementGeneratorType : uint8_t;
-enum SpellCastResult : uint8_t;
+enum SpellCastResult : uint16_t;
 
 struct HealthBatchEvent
 {

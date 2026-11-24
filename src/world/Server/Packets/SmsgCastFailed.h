@@ -16,7 +16,7 @@ namespace AscEmu::Packets
     public:
         uint8_t multiCast;
         uint32_t spellId;
-        uint8_t errorMsg;
+        uint16_t errorMsg;
 
         uint32_t extra1;
         uint32_t extra2;
@@ -28,7 +28,7 @@ namespace AscEmu::Packets
         {
         }
 
-        SmsgCastFailed(uint8_t multiCast, uint32_t spellId, uint8_t errorMsg, uint32_t extra1, uint32_t extra2) :
+        SmsgCastFailed(uint8_t multiCast, uint32_t spellId, uint16_t errorMsg, uint32_t extra1, uint32_t extra2) :
             ManagedPacket(SMSG_CAST_FAILED, 0),
             multiCast(multiCast),
             spellId(spellId),
@@ -72,7 +72,9 @@ namespace AscEmu::Packets
 
             if (m_protocol.expansion == WoW::Expansion::_Mop)
             {
-                packet << spellId << errorMsg << multiCast;
+                packet << spellId;
+                packet << uint8_t(SpellFailureClient::castResultFor(m_protocol, errorMsg));
+                packet << multiCast;
                 packet.writeBit(1);
                 packet.writeBit(1);
                 packet.flushBits();
@@ -86,7 +88,8 @@ namespace AscEmu::Packets
             }
             else // < Mop
             {
-                packet << multiCast << spellId << errorMsg;
+                packet << multiCast << spellId;
+                packet << uint8_t(SpellFailureClient::castResultFor(m_protocol, errorMsg));
 
                 if (extra1 || extra2)
                     packet << extra1;

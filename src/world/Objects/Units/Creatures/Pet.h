@@ -30,7 +30,7 @@
 
 class CreatureAISpells;
 struct PetCache;
-enum SpellCastResult : uint8_t;
+enum SpellCastResult : uint16_t;
 
 namespace WDB::Structures
 {
