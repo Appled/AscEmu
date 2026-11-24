@@ -750,13 +750,11 @@ void SpellMgr::applyHackFixes()
                 sp->removeAttributes(ATTRIBUTES_ONLY_OUTDOORS);
             }
 
-#if VERSION_STRING >= WotLK
             if (sp->getEffectApplyAuraName(b) == SPELL_AURA_PREVENT_RESURRECTION)
             {
                 sp->addAttributes(ATTRIBUTES_NEGATIVE);
                 sp->addAttributesExC(ATTRIBUTESEXC_CAN_PERSIST_AND_CASTED_WHILE_DEAD);
             }
-#endif
         }
 
         // DankoDJ: Refactoring session 16/02/2016 new functions
@@ -878,18 +876,19 @@ void SpellMgr::applyHackFixes()
 
             //////////////////////////////////////////////////////////////////////////////////////////
             // SPELL_HASH_SEALS_OF_THE_PURE
-#if VERSION_STRING < Cata
             case 20224:     // Seals of the Pure Rank 1
             case 20225:     // Seals of the Pure Rank 2
             case 20330:     // Seals of the Pure Rank 3
             case 20331:     // Seals of the Pure Rank 4
             case 20332:     // Seals of the Pure Rank 5
             {
-                sp->setEffectSpellClassMask(0x08000400, 0, 0);
-                sp->setEffectSpellClassMask(0x20000000, 0, 1);
-                sp->setEffectSpellClassMask(0x800, 1, 1);
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x08000400, 0, 0);
+                    sp->setEffectSpellClassMask(0x20000000, 0, 1);
+                    sp->setEffectSpellClassMask(0x800, 1, 1);
+                }
             } break;
-#endif
 
             //////////////////////////////////////////////////////////////////////////////////////////
             // SPELL_HASH_MEND_PET
@@ -1614,7 +1613,6 @@ void SpellMgr::applyHackFixes()
                 sp->setChannelInterruptFlags(0); // Remove channeling behaviour.
                 break;
 
-#if VERSION_STRING < Cata
             //megai2: Everlasting Affliction
             case 47205:
             case 47204:
@@ -1622,10 +1620,12 @@ void SpellMgr::applyHackFixes()
             case 47202:
             case 47201:
             {
-                sp->setEffectSpellClassMask(0x111, 1, 0);
-                sp->setEffectSpellClassMask(0, 1, 1);
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x111, 1, 0);
+                    sp->setEffectSpellClassMask(0, 1, 1);
+                }
             } break;
-#endif
 
             //warlock: Empowered Corruption
             case 32381:
@@ -1832,7 +1832,6 @@ void SpellMgr::applyHackFixes()
                 sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
             } break;
 
-#if VERSION_STRING >= TBC
             // Empower Rune Weapon
             case 47568:
             {
@@ -1840,7 +1839,6 @@ void SpellMgr::applyHackFixes()
                 sp->setEffectBasePoints(1, 2);
                 sp->setEffectMiscValue(RUNE_UNHOLY, 2);
             } break;
-#endif
 
             // Vengeance
             case 93099:
@@ -1892,78 +1890,99 @@ void SpellMgr::applyHackFixes()
                 sp->setEffectDieSides(0, 1);
             } break;
 
-#if VERSION_STRING < Cata
-
             case 46097: // Brutal Totem of Survival
             case 43860: // Totem of Survival
             case 43861: // Merciless Totem of Survival
             case 43862: // Vengeful Totem of Survival
             {
-                sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
-                sp->setEffectSpellClassMask(0x08000000, 0, 1);
-                sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
+                    sp->setEffectSpellClassMask(0x08000000, 0, 1);
+                    sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
+                }
             } break;
 
             case 60564: // Savage Gladiator's Totem of Survival
             {
-                sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
-                sp->setEffectSpellClassMask(0x08000000, 0, 1);
-                sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(60565, 1); // Savage Magic
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
+                    sp->setEffectSpellClassMask(0x08000000, 0, 1);
+                    sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(60565, 1); // Savage Magic
+                }
             } break;
 
             case 60571: // Hateful Gladiator's Totem of Survival
             {
-                sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
-                sp->setEffectSpellClassMask(0x08000000, 0, 1);
-                sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(60566, 1); // Hateful Magic
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
+                    sp->setEffectSpellClassMask(0x08000000, 0, 1);
+                    sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(60566, 1); // Hateful Magic
+                }
             } break;
 
             case 60572: // Deadly Gladiator's Totem of Survival
             {
-                sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
-                sp->setEffectSpellClassMask(0x08000000, 0, 1);
-                sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(60567, 1); // Deadly Magic
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00100000 | 0x10000000 | 0x80000000, 0, 0);
+                    sp->setEffectSpellClassMask(0x08000000, 0, 1);
+                    sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(60567, 1); // Deadly Magic
+                }
             } break;
 
             case 60567: // Deadly Magic
-                sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                    sp->setEffectImplicitTargetA(EFF_TARGET_SELF, 1);
                 break;
 
             case 46098: // Brutal Totem of Third WInd
             {
-                sp->setEffectSpellClassMask(0x00000080, 0, 0);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(46099, 1); // Brutal Gladiator's Totem of the Third Wind
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00000080, 0, 0);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(46099, 1); // Brutal Gladiator's Totem of the Third Wind
+                }
             } break;
 
             case 34138: // Totem of the Third Wind
             {
-                sp->setEffectSpellClassMask(0x00000080, 0, 0);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(34132, 1); // Gladiator's Totem of the Third Wind
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00000080, 0, 0);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(34132, 1); // Gladiator's Totem of the Third Wind
+                }
             } break;
 
             case 42370: // Merciless Totem of the Third WInd
             {
-                sp->setEffectSpellClassMask(0x00000080, 0, 0);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(42371, 1); // Merciless Gladiator's Totem of the Third Wind
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00000080, 0, 0);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(42371, 1); // Merciless Gladiator's Totem of the Third Wind
+                }
             } break;
 
             case 43728: // Vengeful Totem of Third WInd
             {
-                sp->setEffectSpellClassMask(0x00000080, 0, 0);
-                sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
-                sp->setEffectTriggerSpell(43729, 1); // Vengeful Gladiator's Totem of the Third Wind
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                {
+                    sp->setEffectSpellClassMask(0x00000080, 0, 0);
+                    sp->setEffect(SPELL_EFFECT_TRIGGER_SPELL, 1);
+                    sp->setEffectTriggerSpell(43729, 1); // Vengeful Gladiator's Totem of the Third Wind
+                }
             } break;
-
-#endif
 
             //Compact Harvest Reaper
             case 4078:

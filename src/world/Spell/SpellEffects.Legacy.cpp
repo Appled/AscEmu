@@ -235,7 +235,7 @@ pSpellEffect SpellEffectsHandler[TOTAL_SPELL_EFFECTS] =
     &Spell::SpellEffectProspecting,             // 127 SPELL_EFFECT_PROSPECTING
     &Spell::spellEffectApplyAreaAura,           // 128 SPELL_EFFECT_APPLY_FRIEND_AA
     &Spell::spellEffectApplyAreaAura,           // 129 SPELL_EFFECT_APPLY_ENEMY_AA
-#if VERSION_STRING >= TBC
+    // TBC begins
     &Spell::SpellEffectRedirectThreat,          // 130 SPELL_EFFECT_REDIRECT_THREAT
     &Spell::spellEffectNotImplemented,          // 131 SPELL_EFFECT_NULL_131
     &Spell::SpellEffectPlayMusic,               // 132 SPELL_EFFECT_PLAY_MUSIC
@@ -260,8 +260,7 @@ pSpellEffect SpellEffectsHandler[TOTAL_SPELL_EFFECTS] =
     &Spell::spellEffectTriggerSpell,            // 151 SPELL_EFFECT_TRIGGER_SPELL
     &Spell::spellEffectNotImplemented,          // 152 SPELL_EFFECT_NULL_152
     &Spell::SpellEffectCreatePet,               // 153 SPELL_EFFECT_CREATE_PET
-#endif
-#if VERSION_STRING >= WotLK
+    // Wotlk begins
     &Spell::SpellEffectTeachTaxiPath,           // 154 SPELL_EFFECT_TEACH_TAXI_PATH
     &Spell::SpellEffectDualWield2H,             // 155 SPELL_EFFECT_DUAL_WIELD_2H
     &Spell::SpellEffectEnchantItemPrismatic,    // 156 SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC
@@ -273,8 +272,7 @@ pSpellEffect SpellEffectsHandler[TOTAL_SPELL_EFFECTS] =
     &Spell::SpellEffectActivateSpec,            // 162 SPELL_EFFECT_ACTIVATE_SPEC
     &Spell::spellEffectNotImplemented,          // 163 SPELL_EFFECT_NULL_163
     &Spell::spellEffectNotImplemented,          // 164 SPELL_EFFECT_NULL_164
-#endif
-#if VERSION_STRING >= Cata
+    // Cata begins
     &Spell::spellEffectNotImplemented,          // 165 SPELL_EFFECT_NULL_165
     &Spell::spellEffectNotImplemented,          // 166 SPELL_EFFECT_NULL_166
     &Spell::spellEffectNotImplemented,          // 167 SPELL_EFFECT_NULL_167
@@ -293,10 +291,7 @@ pSpellEffect SpellEffectsHandler[TOTAL_SPELL_EFFECTS] =
     &Spell::spellEffectNotImplemented,          // 180 SPELL_EFFECT_NULL_180
     &Spell::spellEffectNotImplemented,          // 181 SPELL_EFFECT_NULL_181
     &Spell::spellEffectNotImplemented           // 182 SPELL_EFFECT_NULL_182
-#endif
-#if VERSION_STRING >= Mop
     // TODO: mop
-#endif
 };
 
 const char* SpellEffectNames[TOTAL_SPELL_EFFECTS] =
@@ -431,7 +426,7 @@ const char* SpellEffectNames[TOTAL_SPELL_EFFECTS] =
     "SPELL_EFFECT_PROSPECTING",                 //    127 Search 5 ore of a base metal for precious gems.  This will destroy the ore in the process.
     "SPELL_EFFECT_APPLY_FRIEND_AA",             //    128 Apply Aura friendly
     "SPELL_EFFECT_APPLY_ENEMY_AA",              //    129 Apply Aura enemy
-#if VERSION_STRING >= TBC
+    // TBC begins
     "SPELL_EFFECT_REDIRECT_THREAT",             //    130 unknown // https://www.wowhead.com/spell=34477
     "SPELL_EFFECT_NULL_131",                    //    131 unknown // test spell
     "SPELL_EFFECT_PLAY_MUSIC",                  //    132 Play Music // https://www.wowhead.com/spell=46852
@@ -456,8 +451,7 @@ const char* SpellEffectNames[TOTAL_SPELL_EFFECTS] =
     "SPELL_EFFECT_TRIGGER_SPELL",               //    151
     "SPELL_EFFECT_NULL_152",                    //    152 Summon Refer-a-Friend
     "SPELL_EFFECT_CREATE_PET",                  //    153 Create tamed pet
-#endif
-#if VERSION_STRING >= WotLK
+    // Wotlk begins
     "SPELL_EFFECT_TEACH_TAXI_PATH",             //    154 "Teach" a taxi path
     "SPELL_EFFECT_DUAL_WIELD_2H",               //    155
     "SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC",      //    156
@@ -469,8 +463,7 @@ const char* SpellEffectNames[TOTAL_SPELL_EFFECTS] =
     "SPELL_EFFECT_ACTIVATE_SPEC"                //    162
     "SPELL_EFFECT_NULL_163"                     //    163
     "SPELL_EFFECT_NULL_154"                     //    164
-#endif
-#if VERSION_STRING >= Cata
+    // Cata begins
     "SPELL_EFFECT_NULL_165"                     //    165
     "SPELL_EFFECT_NULL_166"                     //    166
     "SPELL_EFFECT_NULL_167"                     //    167
@@ -489,7 +482,6 @@ const char* SpellEffectNames[TOTAL_SPELL_EFFECTS] =
     "SPELL_EFFECT_NULL_180"                     //    180
     "SPELL_EFFECT_NULL_181"                     //    181
     "SPELL_EFFECT_NULL_182"                     //    182
-#endif
 };
 
 // APGL End

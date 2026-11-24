@@ -417,9 +417,9 @@ Creature* Transporter::createNPCPassenger(MySQLStructure::CreatureSpawn* data)
     creature->obj_movement_info.addMovementFlag(MOVEFLAG_TRANSPORT);
 #endif
 
-    creature->setVirtualItemSlotId(MELEE, creatureProperties->itemslot_1);
-    creature->setVirtualItemSlotId(OFFHAND, creatureProperties->itemslot_2);
-    creature->setVirtualItemSlotId(RANGED, creatureProperties->itemslot_3);
+    creature->setVirtualItemSlotOrDisplayId(MELEE, creatureProperties->itemslot_1);
+    creature->setVirtualItemSlotOrDisplayId(OFFHAND, creatureProperties->itemslot_2);
+    creature->setVirtualItemSlotOrDisplayId(RANGED, creatureProperties->itemslot_3);
 
     if (data->emote_state)
         creature->setEmoteState(data->emote_state);

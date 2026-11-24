@@ -202,7 +202,7 @@ public:
                                     procSpell[si] = item->getItemProperties()->Spells[si].Id;
                             }
 
-                            summon->setVirtualItemSlotId(MELEE, item->getEntry());
+                            summon->setVirtualItemSlotOrDisplayId(MELEE, item->getEntry());
                             summon->setBaseAttackTime(MELEE, item->getItemProperties()->Delay);
                         }
 

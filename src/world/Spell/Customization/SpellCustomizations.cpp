@@ -800,10 +800,7 @@ void SpellMgr::setSpellEffectAmplitude(SpellInfo* sp)
 
         if (sp->getEffectApplyAuraName(i) == 0 &&
             (sp->getEffectApplyAuraName(i) == SPELL_AURA_PERIODIC_TRIGGER_SPELL
-#if VERSION_STRING >= TBC
-                || sp->getEffectApplyAuraName(i) == SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE
-#endif
-            ))
+                || sp->getEffectApplyAuraName(i) == SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE))
         {
             sp->setEffectAmplitude(1000, i);
 

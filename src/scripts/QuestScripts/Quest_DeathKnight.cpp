@@ -193,7 +193,7 @@ public:
         getCreature()->getAIInterface()->setReactState(REACT_PASSIVE);
         setScriptPhase(PHASE_CHAINED);
         getCreature()->setStandState(STANDSTATE_KNEEL);
-        getCreature()->setVirtualItemSlotId(MELEE, 0);
+        getCreature()->setVirtualItemSlotOrDisplayId(MELEE, 0);
     }
 
     void DoAction(int32_t /*action*/) override
@@ -480,7 +480,7 @@ public:
             }
 
             spell->getCaster()->ToCreature()->castSpell(nullptr, spellId, true);
-            spell->getCaster()->ToCreature()->setVirtualItemSlotId(MELEE, 38707);
+            spell->getCaster()->ToCreature()->setVirtualItemSlotOrDisplayId(MELEE, 38707);
         }
 
         return SpellScriptCheckDummy::DUMMY_OK;

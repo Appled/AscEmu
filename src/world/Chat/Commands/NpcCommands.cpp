@@ -640,9 +640,9 @@ bool ChatCommandHandler::HandleNpcInfoCommand(const char* /*args*/, WorldSession
     //////////////////////////////////////////////////////////////////////////////////////////
     // equipment
     greenSystemMessage(m_session, "Equipment ============================");
-    greenSystemMessage(m_session, "-- Melee: {}", creature_target->getVirtualItemSlotId(MELEE));
-    greenSystemMessage(m_session, "-- Offhand: {}", creature_target->getVirtualItemSlotId(OFFHAND));
-    greenSystemMessage(m_session, "-- Ranged: {}", creature_target->getVirtualItemSlotId(RANGED));
+    greenSystemMessage(m_session, "-- Melee: {}", creature_target->getVirtualItemSlotOrDisplayId(MELEE));
+    greenSystemMessage(m_session, "-- Offhand: {}", creature_target->getVirtualItemSlotOrDisplayId(OFFHAND));
+    greenSystemMessage(m_session, "-- Ranged: {}", creature_target->getVirtualItemSlotOrDisplayId(RANGED));
 
     //////////////////////////////////////////////////////////////////////////////////////////
     // transport
@@ -1283,7 +1283,7 @@ bool ChatCommandHandler::HandleNpcSetEquipCommand(const char* args, WorldSession
         return true;
     }
 
-    const auto previousValue = creature_target->getVirtualItemSlotId(equipment_slot);
+    const auto previousValue = creature_target->getVirtualItemSlotOrDisplayId(equipment_slot);
 
     switch (equipment_slot)
     {
@@ -1361,7 +1361,7 @@ bool ChatCommandHandler::HandleNpcSetEquipCommand(const char* args, WorldSession
         }
     }
 
-    creature_target->setVirtualItemSlotId(equipment_slot, item_id);
+    creature_target->setVirtualItemSlotOrDisplayId(equipment_slot, item_id);
     syncEditedCreatureSpawn(creature_target);
 
     return true;

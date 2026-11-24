@@ -601,9 +601,9 @@ int LuaUnit::SpawnCreature(lua_State* L, Unit* ptr)
         return 1;
     }
     pCreature->setFaction(faction);
-    pCreature->setVirtualItemSlotId(MELEE, equip1);
-    pCreature->setVirtualItemSlotId(OFFHAND, equip2);
-    pCreature->setVirtualItemSlotId(RANGED, equip3);
+    pCreature->setVirtualItemSlotOrDisplayId(MELEE, equip1);
+    pCreature->setVirtualItemSlotOrDisplayId(OFFHAND, equip2);
+    pCreature->setVirtualItemSlotOrDisplayId(RANGED, equip3);
     pCreature->setPhase(PHASE_SET, phase);
     pCreature->m_noRespawn = true;
     pCreature->AddToWorld(ptr->getWorldMap());
@@ -4672,9 +4672,9 @@ int LuaUnit::EquipWeapons(lua_State* L, Unit* ptr)
     const uint32_t equip1 = static_cast<uint32_t>(luaL_checkinteger(L, 1));
     const uint32_t equip2 = static_cast<uint32_t>(luaL_checkinteger(L, 2));
     const uint32_t equip3 = static_cast<uint32_t>(luaL_checkinteger(L, 3));
-    ptr->setVirtualItemSlotId(MELEE, equip1);
-    ptr->setVirtualItemSlotId(OFFHAND, equip2);
-    ptr->setVirtualItemSlotId(RANGED, equip3);
+    ptr->setVirtualItemSlotOrDisplayId(MELEE, equip1);
+    ptr->setVirtualItemSlotOrDisplayId(OFFHAND, equip2);
+    ptr->setVirtualItemSlotOrDisplayId(RANGED, equip3);
     return 0;
 }
 

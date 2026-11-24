@@ -254,15 +254,18 @@ void SpawnManager::refreshTemplateFromObjectNoLock(SpawnState& state, Object* ob
         row.MountedDisplayID = creature->getMountDisplayId();
         row.sheath_state = creature->getSheathType();
 
-#if VERSION_STRING < WotLK
-        row.Item1SlotEntry = creature->getVirtualItemEntry(MELEE);
-        row.Item2SlotEntry = creature->getVirtualItemEntry(OFFHAND);
-        row.Item3SlotEntry = creature->getVirtualItemEntry(RANGED);
-#else
-        row.Item1SlotEntry = creature->getVirtualItemSlotId(MELEE);
-        row.Item2SlotEntry = creature->getVirtualItemSlotId(OFFHAND);
-        row.Item3SlotEntry = creature->getVirtualItemSlotId(RANGED);
-#endif
+        if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+        {
+            row.Item1SlotEntry = creature->getVirtualItemEntry(MELEE);
+            row.Item2SlotEntry = creature->getVirtualItemEntry(OFFHAND);
+            row.Item3SlotEntry = creature->getVirtualItemEntry(RANGED);
+        }
+        else
+        {
+            row.Item1SlotEntry = creature->getVirtualItemSlotOrDisplayId(MELEE);
+            row.Item2SlotEntry = creature->getVirtualItemSlotOrDisplayId(OFFHAND);
+            row.Item3SlotEntry = creature->getVirtualItemSlotOrDisplayId(RANGED);
+        }
 
         row.CanFly = creature->IsFlying() ? 1 : 0;
         row.phase = creature->GetPhase();

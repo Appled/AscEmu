@@ -1966,10 +1966,10 @@ public:
     void OnCombatStop(Unit* /*mTarget*/) override
     {
         // Reset weapon
-        getCreature()->setVirtualItemSlotId(MELEE, 0);
+        getCreature()->setVirtualItemSlotOrDisplayId(MELEE, 0);
 
         // Off hand weapon
-        getCreature()->setVirtualItemSlotId(OFFHAND, 0);
+        getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, 0);
 
         CreatureProperties const* cp = sMySQLStore.getCreatureProperties(CN_MALCHEZAAR);
         if (cp == nullptr)
@@ -2103,10 +2103,10 @@ public:
             getCreature()->castSpell(getCreature(), spells[7].info, spells[6].instant);*/
 
             // Main hand weapon
-            getCreature()->setVirtualItemSlotId(MELEE, AXE_ITEM_MODEL);
+            getCreature()->setVirtualItemSlotOrDisplayId(MELEE, AXE_ITEM_MODEL);
 
             //Off Hand
-            getCreature()->setVirtualItemSlotId(OFFHAND, AXE_ITEM_MODEL);
+            getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, AXE_ITEM_MODEL);
 
             CreatureProperties const* cp = sMySQLStore.getCreatureProperties(CN_MALCHEZAAR);
             if (cp == nullptr)
@@ -2142,10 +2142,10 @@ public:
             getCreature()->removeAllAurasById(WIELD_AXES);
 
             // Main hand weapon
-            getCreature()->setVirtualItemSlotId(MELEE, 0);
+            getCreature()->setVirtualItemSlotOrDisplayId(MELEE, 0);
 
             //Off Hand
-            getCreature()->setVirtualItemSlotId(OFFHAND, 0);
+            getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, 0);
 
             CreatureProperties const* cp = sMySQLStore.getCreatureProperties(CN_MALCHEZAAR);
             if (cp == nullptr)

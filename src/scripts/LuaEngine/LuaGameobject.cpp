@@ -360,9 +360,9 @@ int LuaGameObject::SpawnCreature(lua_State* L, GameObject* ptr)
         return 1;
     }
     pCreature->setFaction(faction);
-    pCreature->setVirtualItemSlotId(MELEE, equip1);
-    pCreature->setVirtualItemSlotId(OFFHAND, equip2);
-    pCreature->setVirtualItemSlotId(RANGED, equip3);
+    pCreature->setVirtualItemSlotOrDisplayId(MELEE, equip1);
+    pCreature->setVirtualItemSlotOrDisplayId(OFFHAND, equip2);
+    pCreature->setVirtualItemSlotOrDisplayId(RANGED, equip3);
     pCreature->setPhase(PHASE_SET, phase);
     pCreature->m_noRespawn = true;
     pCreature->PushToWorld(ptr->getWorldMap());

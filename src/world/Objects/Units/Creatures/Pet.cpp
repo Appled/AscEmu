@@ -839,7 +839,7 @@ bool Pet::_preparePetForPush(PetCache const* petCache)
         } break;
         case PET_FELGUARD:
         {
-            setVirtualItemSlotId(MELEE, 12784);
+            setVirtualItemSlotOrDisplayId(MELEE, 12784);
         } break;
         default:
             break;

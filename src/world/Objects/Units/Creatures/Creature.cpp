@@ -432,7 +432,6 @@ void Creature::setMaxWanderDistance(float_t dist)
     m_wanderDistance = dist;
 }
 
-#if VERSION_STRING < WotLK
 uint32_t Creature::getVirtualItemEntry(uint8_t slot) const
 {
     if (slot >= TOTAL_WEAPON_DAMAGE_TYPES)
@@ -448,7 +447,6 @@ void Creature::setVirtualItemEntry(uint8_t slot, uint32_t itemId)
 
     m_virtualItemEntry[slot] = itemId;
 }
-#endif
 
 void Creature::toggleDualwield(bool enable)
 {
@@ -1068,15 +1066,18 @@ void Creature::SaveToDB()
     m_spawn->MountedDisplayID = getMountDisplayId();
     m_spawn->sheath_state = getSheathType();
 
-#if VERSION_STRING < WotLK
-    m_spawn->Item1SlotEntry = getVirtualItemEntry(MELEE);
-    m_spawn->Item2SlotEntry = getVirtualItemEntry(OFFHAND);
-    m_spawn->Item3SlotEntry = getVirtualItemEntry(RANGED);
-#else
-    m_spawn->Item1SlotEntry = getVirtualItemSlotId(MELEE);
-    m_spawn->Item2SlotEntry = getVirtualItemSlotId(OFFHAND);
-    m_spawn->Item3SlotEntry = getVirtualItemSlotId(RANGED);
-#endif
+    if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+    {
+        m_spawn->Item1SlotEntry = getVirtualItemEntry(MELEE);
+        m_spawn->Item2SlotEntry = getVirtualItemEntry(OFFHAND);
+        m_spawn->Item3SlotEntry = getVirtualItemEntry(RANGED);
+    }
+    else
+    {
+        m_spawn->Item1SlotEntry = getVirtualItemSlotOrDisplayId(MELEE);
+        m_spawn->Item2SlotEntry = getVirtualItemSlotOrDisplayId(OFFHAND);
+        m_spawn->Item3SlotEntry = getVirtualItemSlotOrDisplayId(RANGED);
+    }
 
     m_spawn->CanFly = IsFlying() ? 1 : 0;
     m_spawn->phase = m_phase;
@@ -1917,9 +1918,9 @@ void Creature::Load(CreatureProperties const* properties_, float x, float y, flo
     setPowerType(POWER_TYPE_MANA);
 
     // Equipment
-    setVirtualItemSlotId(MELEE, creature_properties->itemslot_1);
-    setVirtualItemSlotId(OFFHAND, creature_properties->itemslot_2);
-    setVirtualItemSlotId(RANGED, creature_properties->itemslot_3);
+    setVirtualItemSlotOrDisplayId(MELEE, creature_properties->itemslot_1);
+    setVirtualItemSlotOrDisplayId(OFFHAND, creature_properties->itemslot_2);
+    setVirtualItemSlotOrDisplayId(RANGED, creature_properties->itemslot_3);
     setSheathType(SHEATH_STATE_MELEE);
 
     /*  // Dont was Used in old AIInterface left the code here if needed at other Date
@@ -2070,9 +2071,9 @@ bool Creature::LoadFromDB(MySQLStructure::CreatureSpawn* spawn, WorldMap* map, b
     setMinRangedDamage(creature_properties->RangedMinDamage);
     setMaxRangedDamage(creature_properties->RangedMaxDamage);
 
-    setVirtualItemSlotId(MELEE, spawn->Item1SlotEntry);
-    setVirtualItemSlotId(OFFHAND, spawn->Item2SlotEntry);
-    setVirtualItemSlotId(RANGED, spawn->Item3SlotEntry);
+    setVirtualItemSlotOrDisplayId(MELEE, spawn->Item1SlotEntry);
+    setVirtualItemSlotOrDisplayId(OFFHAND, spawn->Item2SlotEntry);
+    setVirtualItemSlotOrDisplayId(RANGED, spawn->Item3SlotEntry);
 
     setFaction(spawn->factionid);
     setUnitFlags(spawn->flags);

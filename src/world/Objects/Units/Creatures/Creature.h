@@ -119,10 +119,10 @@ public:
     float_t getMaxWanderDistance() const;
     void setMaxWanderDistance(float_t dist);
 
-#if VERSION_STRING < WotLK
+    // Used in Classic and TBC
     uint32_t getVirtualItemEntry(uint8_t slot) const;
     void setVirtualItemEntry(uint8_t slot, uint32_t itemId);
-#endif
+
     void toggleDualwield(bool);
 
     std::vector<CreatureItem>* getSellItems();
@@ -166,9 +166,7 @@ public:
     bool isDungeonBoss() { return (GetCreatureProperties()->extra_a9_flags & 0x10000000) != 0; }
 
 private:
-#if VERSION_STRING < WotLK
     uint32_t m_virtualItemEntry[TOTAL_WEAPON_DAMAGE_TYPES] = { 0 };
-#endif
 
 public:
  //AGPL Starts

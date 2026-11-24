@@ -1028,9 +1028,8 @@ static uint8_t virtualItemFieldIndex(uint8_t slot)
 #endif
 }
 
-uint32_t Unit::getVirtualItemSlotId(uint8_t slot) const { return getField<uint32_t>(UnitField::VirtualItemSlotDisplay, virtualItemFieldIndex(slot)); }
-uint32_t Unit::getVirtualItemDisplayId(uint8_t slot) const { return getField<uint32_t>(UnitField::VirtualItemSlotDisplay, virtualItemFieldIndex(slot)); }
-void Unit::setVirtualItemSlotId(uint8_t slot, uint32_t item_id)
+uint32_t Unit::getVirtualItemSlotOrDisplayId(uint8_t slot) const { return getField<uint32_t>(UnitField::VirtualItemSlotDisplay, virtualItemFieldIndex(slot)); }
+void Unit::setVirtualItemSlotOrDisplayId(uint8_t slot, uint32_t item_id)
 {
     const auto isProperOffhandWeapon = [](uint32_t itemClass, uint32_t itemSubClass) -> bool
     {
@@ -1055,115 +1054,116 @@ void Unit::setVirtualItemSlotId(uint8_t slot, uint32_t item_id)
     if (item_id == 0)
     {
         setField<uint32_t>(UnitField::VirtualItemSlotDisplay, 0U, virtualItemFieldIndex(slot));
-#if VERSION_STRING < WotLK
         setVirtualItemInfo(slot, 0);
-#endif
 
-        if (isCreature())
+        if (auto* const thisCreature = ToCreature())
         {
-#if VERSION_STRING < WotLK
-            dynamic_cast<Creature*>(this)->setVirtualItemEntry(slot, 0);
-#endif
+            thisCreature->setVirtualItemEntry(slot, 0);
             if (slot == OFFHAND)
-                dynamic_cast<Creature*>(this)->toggleDualwield(false);
+                thisCreature->toggleDualwield(false);
         }
         return;
     }
 
-#if VERSION_STRING >= WotLK
-    const auto itemDbc = sItemStore.lookupEntry(item_id);
-    if (itemDbc == nullptr
-        || !(itemDbc->itemClass == ITEM_CLASS_WEAPON
-        || (itemDbc->itemClass == ITEM_CLASS_ARMOR && itemDbc->itemSubClass == ITEM_SUBCLASS_ARMOR_SHIELD)
-        || itemDbc->inventoryType == INVTYPE_HOLDABLE))
-        return;
-
-    if (isCreature() && slot == OFFHAND)
-        dynamic_cast<Creature*>(this)->toggleDualwield(isProperOffhandWeapon(itemDbc->itemClass, itemDbc->itemSubClass));
-
-    setField<uint32_t>(UnitField::VirtualItemSlotDisplay, item_id, virtualItemFieldIndex(slot));
-#else
-    unit_virtual_item_info virtualItemInfo{};
-
-    uint32_t displayId = 0;
-    virtualItemInfo.fields.item_class = 0;
-    virtualItemInfo.fields.item_subclass = 0;
-    // Seems to be always -1
-    virtualItemInfo.fields.unk0 = -1;
-    virtualItemInfo.fields.material = 0;
-    virtualItemInfo.fields.inventory_type = 0;
-    virtualItemInfo.fields.sheath = 0;
-    if (const auto itemProperties = sMySQLStore.getItemProperties(item_id))
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
     {
-        displayId = itemProperties->DisplayInfoID;
-        virtualItemInfo.fields.item_class = static_cast<uint8_t>(itemProperties->Class);
-        virtualItemInfo.fields.item_subclass = static_cast<uint8_t>(itemProperties->SubClass);
-        virtualItemInfo.fields.material = static_cast<uint8_t>(itemProperties->LockMaterial);
-        virtualItemInfo.fields.inventory_type = static_cast<uint8_t>(itemProperties->InventoryType);
-        virtualItemInfo.fields.sheath = static_cast<uint8_t>(itemProperties->SheathID);
-    }
-    else if (const auto itemDbc = sItemStore.lookupEntry(item_id))
-    {
-        displayId = itemDbc->displayId;
-        virtualItemInfo.fields.inventory_type = static_cast<uint8_t>(itemDbc->inventoryType);
-        virtualItemInfo.fields.sheath = static_cast<uint8_t>(itemDbc->sheath);
+        // Item entry since Wotlk
+        const auto itemDbc = sItemStore.lookupEntry(item_id);
+        if (itemDbc == nullptr
+            || !(itemDbc->itemClass == ITEM_CLASS_WEAPON
+                || (itemDbc->itemClass == ITEM_CLASS_ARMOR && itemDbc->itemSubClass == ITEM_SUBCLASS_ARMOR_SHIELD)
+                || itemDbc->inventoryType == INVTYPE_HOLDABLE))
+            return;
 
-        // Following values do not exist in dbcs and must be "hackfixed"
-        virtualItemInfo.fields.material = ITEM_MATERIAL_METAL;
-        switch (virtualItemInfo.fields.inventory_type)
-        {
-            case INVTYPE_WEAPON:
-            case INVTYPE_WEAPONMAINHAND:
-            case INVTYPE_WEAPONOFFHAND:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
-                virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_SWORD;
-                break;
-            case INVTYPE_SHIELD:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_ARMOR;
-                virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_ARMOR_SHIELD;
-                break;
-            case INVTYPE_RANGED:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
-                virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_BOW;
-                break;
-            case INVTYPE_RANGEDRIGHT:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
-                virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_GUN;
-                break;
-            case INVTYPE_2HWEAPON:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
-                if (virtualItemInfo.fields.sheath == ITEM_SHEATH_STAFF)
-                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_STAFF;
-                else
-                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_TWOHAND_SWORD;
-                break;
-            case INVTYPE_HOLDABLE:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_MISCELLANEOUS;
-                virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_MISC_JUNK;
-                break;
-            case INVTYPE_THROWN:
-                virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
-                virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_THROWN;
-                break;
-            default:
-                return;
-        }
+        if (auto* const thisCreature = ToCreature(); thisCreature != nullptr && slot == OFFHAND)
+            thisCreature->toggleDualwield(isProperOffhandWeapon(itemDbc->itemClass, itemDbc->itemSubClass));
+
+        setField<uint32_t>(UnitField::VirtualItemSlotDisplay, item_id, virtualItemFieldIndex(slot));
     }
     else
     {
-        return;
-    }
+        // Item display id and item info in Classic and TBC
+        unit_virtual_item_info virtualItemInfo{};
 
-    if (isCreature())
-    {
-        dynamic_cast<Creature*>(this)->setVirtualItemEntry(slot, item_id);
-        if (slot == OFFHAND)
-            dynamic_cast<Creature*>(this)->toggleDualwield(isProperOffhandWeapon(virtualItemInfo.fields.item_class, virtualItemInfo.fields.item_subclass));
-    }
+        uint32_t displayId = 0;
+        virtualItemInfo.fields.item_class = 0;
+        virtualItemInfo.fields.item_subclass = 0;
+        // Seems to be always -1
+        virtualItemInfo.fields.unk0 = -1;
+        virtualItemInfo.fields.material = 0;
+        virtualItemInfo.fields.inventory_type = 0;
+        virtualItemInfo.fields.sheath = 0;
+        if (const auto itemProperties = sMySQLStore.getItemProperties(item_id))
+        {
+            displayId = itemProperties->DisplayInfoID;
+            virtualItemInfo.fields.item_class = static_cast<uint8_t>(itemProperties->Class);
+            virtualItemInfo.fields.item_subclass = static_cast<uint8_t>(itemProperties->SubClass);
+            virtualItemInfo.fields.material = static_cast<uint8_t>(itemProperties->LockMaterial);
+            virtualItemInfo.fields.inventory_type = static_cast<uint8_t>(itemProperties->InventoryType);
+            virtualItemInfo.fields.sheath = static_cast<uint8_t>(itemProperties->SheathID);
+        }
+        else if (const auto itemDbc = sItemStore.lookupEntry(item_id))
+        {
+            displayId = itemDbc->displayId;
+            virtualItemInfo.fields.inventory_type = static_cast<uint8_t>(itemDbc->inventoryType);
+            virtualItemInfo.fields.sheath = static_cast<uint8_t>(itemDbc->sheath);
 
-    setField<uint32_t>(UnitField::VirtualItemSlotDisplay, displayId, slot);
-    setVirtualItemInfo(slot, virtualItemInfo.raw);
-#endif
+            // Following values do not exist in dbcs and must be "hackfixed"
+            virtualItemInfo.fields.material = ITEM_MATERIAL_METAL;
+            switch (virtualItemInfo.fields.inventory_type)
+            {
+                case INVTYPE_WEAPON:
+                case INVTYPE_WEAPONMAINHAND:
+                case INVTYPE_WEAPONOFFHAND:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
+                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_SWORD;
+                    break;
+                case INVTYPE_SHIELD:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_ARMOR;
+                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_ARMOR_SHIELD;
+                    break;
+                case INVTYPE_RANGED:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
+                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_BOW;
+                    break;
+                case INVTYPE_RANGEDRIGHT:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
+                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_GUN;
+                    break;
+                case INVTYPE_2HWEAPON:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
+                    if (virtualItemInfo.fields.sheath == ITEM_SHEATH_STAFF)
+                        virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_STAFF;
+                    else
+                        virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_TWOHAND_SWORD;
+                    break;
+                case INVTYPE_HOLDABLE:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_MISCELLANEOUS;
+                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_MISC_JUNK;
+                    break;
+                case INVTYPE_THROWN:
+                    virtualItemInfo.fields.item_class = ITEM_CLASS_WEAPON;
+                    virtualItemInfo.fields.item_subclass = ITEM_SUBCLASS_WEAPON_THROWN;
+                    break;
+                default:
+                    return;
+            }
+        }
+        else
+        {
+            return;
+        }
+
+        if (auto* const thisCreature = ToCreature())
+        {
+            thisCreature->setVirtualItemEntry(slot, item_id);
+            if (slot == OFFHAND)
+                thisCreature->toggleDualwield(isProperOffhandWeapon(virtualItemInfo.fields.item_class, virtualItemInfo.fields.item_subclass));
+        }
+
+        setField<uint32_t>(UnitField::VirtualItemSlotDisplay, displayId, slot);
+        setVirtualItemInfo(slot, virtualItemInfo.raw);
+    }
 }
 
 uint64_t Unit::getVirtualItemInfo(uint8_t slot) const { return getField<uint64_t>(UnitField::VirtualItemInfo, slot); }
@@ -6101,19 +6101,12 @@ void Unit::regeneratePower(PowerType type, uint16_t timePassed)
         {
             if (isPlayer())
             {
-#if VERSION_STRING < Cata
-                // Check for 5 second regen interruption
+                // Check for 5 second regen interruption pre-Cata
+                // Check for combat Cata+
                 if (isPowerRegenerationInterrupted())
                     amount = getPowerRegenerationWhileInterrupted(POWER_TYPE_MANA);
                 else
                     amount = getPowerRegeneration(POWER_TYPE_MANA);
-#else
-                // Check for combat (5 second rule was removed in cata)
-                if (getCombatHandler().isInCombat())
-                    amount = getPowerRegenerationWhileInterrupted(POWER_TYPE_MANA);
-                else
-                    amount = getPowerRegeneration(POWER_TYPE_MANA);
-#endif
 #if VERSION_STRING < WotLK
                 // Send update packet pre-wotlk
                 sendUpdatePacket = true;
@@ -6287,22 +6280,26 @@ bool Unit::isHealthRegenerationInterrupted() const
     return m_healthRegenerateTimer != 0;
 }
 
-#if VERSION_STRING < Cata
 void Unit::interruptPowerRegeneration(uint32_t timeInMS)
 {
-#if VERSION_STRING > TBC
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+        return;
+
     if (isPlayer() && !isPowerRegenerationInterrupted())
         removeUnitFlags2(UNIT_FLAG2_ENABLE_POWER_REGEN);
-#endif
 
     m_powerRegenerationInterruptTime = timeInMS;
 }
 
 bool Unit::isPowerRegenerationInterrupted() const
 {
+    // Check for combat (5 second rule was removed in cata)
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+        return m_combatHandler.isInCombat();
+
+    // Check for 5 second regen interruption
     return m_powerRegenerationInterruptTime != 0;
 }
-#endif
 
 void Unit::energize(Unit* target, uint32_t spellId, uint32_t amount, PowerType type, bool sendPacket/* = true*/)
 {
@@ -7695,33 +7692,32 @@ MovementGeneratorType Unit::getDefaultMovementType() const
     return IDLE_MOTION_TYPE;
 }
 
-#if VERSION_STRING >= Cata
 WDB::Structures::MountCapabilityEntry const* Unit::getMountCapability(uint32_t mountType)
 {
-    if (!mountType)
+    if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+        return nullptr;
+
+    if (mountType == 0)
         return nullptr;
 
     auto const* mountTypeEntry = sMountTypeStore.lookupEntry(mountType);
-    if (!mountTypeEntry)
+    if (mountTypeEntry == nullptr)
         return nullptr;
 
-    uint32_t zoneId = 0;
+    const auto zoneId = getZoneId();
+
     uint32_t areaId = 0;
-
-    if (getZoneId())
-        zoneId = getZoneId();
-
-    if (GetArea())
-        areaId = GetArea()->id;
+    if (const auto* area = GetArea())
+        areaId = area->id;
 
     uint32_t ridingSkill = 5000;
-    if (GetTypeFromGUID() == TYPEID_PLAYER)
-        ridingSkill = ToPlayer()->getSkillLineCurrent(SKILL_RIDING);
+    if (const auto* thisPlayer = ToPlayer())
+        ridingSkill = thisPlayer->getSkillLineCurrent(SKILL_RIDING);
 
     for (uint32_t i = MAX_MOUNT_CAPABILITIES; i > 0; --i)
     {
         auto const* mountCapability = sMountCapabilityStore.lookupEntry(mountTypeEntry->capabilities[i - 1]);
-        if (!mountCapability)
+        if (mountCapability == nullptr)
             continue;
 
         if (ridingSkill < mountCapability->reqRidingSkill)
@@ -7746,21 +7742,23 @@ WDB::Structures::MountCapabilityEntry const* Unit::getMountCapability(uint32_t m
         if (mountCapability->reqMap != std::numeric_limits<uint32_t>::max() && GetMapId() != mountCapability->reqMap)
             continue;
 
-        if (mountCapability->reqArea && (mountCapability->reqArea != zoneId && mountCapability->reqArea != areaId))
+        if (mountCapability->reqArea != 0 && (mountCapability->reqArea != zoneId && mountCapability->reqArea != areaId))
             continue;
 
-        if (mountCapability->reqAura && !hasAurasWithId(mountCapability->reqAura))
+        if (mountCapability->reqAura != 0 && !hasAurasWithId(mountCapability->reqAura))
             continue;
 
-        if (mountCapability->reqSpell && (GetTypeFromGUID() != TYPEID_PLAYER || !ToPlayer()->hasSpell(mountCapability->reqSpell)))
-            continue;
+        if (mountCapability->reqSpell != 0)
+        {
+            if (const auto* thisPlayer = ToPlayer(); thisPlayer != nullptr && !thisPlayer->hasSpell(mountCapability->reqSpell))
+                continue;
+        }
 
         return mountCapability;
     }
 
     return nullptr;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Threat Management

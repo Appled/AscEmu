@@ -97,8 +97,8 @@ public:
             else
                 getCreature()->castSpell(getCreature(), SPELL_FROZEBLADE, false);
 
-            getCreature()->setVirtualItemSlotId(MELEE, EQUIP_ID_SWORD);
-            getCreature()->setVirtualItemSlotId(OFFHAND, 0);
+            getCreature()->setVirtualItemSlotOrDisplayId(MELEE, EQUIP_ID_SWORD);
+            getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, 0);
             setScriptPhase(2);
         }
 
@@ -117,7 +117,7 @@ public:
             else
                 getCreature()->castSpell(getCreature(), SPELL_FROZEMACE, false);
             
-            getCreature()->setVirtualItemSlotId(MELEE, EQUIP_ID_MACE);
+            getCreature()->setVirtualItemSlotOrDisplayId(MELEE, EQUIP_ID_MACE);
             setScriptPhase(3);
         }
     }

@@ -121,7 +121,7 @@ enum PlayerSkills : uint16_t
     SKILL_DESTRUCTION                   = 593,
     SKILL_HOLY2                         = 594,
     SKILL_DISCIPLINE                    = 613,
-    SKILL_LOCKPICKING                   = 633,
+    SKILL_LOCKPICKING                   = 633, // Pre cata
     SKILL_PET_BAT                       = 653,
     SKILL_PET_HYENA                     = 654,
     SKILL_PET_BIRD_OF_PREY              = 655,

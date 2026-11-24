@@ -492,21 +492,21 @@ public:
         if (getCreature()->getWorldMap() &&
             getCreature()->getWorldMap()->getSpawnManager().getCreatureSpawnTemplate(getCreature()->getGuid(), spawnTemplate))
         {
-            getCreature()->setVirtualItemSlotId(MELEE, spawnTemplate.Item1SlotEntry);
-            getCreature()->setVirtualItemSlotId(OFFHAND, spawnTemplate.Item2SlotEntry);
+            getCreature()->setVirtualItemSlotOrDisplayId(MELEE, spawnTemplate.Item1SlotEntry);
+            getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, spawnTemplate.Item2SlotEntry);
         }
         else
         {
-            getCreature()->setVirtualItemSlotId(MELEE, 0);
-            getCreature()->setVirtualItemSlotId(OFFHAND, 0);
+            getCreature()->setVirtualItemSlotOrDisplayId(MELEE, 0);
+            getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, 0);
         }
     }
 
     void SwitchToDemonForm()
     {
         getCreature()->setDisplayId(20125);
-        getCreature()->setVirtualItemSlotId(MELEE, 0);
-        getCreature()->setVirtualItemSlotId(OFFHAND, 0);
+        getCreature()->setVirtualItemSlotOrDisplayId(MELEE, 0);
+        getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, 0);
     }
 
     void AIUpdate() override

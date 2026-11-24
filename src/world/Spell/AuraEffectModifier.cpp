@@ -83,10 +83,8 @@ bool AuraEffectModifier::isPeriodicEffect() const
         case SPELL_AURA_PERIODIC_MANA_LEECH:
         case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
         case SPELL_AURA_PERIODIC_POWER_BURN:
-#if VERSION_STRING >= TBC
         case SPELL_AURA_PERIODIC_TRIGGER_DUMMY:
         case SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE:
-#endif
             return true;
         default:
             return false;
@@ -191,12 +189,10 @@ void AuraEffectModifier::updateAreaAuraEffectTargets(bool periodicTickForAreaAur
         case SPELL_EFFECT_APPLY_ENEMY_AREA_AURA:
             _fillEnemyAreaAuraTargets(auraRadius);
             break;
-#if VERSION_STRING >= TBC
         case SPELL_EFFECT_APPLY_OWNER_AREA_AURA:
             _fillOwnerAreaAuraTargets(auraRadius);
             cannotBeEmptyAura = true;
             break;
-#endif
         default:
             return;
     }
@@ -443,9 +439,7 @@ void AuraEffectModifier::_periodicTick()
                 aurOwner->energize(aurOwner, spellId, unsignedValue, powerType, false);
         } break;
         case SPELL_AURA_PERIODIC_TRIGGER_SPELL:
-#if VERSION_STRING >= TBC
         case SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE:
-#endif
         {
             const auto scriptResult = sScriptMgr.callScriptedAuraOnPeriodicTick(&mAura, this, &effectFloatValue);
             // If script prevents default action, do not continue
@@ -504,13 +498,11 @@ void AuraEffectModifier::_periodicTick()
             }
 
             Spell* triggerSpell = sSpellMgr.newSpell(casterUnit, triggerInfo, true, &mAura);
-#if VERSION_STRING >= TBC
             if (mAuraEffect == SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE)
             {
                 for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
                     triggerSpell->forced_basepoints->set(i, static_cast<int32_t>(std::ceil(effectFloatValue)));
             }
-#endif
             triggerSpell->prepare(&spellTargets);
         } break;
         case SPELL_AURA_PERIODIC_ENERGIZE:
@@ -665,7 +657,6 @@ void AuraEffectModifier::_periodicTick()
             else
                 aurOwner->doSpellDamage(aurOwner, aurSpellId, damage, effIndex, mAura.isTriggeredBySpellId(), true, false, critChance, nullptr, &mAura, this);
         } break;
-#if VERSION_STRING >= TBC
         case SPELL_AURA_PERIODIC_TRIGGER_DUMMY:
         {
             // Drink spells use periodic dummy trigger since TBC
@@ -698,7 +689,6 @@ void AuraEffectModifier::_periodicTick()
 
             sLogger.debugAuraEffect("Spell aura {} has a periodic trigger dummy effect but no handler for it.", aurSpellId);
         } break;
-#endif
         default:
             break;
     }

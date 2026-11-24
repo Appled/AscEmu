@@ -492,8 +492,8 @@ public:
     static CreatureAIScript* Create(Creature* c) { return new GearmasterMechazodAI(c); }
     explicit GearmasterMechazodAI(Creature* pCreature) : CreatureAIScript(pCreature)
     {
-        getCreature()->setVirtualItemSlotId(MELEE, 28487);
-        getCreature()->setVirtualItemSlotId(OFFHAND, 11587);
+        getCreature()->setVirtualItemSlotOrDisplayId(MELEE, 28487);
+        getCreature()->setVirtualItemSlotOrDisplayId(OFFHAND, 11587);
         getCreature()->getAIInterface()->setAllowedToEnterCombat(false);
         RegisterAIUpdateEvent(100);
         phase = 0;

@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include "AEVersion.hpp"
 #include "Server/Script/ScriptMgr.hpp"
 
 

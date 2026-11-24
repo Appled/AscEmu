@@ -973,10 +973,10 @@ enum UnitFieldFlags : uint32_t // UNIT_FIELD_FLAGS #46 - these are client flags
     UNIT_FLAG_PVP_ATTACKABLE                    = 0x00000008, // 4            8  makes players and NPCs attackable / not attackable
 
     // Bit 5 & 6 (Classic vs. TBC+)
-    UNIT_FLAG_PET_CAN_BE_RENAMED                = 0x00000010, // 5           16  UnitBytes2 in tbc+
-    UNIT_FLAG_PET_CAN_BE_ABANDONED              = 0x00000020, // 6           32  UnitBytes2 in tbc+
-    UNIT_FLAG_UNKNOWN_5                         = 0x00000010, // 5           16  ? some NPCs have this
-    UNIT_FLAG_NO_REAGANT_COST                   = 0x00000020, // 6           32  no reagant cost
+    UNIT_FLAG_PET_CAN_BE_RENAMED                = 0x00000010, // 5           16  Classic only, UnitBytes2 in tbc+
+    UNIT_FLAG_PET_CAN_BE_ABANDONED              = 0x00000020, // 6           32  Classic only, UnitBytes2 in tbc+
+    UNIT_FLAG_UNKNOWN_5                         = 0x00000010, // 5           16  TBC+: ? some NPCs have this
+    UNIT_FLAG_NO_REAGANT_COST                   = 0x00000020, // 6           32  TBC+: no reagant cost
 
     UNIT_FLAG_PLUS_MOB                          = 0x00000040, // 7           64  ? some NPCs have this (Rare/Elite/Boss?)
     UNIT_FLAG_UNKNOWN_8                         = 0x00000080, // 8          128  ? can change attackable status
@@ -986,8 +986,8 @@ enum UnitFieldFlags : uint32_t // UNIT_FIELD_FLAGS #46 - these are client flags
     UNIT_FLAG_PET_IN_COMBAT                     = 0x00000800, // 12        2048  on player pets: whether the pet is chasing a target to attack || on other units: whether any of the unit's minions is in combat
 
     // Bit 13
-    UNIT_FLAG_PVP = 0x00001000,                               // 13        4096  sets PvP flag (<= TBC)
-    UNIT_FLAG_UNKNOWN_13                        = 0x00001000, // 13        4096
+    UNIT_FLAG_PVP                               = 0x00001000, // 13        4096  Classic - TBC: sets PvP flag
+    UNIT_FLAG_UNKNOWN_13                        = 0x00001000, // 13        4096  Wotlk+
 
     UNIT_FLAG_SILENCED                          = 0x00002000, // 14        8192
     UNIT_FLAG_DEAD                              = 0x00004000, // 15       16384  used for special "dead" NPCs like Withered Corpses
@@ -1005,36 +1005,36 @@ enum UnitFieldFlags : uint32_t // UNIT_FIELD_FLAGS #46 - these are client flags
     UNIT_FLAG_SKINNABLE                         = 0x04000000, // 27    67108864
 
     // Bit 28
-    UNIT_FLAG_DETECT_AURAS                      = 0x08000000, // 28   134217728  Auras on unit are detectable (Classic)
-    UNIT_FLAG_MOUNT                             = 0x08000000, // 28   134217728  ? was MAKE_CHAR_UNTOUCHABLE (probably wrong), nothing ever set it
+    UNIT_FLAG_DETECT_AURAS                      = 0x08000000, // 28   134217728  Classic only: Auras on unit are detectable
+    UNIT_FLAG_MOUNT                             = 0x08000000, // 28   134217728  TBC+: ? was MAKE_CHAR_UNTOUCHABLE (probably wrong), nothing ever set it
 
     UNIT_FLAG_UNKNOWN_29                        = 0x10000000, // 29   268435456
     UNIT_FLAG_FEIGN_DEATH                       = 0x20000000, // 30   536870912
     UNIT_FLAG_UNKNOWN_31                        = 0x40000000, // 31  1073741824  ? was WEAPON_OFF and being used for disarm
-    UNIT_FLAG_IMMUNE                            = 0x80000000 // 32  2147483648
+    UNIT_FLAG_IMMUNE                            = 0x80000000  // 32  2147483648
 };
 
 enum UnitFieldFlags2 : uint32_t
 {
-    UNIT_FLAG2_FEIGN_DEATH                      = 0x0000001,
-    UNIT_FLAG2_HIDE_BODY                        = 0x0000002, // Hides body and body armor. Weapons, shoulder and head armors still visible
-    UNIT_FLAG2_UNK2                             = 0x0000004,
-    UNIT_FLAG2_COMPREHEND_LANG                  = 0x0000008, // Allows target to understand itself while talking in different language
-    UNIT_FLAG2_MIRROR_IMAGE                     = 0x0000010,
-    UNIT_FLAG2_UNK5                             = 0x0000020,
-    UNIT_FLAG2_FORCE_MOVE                       = 0x0000040, // Makes target to run forward
-    UNIT_FLAG2_DISARM_OFFHAND                   = 0x0000080,
-    UNIT_FLAG2_UNK8                             = 0x0000100,
-    UNIT_FLAG2_UNK9                             = 0x0000200,
-    UNIT_FLAG2_DISARM_RANGED                    = 0x0000400,
-    UNIT_FLAG2_ENABLE_POWER_REGEN               = 0x0000800,
-    UNIT_FLAG2_SPELL_CLICK_PARTY_RAID_ONLY      = 0x0001000, // Restrict interaction to party or raid
-    UNIT_FLAG2_PREVENT_SPELL_CLICK              = 0x0002000, // Prevent spellclick
-    UNIT_FLAG2_ALLOW_ENEMY_INTERACT             = 0x0004000,
-    UNIT_FLAG2_DISABLE_TURN                     = 0x0008000,
-    UNIT_FLAG2_UNK10                            = 0x0010000,
-    UNIT_FLAG2_PLAY_DEATH_ANIM                  = 0x0020000, // Plays special death animation upon death
-    UNIT_FLAG2_ALLOW_CHEAT_SPELLS               = 0x0040000 // Allows casting spells with AttributesExG & SP_ATTR_EX_G_IS_CHEAT_SPELL
+    UNIT_FLAG2_FEIGN_DEATH                      = 0x0000001, // TBC+
+    UNIT_FLAG2_HIDE_BODY                        = 0x0000002, // TBC+: Hides body and body armor. Weapons, shoulder and head armors still visible
+    UNIT_FLAG2_UNK2                             = 0x0000004, // TBC+
+    UNIT_FLAG2_COMPREHEND_LANG                  = 0x0000008, // TBC+: Allows target to understand itself while talking in different language
+    UNIT_FLAG2_MIRROR_IMAGE                     = 0x0000010, // TBC+
+    UNIT_FLAG2_UNK5                             = 0x0000020, // TBC+
+    UNIT_FLAG2_FORCE_MOVE                       = 0x0000040, // TBC+: Makes target to run forward
+    UNIT_FLAG2_DISARM_OFFHAND                   = 0x0000080, // WotLK+
+    UNIT_FLAG2_UNK8                             = 0x0000100, // WotLK+
+    UNIT_FLAG2_UNK9                             = 0x0000200, // WotLK+
+    UNIT_FLAG2_DISARM_RANGED                    = 0x0000400, // WotLK+
+    UNIT_FLAG2_ENABLE_POWER_REGEN               = 0x0000800, // WotLK+
+    UNIT_FLAG2_SPELL_CLICK_PARTY_RAID_ONLY      = 0x0001000, // WotLK+: Restrict interaction to party or raid
+    UNIT_FLAG2_PREVENT_SPELL_CLICK              = 0x0002000, // WotLK+: Prevent spellclick
+    UNIT_FLAG2_ALLOW_ENEMY_INTERACT             = 0x0004000, // WotLK+
+    UNIT_FLAG2_DISABLE_TURN                     = 0x0008000, // WotLK+
+    UNIT_FLAG2_UNK10                            = 0x0010000, // WotLK+
+    UNIT_FLAG2_PLAY_DEATH_ANIM                  = 0x0020000, // WotLK+: Plays special death animation upon death
+    UNIT_FLAG2_ALLOW_CHEAT_SPELLS               = 0x0040000  // WotLK+: Allows casting spells with AttributesExG & SP_ATTR_EX_G_IS_CHEAT_SPELL
 };
 
 #if VERSION_STRING < Mop

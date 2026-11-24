@@ -7,7 +7,6 @@ This file is released under the MIT license. See README-MIT for more information
 
 #include "Utilities/LocationVector.hpp"
 #include "WoWGuid.hpp"
-#include "AEVersion.hpp"
 
 #include <cstdint>
 #include <string>

@@ -211,12 +211,13 @@ Spell::Spell(Object* _caster, SpellInfo const* _spellInfo, bool _triggered, Aura
 
 Spell::~Spell()
 {
-#if VERSION_STRING >= WotLK
-    // If this spell deals with rune power, send spell_go to update client
-    // For instance, when Dk cast Empower Rune Weapon, if we don't send spell_go, the client won't update
-    if (getSpellInfo()->getFirstSchoolFromSchoolMask() && getSpellInfo()->getPowerType() == POWER_TYPE_RUNES)
-        sendSpellGo();
-#endif
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+    {
+        // If this spell deals with rune power, send spell_go to update client
+        // For instance, when Dk cast Empower Rune Weapon, if we don't send spell_go, the client won't update
+        if (getSpellInfo()->getFirstSchoolFromSchoolMask() && getSpellInfo()->getPowerType() == POWER_TYPE_RUNES)
+            sendSpellGo();
+    }
 
     m_caster->m_pendingSpells.erase(this);
 
@@ -561,9 +562,7 @@ void Spell::castMe(const bool doReCheck)
 
     // Remove reagents before handling effects so crafted item can be put in same slot
     removeReagents();
-#if VERSION_STRING < Cata
     removeAmmo();
-#endif
 
     // TODO: REMOVE ME; hackfixes from legacy Spell::castMe()
     castMeOld();
@@ -676,21 +675,22 @@ void Spell::castMe(const bool doReCheck)
     if (!GetSpellFailed())
         removeCastItem();
 
-#if VERSION_STRING < Cata
-    /*
-    Five Second Rule
-    After a character expends mana in casting a spell, the effective amount of mana gained per tick from spirit-based regeneration becomes a ratio of the normal
-    listed above, for a period of 5 seconds. During this period mana regeneration is said to be interrupted. This is commonly referred to as the five second rule.
-    By default, your interrupted mana regeneration ratio is 0%, meaning that spirit-based mana regeneration is suspended for 5 seconds after casting.
+    if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+    {
+        /*
+        Five Second Rule
+        After a character expends mana in casting a spell, the effective amount of mana gained per tick from spirit-based regeneration becomes a ratio of the normal
+        listed above, for a period of 5 seconds. During this period mana regeneration is said to be interrupted. This is commonly referred to as the five second rule.
+        By default, your interrupted mana regeneration ratio is 0%, meaning that spirit-based mana regeneration is suspended for 5 seconds after casting.
 
-    Channeled spells are handled a little differently. The five second rule starts when the spell's channeling starts; i.e. when you pay the mana for it.
-    The rule continues for at least five seconds, and longer if the spell is channeled for more than five seconds. For example,
-    Mind Flay channels for 3 seconds and interrupts your regeneration for 5 seconds, while Tranquility channels for 10 seconds
-    and interrupts your regeneration for the full 10 seconds.
-    */
-    if (m_usesMana && u_caster != nullptr)
-        u_caster->interruptPowerRegeneration(std::max(channelDuration, 5000u));
-#endif
+        Channeled spells are handled a little differently. The five second rule starts when the spell's channeling starts; i.e. when you pay the mana for it.
+        The rule continues for at least five seconds, and longer if the spell is channeled for more than five seconds. For example,
+        Mind Flay channels for 3 seconds and interrupts your regeneration for 5 seconds, while Tranquility channels for 10 seconds
+        and interrupts your regeneration for the full 10 seconds.
+        */
+        if (m_usesMana && u_caster != nullptr)
+            u_caster->interruptPowerRegeneration(std::max(channelDuration, 5000u));
+    }
 
     // we're much better to remove this here, because otherwise spells that change powers etc,
     // don't get applied.
@@ -1654,11 +1654,9 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
         {
             if (!getSpellInfo()->isPassive())
             {
-#if VERSION_STRING >= WotLK
                 // You can't cast other spells if you have the player flag preventing cast
                 if (p_caster->hasPlayerFlags(PLAYER_FLAG_PREVENT_SPELL_CAST))
                     return SPELL_FAILED_SPELL_IN_PROGRESS;
-#endif
 
                 // Check for cooldown
                 if (p_caster->hasSpellOnCooldown(getSpellInfo()))
@@ -1682,18 +1680,15 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
             }
         }
 
-#if VERSION_STRING >= WotLK
         if (getSpellInfo()->getAttributesExG() & ATTRIBUTESEXG_IS_CHEAT_SPELL && !p_caster->getSession()->HasGMPermissions())
         {
             *parameter1 = SPELL_EXTRA_ERROR_GM_ONLY;
             return SPELL_FAILED_CUSTOM_ERROR;
         }
-#endif
 
         // Battleground checks
         if (p_caster->getBattleground())
         {
-#if VERSION_STRING >= TBC
             // Arena checks
             if (p_caster->getBattleground()->isArena())
             {
@@ -1702,7 +1697,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 if (getSpellInfo()->getAttributesExD() & ATTRIBUTESEXD_NOT_IN_ARENAS || (spellCooldown > 10 * MINUTE * IN_MILLISECONDS && !(getSpellInfo()->getAttributesExD() & ATTRIBUTESEXD_NOT_IN_ARENAS)))
                     return SPELL_FAILED_NOT_IN_ARENA;
             }
-#endif
 
             // If battleground has ended, don't allow spell casting
             if (!m_triggeredSpell && p_caster->getBattleground()->hasEnded())
@@ -1746,7 +1740,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
             return SPELL_FAILED_CASTER_AURASTATE;
 
         auto requireCombat = true;
-#if VERSION_STRING >= WotLK
         if (u_caster->hasAuraWithAuraEffect(SPELL_AURA_IGNORE_TARGET_AURA_STATE))
         {
             for (const auto& aurEff : getUnitCaster()->getAuraEffectList(SPELL_AURA_IGNORE_TARGET_AURA_STATE))
@@ -1767,7 +1760,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 }
             }
         }
-#endif
 
         // Caster's aura state requirements
         if (getSpellInfo()->getCasterAuraState() > 0 && !u_caster->hasAuraState(static_cast<AuraState>(getSpellInfo()->getCasterAuraState()), getSpellInfo(), u_caster))
@@ -1802,7 +1794,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
             if (!secondCheck)
             {
                 // Shapeshift check
-#if VERSION_STRING >= WotLK
                 auto hasIgnoreShapeshiftAura = false;
                 for (const auto& aurEff : getUnitCaster()->getAuraEffectList(SPELL_AURA_IGNORE_SHAPESHIFT))
                 {
@@ -1816,7 +1807,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 }
 
                 if (!hasIgnoreShapeshiftAura)
-#endif
                 {
                     SpellCastResult shapeError = checkShapeshift(getSpellInfo(), u_caster->getShapeShiftForm());
                     if (shapeError != SPELL_CAST_SUCCESS)
@@ -2016,14 +2006,15 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                         return SPELL_FAILED_DONT_REPORT;
                     }
 
-#if VERSION_STRING >= WotLK
                     // Check for Beast Mastery spell with exotic creatures
                     if (!p_caster->hasAuraWithAuraEffect(SPELL_AURA_ALLOW_TAME_PET_TYPE) && creatureTarget->IsExotic())
                     {
-                        SendTameFailure(PETTAME_CANTCONTROLEXOTIC);
+                        if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+                            SendTameFailure(PETTAME_CANTCONTROLEXOTIC);
+                        else
+                            SendTameFailure(PETTAME_NOTTAMEABLE);
                         return SPELL_FAILED_DONT_REPORT;
                     }
-#endif
 
                     // All good so far, check creature's family
                     const auto creatureFamily = sCreatureFamilyStore.lookupEntry(creatureTarget->GetCreatureProperties()->Family);
@@ -2058,14 +2049,12 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 {
                     // Throw spell has these attributes in 3.3.5a, ignore
                     if (getSpellInfo()->getId() != SPELL_RANGED_THROW
-#if VERSION_STRING >= TBC
                         // Druid - Pounce, "Patch 2.0.3 - Pounce no longer requires the druid to be behind the target."
-                        && !(getSpellInfo()->getSpellFamilyName() == SPELLFAMILY_DRUID && getSpellInfo()->getSpellFamilyFlags(0) == 0x20000)
-#endif
-#if VERSION_STRING >= WotLK
+                        && !(WoW::isServerExpansionAtLeast(WoW::Expansion::_TBC) &&
+                            getSpellInfo()->getSpellFamilyName() == SPELLFAMILY_DRUID && getSpellInfo()->getSpellFamilyFlags(0) == 0x20000)
                         // Rogue - Mutilate, "Patch 3.0.2 - Mutilate no longer requires you be behind the target."
-                        && !(getSpellInfo()->getSpellFamilyName() == SPELLFAMILY_ROGUE && getSpellInfo()->getSpellFamilyFlags(1) == 0x200000)
-#endif
+                        && !(WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) &&
+                            getSpellInfo()->getSpellFamilyName() == SPELLFAMILY_ROGUE && getSpellInfo()->getSpellFamilyFlags(1) == 0x200000)
                         )
                         return SPELL_FAILED_NOT_BEHIND;
                 }
@@ -2216,41 +2205,47 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
             if (areaEntry == nullptr)
                 return SPELL_FAILED_NOT_HERE;
 
-            [[maybe_unused]] const auto requireAreaId = static_cast<uint32_t>(getSpellInfo()->getRequiresAreaId());
-#if VERSION_STRING == TBC
-            if (requireAreaId != areaEntry->id && requireAreaId != areaEntry->zone)
+            if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
             {
-                *parameter1 = getSpellInfo()->getRequiresAreaId();
-                return SPELL_FAILED_REQUIRES_AREA;
-            }
-#elif VERSION_STRING >= WotLK
-            auto found = false;
-            auto areaGroup = sAreaGroupStore.lookupEntry(requireAreaId);
-            while (areaGroup != nullptr)
-            {
-                for (const auto& i : areaGroup->areaId)
+                // TBC uses area ID
+                // Field does not exist in Classic so getRequiresAreaId() is always 0 there
+                const auto requireAreaId = static_cast<uint32_t>(getSpellInfo()->getRequiresAreaId());
+                if (requireAreaId != areaEntry->id && requireAreaId != areaEntry->zone)
                 {
-                    if (i == areaEntry->id || (areaEntry->zone != 0 && i == areaEntry->zone))
+                    *parameter1 = getSpellInfo()->getRequiresAreaId();
+                    return SPELL_FAILED_REQUIRES_AREA;
+                }
+            }
+            else
+            {
+                // Wotlk+ uses area group ID
+                auto found = false;
+                auto areaGroup = sAreaGroupStore.lookupEntry(static_cast<uint32_t>(getSpellInfo()->getRequiresAreaId()));
+                while (areaGroup != nullptr)
+                {
+                    for (const auto& i : areaGroup->areaId)
                     {
-                        found = true;
-                        *parameter1 = 0;
+                        if (i == areaEntry->id || (areaEntry->zone != 0 && i == areaEntry->zone))
+                        {
+                            found = true;
+                            *parameter1 = 0;
+                            break;
+                        }
+                        else if (i != 0)
+                        {
+                            *parameter1 = i;
+                        }
+                    }
+
+                    if (found || areaGroup->nextGroup == 0)
                         break;
-                    }
-                    else if (i != 0)
-                    {
-                        *parameter1 = i;
-                    }
+
+                    areaGroup = sAreaGroupStore.lookupEntry(areaGroup->nextGroup);
                 }
 
-                if (found || areaGroup->nextGroup == 0)
-                    break;
-
-                areaGroup = sAreaGroupStore.lookupEntry(areaGroup->nextGroup);
+                if (!found)
+                    return SPELL_FAILED_REQUIRES_AREA;
             }
-
-            if (!found)
-                return SPELL_FAILED_REQUIRES_AREA;
-#endif
         }
 
         // Flying mount check
@@ -2283,11 +2278,9 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
         {
             if (p_caster->IsInWorld() && (p_caster->getWorldMap()->getBaseMap()->isRaid() || InstanceDifficulty::isHeroicDungeonDifficulty(p_caster->getWorldMap()->getSpawnMode())))
             {
-#if VERSION_STRING < WotLK
-                return SPELL_FAILED_NOT_HERE;
-#else
-                return SPELL_FAILED_NOT_IN_RAID_INSTANCE;
-#endif
+                return WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) ?
+                    SPELL_FAILED_NOT_IN_RAID_INSTANCE :
+                    SPELL_FAILED_NOT_HERE;
             }
         }
     }
@@ -2505,10 +2498,8 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                     return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
                 if (target->isAlive())
                     return SPELL_FAILED_TARGET_NOT_DEAD;
-#if VERSION_STRING >= WotLK
                 if (target->hasAuraWithAuraEffect(SPELL_AURA_PREVENT_RESURRECTION))
                     return SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED;
-#endif
             } break;
             case SPELL_EFFECT_SUMMON:
             case SPELL_EFFECT_SUMMON_PET:
@@ -2657,13 +2648,12 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
 
                         // Get required skill line
                         uint16_t skillId = 0;
+                        auto isLockPicking = false;
                         switch (lockInfo->lockmisc[x])
                         {
-#if VERSION_STRING <= WotLK
                             case LOCKTYPE_PICKLOCK:
-                                skillId = SKILL_LOCKPICKING;
+                                isLockPicking = true;
                                 break;
-#endif
                             case LOCKTYPE_HERBALISM:
                                 skillId = SKILL_HERBALISM;
                                 break;
@@ -2673,29 +2663,43 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                             case LOCKTYPE_FISHING:
                                 skillId = SKILL_FISHING;
                                 break;
-#if VERSION_STRING >= WotLK
                             case LOCKTYPE_INSCRIPTION:
                                 skillId = SKILL_INSCRIPTION;
                                 break;
-#endif
                             default:
                                 break;
                         }
 
-                        if (skillId != 0 || lockInfo->lockmisc[x] == LOCKTYPE_BLASTING)
+                        if (skillId != 0 || isLockPicking || lockInfo->lockmisc[x] == LOCKTYPE_BLASTING)
                         {
-                            // If item is used for opening, do not use player's skill level
-                            uint32_t skillLevel = i_caster != nullptr || p_caster == nullptr ? 0 : p_caster->getSkillLineCurrent(skillId);
-                            // Add skill bonuses from the spell
-                            skillLevel += getSpellInfo()->calculateEffectValue(i);;
+                            uint32_t skillLevel = 0;
+                            if (isLockPicking && WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                            {
+                                // Lock picking is no longer skill in Cata+
+                                // It automatically increases by 5 points per player level pre Shadowlands
+                                // and equals player level in Shadowlands+
+                                if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Shadowlands))
+                                    skillLevel = p_caster->getLevel();
+                                else
+                                    skillLevel = p_caster->getLevel() * 5;
+                            }
+                            else
+                            {
+                                if (isLockPicking && !WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                                    skillId = SKILL_LOCKPICKING;
+
+                                // If item is used for opening, do not use player's skill level
+                                skillLevel = i_caster != nullptr ? 0 : p_caster->getSkillLineCurrent(skillId);
+                                // Add skill bonuses from the spell
+                                skillLevel += getSpellInfo()->calculateEffectValue(i);
+                            }
 
                             // Check for low skill level
                             if (skillLevel < lockInfo->minlockskill[x])
                                 return SPELL_FAILED_LOW_CASTLEVEL;
 
-#if VERSION_STRING >= WotLK
                             // Patch 3.2.0: In addition to the normal requirements, mining deposits in Northrend now require a minimum character level of 65 to mine.
-                            if (p_caster)
+                            if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
                             {
                                 if (skillId == SKILL_MINING && p_caster->GetMapId() == 571 && p_caster->getLevel() < 65)
                                 {
@@ -2703,38 +2707,36 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                                     return SPELL_FAILED_CUSTOM_ERROR;
                                 }
                             }
-#endif
 
-#if VERSION_STRING < Cata
-                            // Check for failed attempt only at the end of cast
-                            // Patch 3.1.0: You can no longer fail when Mining, Herbing, and Skinning
-                            if (secondCheck && (skillId == SKILL_LOCKPICKING
-#if VERSION_STRING < WotLK
-                                || skillId == SKILL_HERBALISM || skillId == SKILL_MINING
-#endif
-                                ))
+                            if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
                             {
-                                // Failed attempt can only happen at orange gather/pick lock and can also happen at max skill level
-                                // In gathering professions orange most of the time turns to green after gaining 25 skill points
-                                const auto skillDifference = skillLevel - lockInfo->minlockskill[x];
-                                uint8_t failChance = 0;
-                                // TODO: these values are some what correct for Classic but not confirmed
-                                // need more research for TBC -Appled
-                                if (skillDifference < 5)
-                                    failChance = 50;
-                                else if (skillDifference < 10)
-                                    failChance = 35;
-                                else if (skillDifference < 15)
-                                    failChance = 20;
-                                else if (skillDifference < 20)
-                                    failChance = 10;
-                                else if (skillDifference < 25)
-                                    failChance = 5;
+                                // Check for failed attempt only at the end of cast
+                                // Patch 3.1.0: You can no longer fail when Mining, Herbing, and Skinning
+                                if (secondCheck && (skillId == SKILL_LOCKPICKING ||
+                                    (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) &&
+                                        (skillId == SKILL_HERBALISM || skillId == SKILL_MINING))))
+                                {
+                                    // Failed attempt can only happen at orange gather/pick lock and can also happen at max skill level
+                                    // In gathering professions orange most of the time turns to green after gaining 25 skill points
+                                    const auto skillDifference = skillLevel - lockInfo->minlockskill[x];
+                                    uint8_t failChance = 0;
+                                    // TODO: these values are some what correct for Classic but not confirmed
+                                    // need more research for TBC -Appled
+                                    if (skillDifference < 5)
+                                        failChance = 50;
+                                    else if (skillDifference < 10)
+                                        failChance = 35;
+                                    else if (skillDifference < 15)
+                                        failChance = 20;
+                                    else if (skillDifference < 20)
+                                        failChance = 10;
+                                    else if (skillDifference < 25)
+                                        failChance = 5;
 
-                                if (failChance > 0 && Util::getRandomUInt(100) < failChance)
-                                    return SPELL_FAILED_TRY_AGAIN;
+                                    if (Util::checkChance(failChance))
+                                        return SPELL_FAILED_TRY_AGAIN;
+                                }
                             }
-#endif
                         }
 
                         successfulOpening = true;
@@ -2801,10 +2803,13 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 if (itr == sLootMgr.getPickpocketingLoot().end())
                     return SPELL_FAILED_TARGET_NO_POCKETS;
             } break;
-#if VERSION_STRING >= WotLK
             case SPELL_EFFECT_USE_GLYPH:
             {
                 if (p_caster == nullptr)
+                    return SPELL_FAILED_SPELL_UNAVAILABLE;
+
+                // TODO: different effect pre-wotlk -Appled
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
                     return SPELL_FAILED_SPELL_UNAVAILABLE;
 
                 const auto glyphId = static_cast<uint32_t>(getSpellInfo()->getEffectMiscValue(i));
@@ -2820,7 +2825,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 if (p_caster->hasAurasWithId(glyphEntry->SpellID))
                     return SPELL_FAILED_UNIQUE_GLYPH;
             } break;
-#endif
             case SPELL_EFFECT_DUEL:
             {
                 if (p_caster == nullptr)
@@ -2877,20 +2881,16 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                     // Check if caster is in a battleground
                     if (p_caster->getWorldMap()->getBaseMap()->isBattleground() || p_caster->getBattleground())
                     {
-#if VERSION_STRING == Classic
-                        return SPELL_FAILED_NOT_HERE;
-#else
-                        return SPELL_FAILED_NOT_IN_BATTLEGROUND;
-#endif
+                        return WoW::isServerExpansion(WoW::Expansion::_Classic) ?
+                            SPELL_FAILED_NOT_HERE :
+                            SPELL_FAILED_NOT_IN_BATTLEGROUND;
                     }
                 }
             } break;
             case SPELL_EFFECT_SELF_RESURRECT:
             {
-#if VERSION_STRING >= WotLK
                 if (u_caster != nullptr && u_caster->hasAuraWithAuraEffect(SPELL_AURA_PREVENT_RESURRECTION))
                     return SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED;
-#endif
             } break;
             case SPELL_EFFECT_SKINNING:
             {
@@ -2927,10 +2927,9 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 if (skillDiff < 0)
                     return SPELL_FAILED_LOW_CASTLEVEL;
 
-#if VERSION_STRING < WotLK
                 // Check for failed attempt at the end of cast
                 // Patch 3.1.0: You can no longer fail when Mining, Herbing, and Skinning
-                if (secondCheck)
+                if (secondCheck && !WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
                 {
                     uint8_t failChance = 0;
                     // TODO: these values are some what correct for Classic but not confirmed
@@ -2946,10 +2945,9 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                     else if (skillDiff < 25)
                         failChance = 5;
 
-                    if (failChance > 0 && Util::getRandomUInt(100) < failChance)
+                    if (Util::checkChance(failChance))
                         return SPELL_FAILED_TRY_AGAIN;
                 }
-#endif
             } break;
             case SPELL_EFFECT_CHARGE:
             {
@@ -3086,11 +3084,9 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 // Check if target is owned by player
                 if (!target->isPlayer() && target->getPlayerOwner() != nullptr)
                 {
-#if VERSION_STRING == Classic
-                    return SPELL_FAILED_BAD_TARGETS;
-#else
-                    return SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
-#endif
+                    return WoW::isServerExpansion(WoW::Expansion::_Classic) ?
+                        SPELL_FAILED_BAD_TARGETS :
+                        SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
                 }
 
                 if (static_cast<int32_t>(target->getLevel()) > calculateEffect(i))
@@ -3129,11 +3125,9 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 // Check if target is owned by player
                 if (!target->isPlayer() && target->getPlayerOwner() != nullptr)
                 {
-#if VERSION_STRING == Classic
-                    return SPELL_FAILED_BAD_TARGETS;
-#else
-                    return SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
-#endif
+                    return WoW::isServerExpansion(WoW::Expansion::_Classic) ?
+                        SPELL_FAILED_BAD_TARGETS :
+                        SPELL_FAILED_TARGET_IS_PLAYER_CONTROLLED;
                 }
 
                 if (static_cast<int32_t>(target->getLevel()) > calculateEffect(i))
@@ -3181,11 +3175,7 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                     }
 
                     // Check if creature is even wielding a weapon
-#if VERSION_STRING < WotLK
-                    if (target->getVirtualItemDisplayId(MELEE) == 0)
-#else
-                    if (target->getVirtualItemSlotId(MELEE) == 0)
-#endif
+                    if (target->getVirtualItemSlotOrDisplayId(MELEE) == 0)
                         return SPELL_FAILED_TARGET_NO_WEAPONS;
                 }
             } break;
@@ -3199,10 +3189,11 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
 
                 if (p_caster != nullptr)
                 {
-#if VERSION_STRING == Cata
-                    if (getSpellInfo()->getEffectMiscValueB(i) && !p_caster->getMountCapability(getSpellInfo()->getEffectMiscValueB(i)))
-                        return SPELL_FAILED_NOT_HERE;
-#endif
+                    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                    {
+                        if (getSpellInfo()->getEffectMiscValueB(i) != 0 && p_caster->getMountCapability(getSpellInfo()->getEffectMiscValueB(i)) == nullptr)
+                            return SPELL_FAILED_NOT_HERE;
+                    }
 
                     if (p_caster->GetTransport() != nullptr)
                         return SPELL_FAILED_NO_MOUNTS_ALLOWED;
@@ -3262,7 +3253,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 if (petTarget->getCharmedByGuid() != 0)
                     return SPELL_FAILED_ALREADY_HAVE_CHARM;
             } break;
-#if VERSION_STRING >= TBC
             case SPELL_AURA_FLY:
             case SPELL_AURA_ENABLE_FLIGHT2:
             {
@@ -3285,7 +3275,6 @@ SpellCastResult Spell::canCast(const bool secondCheck, uint32_t* parameter1, uin
                 if (target->hasAuraWithAuraEffect(SPELL_AURA_MIRROR_IMAGE))
                     return SPELL_FAILED_BAD_TARGETS;
             } break;
-#endif
             default:
                 break;
         }
@@ -3346,7 +3335,6 @@ SpellCastResult Spell::checkPower()
         return SPELL_FAILED_ERROR;
     }
 
-#if VERSION_STRING >= WotLK
     // Check runes for spells which have runes in power type
     if (getSpellInfo()->getPowerType() == POWER_TYPE_RUNES)
     {
@@ -3354,7 +3342,6 @@ SpellCastResult Spell::checkPower()
         if (runeResult != SPELL_CAST_SUCCESS)
             return runeResult;
     }
-#endif
 
     // Normal case
     if (u_caster != nullptr && u_caster->getPower(getSpellInfo()->getPowerType()) < m_powerCost)
@@ -3399,21 +3386,21 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                 return SPELL_FAILED_NO_CHARGES_REMAIN;
         }
 
-#if VERSION_STRING < WotLK
         // Check zone
         if (itemProperties->ZoneNameID > 0 && itemProperties->ZoneNameID != p_caster->getZoneId())
-            return SPELL_FAILED_NOT_HERE;
+        {
+            return WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) ?
+                SPELL_FAILED_INCORRECT_AREA :
+                SPELL_FAILED_NOT_HERE;
+        }
+
         // Check map
         if (itemProperties->MapID > 0 && itemProperties->MapID != p_caster->GetMapId())
-            return SPELL_FAILED_NOT_HERE;
-#else
-        // Check zone
-        if (itemProperties->ZoneNameID > 0 && itemProperties->ZoneNameID != p_caster->getZoneId())
-            return SPELL_FAILED_INCORRECT_AREA;
-        // Check map
-        if (itemProperties->MapID > 0 && itemProperties->MapID != p_caster->GetMapId())
-            return SPELL_FAILED_INCORRECT_AREA;
-#endif
+        {
+            return WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) ?
+                SPELL_FAILED_INCORRECT_AREA :
+                SPELL_FAILED_NOT_HERE;
+        }
 
         if (getSpellInfo()->getAuraInterruptFlags() & AURA_INTERRUPT_ON_STAND_UP)
         {
@@ -3471,11 +3458,11 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                         const auto powerType = static_cast<PowerType>(getSpellInfo()->getEffectMiscValue(i));
                         if (targetUnit->getPowerPct(powerType) == 100)
                         {
-#if VERSION_STRING == Classic
-                            errorMessage = SPELL_FAILED_ALREADY_AT_FULL_POWER;
-#else
-                            errorMessage = powerType == POWER_TYPE_MANA ? SPELL_FAILED_ALREADY_AT_FULL_MANA : SPELL_FAILED_ALREADY_AT_FULL_POWER;
-#endif
+                            if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+                                errorMessage = SPELL_FAILED_ALREADY_AT_FULL_POWER;
+                            else
+                                errorMessage = powerType == POWER_TYPE_MANA ? SPELL_FAILED_ALREADY_AT_FULL_MANA : SPELL_FAILED_ALREADY_AT_FULL_POWER;
+
                             continue;
                         }
                         else
@@ -3566,11 +3553,8 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                     {
                         // Check if the weapon slot is disarmed
                         if ((i == EQUIPMENT_SLOT_MAINHAND && p_caster->hasUnitFlags(UNIT_FLAG_DISARMED))
-#if VERSION_STRING >= WotLK
                             || (i == EQUIPMENT_SLOT_OFFHAND && p_caster->hasUnitFlags2(UNIT_FLAG2_DISARM_OFFHAND))
-                            || (i == EQUIPMENT_SLOT_RANGED && p_caster->hasUnitFlags2(UNIT_FLAG2_DISARM_RANGED))
-#endif
-                            )
+                            || (i == EQUIPMENT_SLOT_RANGED && p_caster->hasUnitFlags2(UNIT_FLAG2_DISARM_RANGED)))
                             continue;
 
                         // Check for proper item class and subclass
@@ -3581,30 +3565,31 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                         }
                     }
                 }
-#if VERSION_STRING >= Dragonflight
-                // a fishing pole sits in the fishing tool slot
-                if (!hasItemWithProperType && (getSpellInfo()->getEquippedItemSubClass() & (1 << ITEM_SUBCLASS_WEAPON_FISHING_POLE)) != 0)
+
+                // TODO: implement all new profession tools as well -Appled
+                if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Dragonflight))
                 {
-                    const auto tool = p_caster->getItemInterface()->GetInventoryItem(PROFESSION_SLOT_FISHING_TOOL);
-                    if (tool != nullptr && tool->getItemProperties()->Class == ITEM_CLASS_PROFESSION && tool->getItemProperties()->SubClass == ITEM_SUBCLASS_PROFESSION_FISHING)
-                        hasItemWithProperType = true;
+                    // a fishing pole sits in the fishing tool slot
+                    if (!hasItemWithProperType && (getSpellInfo()->getEquippedItemSubClass() & (1 << ITEM_SUBCLASS_WEAPON_FISHING_POLE)) != 0)
+                    {
+                        const auto tool = p_caster->getItemInterface()->GetInventoryItem(PROFESSION_SLOT_FISHING_TOOL);
+                        if (tool != nullptr && tool->getItemProperties()->Class == ITEM_CLASS_PROFESSION && tool->getItemProperties()->SubClass == ITEM_SUBCLASS_PROFESSION_FISHING)
+                            hasItemWithProperType = true;
+                    }
                 }
-#endif
             } break;
             // Spell requires an armor piece (like shield)
             case ITEM_CLASS_ARMOR:
             {
                 // Check first if spell requires a shield equipped
-                Item* inventoryItem;
+                Item* inventoryItem = nullptr;
                 if (getSpellInfo()->getEquippedItemSubClass() & (1 << ITEM_SUBCLASS_ARMOR_SHIELD))
                 {
                     inventoryItem = p_caster->getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_OFFHAND);
                     if (inventoryItem != nullptr)
                     {
-#if VERSION_STRING >= WotLK
                         // Check for offhand disarm
                         if (!p_caster->hasUnitFlags2(UNIT_FLAG2_DISARM_OFFHAND))
-#endif
                         {
                             // Check for proper item class and subclass
                             if (inventoryItem->fitsToSpellRequirements(getSpellInfo()))
@@ -3703,15 +3688,11 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
     // Check if the spell requires any reagents or tools (skip enchant scrolls)
     if (i_caster == nullptr || !(i_caster->getItemProperties()->Flags & ITEM_FLAG_ENCHANT_SCROLL))
     {
-#if VERSION_STRING == Classic
-        auto checkForReagents = true;
-#else
         // Spells with ATTRIBUTESEXE_REAGENT_REMOVAL attribute won't take reagents if player has UNIT_FLAG_NO_REAGANT_COST flag
         auto checkForReagents = !(getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_REAGENT_REMOVAL && p_caster->hasUnitFlags(UNIT_FLAG_NO_REAGANT_COST));
-#endif
+
         if (checkForReagents)
         {
-#if VERSION_STRING >= WotLK
             // Check for spells which remove the reagent cost for a spell
             // e.g. Glyph of Slow Fall or Glyph of Levitate
             for (uint8_t i = 0; i < MAX_SPELL_EFFECTS; ++i)
@@ -3724,7 +3705,6 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                     break;
                 }
             }
-#endif
         }
         // Reagents will always be checked for items in trade window
         else if (m_targets.getItemTargetGuid() != 0 && m_targets.isTradeItem())
@@ -3762,13 +3742,8 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
 
                 if (!p_caster->hasItem(itemId, itemCount))
                 {
-#if VERSION_STRING == Classic
-                    //\ todo: figure out correct error message
-                    return SPELL_FAILED_ITEM_NOT_READY;
-#else
                     *parameter1 = itemId;
                     return SPELL_FAILED_REAGENTS;
-#endif
                 }
             }
         }
@@ -3780,28 +3755,25 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
             {
                 if (!p_caster->hasItem(getSpellInfo()->getTotem(i)))
                 {
-#if VERSION_STRING == Classic
-                    //\ todo: figure out correct error message
-                    return SPELL_FAILED_ITEM_NOT_READY;
-#else
                     *parameter1 = getSpellInfo()->getTotem(i);
                     return SPELL_FAILED_TOTEMS;
-#endif
                 }
             }
         }
 
-#if VERSION_STRING >= TBC
         // Check for totem category items
-        for (uint8_t i = 0; i < MAX_SPELL_TOTEM_CATEGORIES; ++i)
+        // Does not exist in Classic
+        if (WoW::isServerExpansionAtLeast(WoW::Expansion::_TBC))
         {
-            if (getSpellInfo()->getTotemCategory(i) != 0 && !p_caster->getItemInterface()->hasItemForTotemCategory(getSpellInfo()->getTotemCategory(i)))
+            for (uint8_t i = 0; i < MAX_SPELL_TOTEM_CATEGORIES; ++i)
             {
-                *parameter1 = getSpellInfo()->getTotemCategory(i);
-                return SPELL_FAILED_TOTEM_CATEGORY;
+                if (getSpellInfo()->getTotemCategory(i) != 0 && !p_caster->getItemInterface()->hasItemForTotemCategory(getSpellInfo()->getTotemCategory(i)))
+                {
+                    *parameter1 = getSpellInfo()->getTotemCategory(i);
+                    return SPELL_FAILED_TOTEM_CATEGORY;
+                }
             }
         }
-#endif
     }
 
     // Special checks for different spell effects
@@ -3813,9 +3785,7 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
         switch (getSpellInfo()->getEffect(i))
         {
             case SPELL_EFFECT_CREATE_ITEM:
-#if VERSION_STRING >= WotLK
             case SPELL_EFFECT_CREATE_ITEM2:
-#endif
                 if (getSpellInfo()->getEffectItemType(i) != 0)
                 {
                     const auto itemProperties = sMySQLStore.getItemProperties(getSpellInfo()->getEffectItemType(i));
@@ -3881,12 +3851,10 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                         return SPELL_FAILED_DONT_REPORT;
                     }
                 }
-#if VERSION_STRING >= WotLK
             }
             [[fallthrough]];
             case SPELL_EFFECT_ADD_SOCKET:
             {
-#endif
                 if (m_targets.getItemTargetGuid() == 0)
                     return SPELL_FAILED_ITEM_NOT_FOUND;
 
@@ -3937,14 +3905,11 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                             // Check if the item already has a 'on use' enchantment
                             if (hasOnUseEffect)
                             {
-#if VERSION_STRING < WotLK
-                                return SPELL_FAILED_BAD_TARGETS;
-#else
-                                return SPELL_FAILED_ON_USE_ENCHANT;
-#endif
+                                return WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) ?
+                                    SPELL_FAILED_ON_USE_ENCHANT :
+                                    SPELL_FAILED_BAD_TARGETS;
                             }
                             break;
-#if VERSION_STRING >= WotLK
                         case ITEM_ENCHANTMENT_TYPE_PRISMATIC_SOCKET:
                             // Check if the item already has a prismatic gem slot enchanted
                             if (targetItem->getEnchantmentId(PRISMATIC_ENCHANTMENT_SLOT) != 0)
@@ -3954,7 +3919,6 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                             if (targetItem->getSocketSlotCount() >= MAX_ITEM_PROTO_SOCKETS)
                                 return SPELL_FAILED_MAX_SOCKETS;
                             break;
-#endif
                         default:
                             break;
                     }
@@ -4024,17 +3988,21 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                 // Some items are not disenchantable
                 if (itemProperties->DisenchantReqSkill <= 0)
                     return SPELL_FAILED_CANT_BE_DISENCHANTED;
-#if VERSION_STRING >= TBC
                 // As of patch 2.0.1 disenchanting an item requires minimum skill level
-                if (static_cast<uint32_t>(itemProperties->DisenchantReqSkill) > p_caster->getSkillLineCurrent(SKILL_ENCHANTING))
-                    return SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL;
-#endif
+                if (WoW::isServerExpansionAtLeast(WoW::Expansion::_TBC))
+                {
+                    if (static_cast<uint32_t>(itemProperties->DisenchantReqSkill) > p_caster->getSkillLineCurrent(SKILL_ENCHANTING))
+                        return SPELL_FAILED_CANT_BE_DISENCHANTED_SKILL;
+                }
                 // TODO: check does the item even have disenchant loot
                 break;
             }
-#if VERSION_STRING >= TBC
             case SPELL_EFFECT_PROSPECTING:
             {
+                // TODO: different effect in Classic -Appled
+                if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+                    return SPELL_FAILED_UNKNOWN;
+
                 if (m_targets.getItemTargetGuid() == 0)
                     return SPELL_FAILED_ITEM_GONE;
                 // Check if the item target is in a trade window
@@ -4061,18 +4029,14 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                 {
                     *parameter1 = targetItem->getEntry();
                     *parameter2 = 5;
-#if VERSION_STRING == TBC
-                    return SPELL_FAILED_PROSPECT_NEED_MORE;
-#else
-                    return SPELL_FAILED_NEED_MORE_ITEMS;
-#endif
+                    return WoW::isServerExpansion(WoW::Expansion::_TBC) ?
+                        SPELL_FAILED_PROSPECT_NEED_MORE :
+                        SPELL_FAILED_NEED_MORE_ITEMS;
                 }
 
                 // TODO: check does the item even have prospecting loot
                 break;
             }
-#endif
-#if VERSION_STRING >= WotLK
             case SPELL_EFFECT_MILLING:
             {
                 if (m_targets.getItemTargetGuid() == 0)
@@ -4106,7 +4070,6 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                 // TODO: check does the item even have milling loot
                 break;
             }
-#endif
             case SPELL_EFFECT_WEAPON_DAMAGE:
             case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
             {
@@ -4121,7 +4084,10 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                 if (rangedWeapon->getMaxDurability() > 0 && rangedWeapon->getDurability() == 0)
                     return SPELL_FAILED_EQUIPPED_ITEM;
 
-#if VERSION_STRING <= WotLK
+                // Ammunation no longer exist in Cata+
+                if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+                    break;
+
                 // Check for ammunitation
                 switch (rangedWeapon->getItemProperties()->SubClass)
                 {
@@ -4129,13 +4095,16 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                         // In classic throwing weapons use stack count
                         // In TBC throwing weapons use durability
                         // In Wotlk+ throwing weapons use neither
-#if VERSION_STRING == Classic
-                        if (p_caster->getItemInterface()->GetItemCount(rangedWeapon->getEntry()) == 0)
-                            return SPELL_FAILED_NO_AMMO;
-#elif VERSION_STRING == TBC
-                        if (rangedWeapon->getDurability() == 0)
-                            return SPELL_FAILED_NO_AMMO;
-#endif
+                        if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+                        {
+                            if (p_caster->getItemInterface()->GetItemCount(rangedWeapon->getEntry()) == 0)
+                                return SPELL_FAILED_NO_AMMO;
+                        }
+                        else if (WoW::isServerExpansion(WoW::Expansion::_TBC))
+                        {
+                            if (rangedWeapon->getDurability() == 0)
+                                return SPELL_FAILED_NO_AMMO;
+                        }
                         break;
                     // Check ammo for ranged weapons
                     case ITEM_SUBCLASS_WEAPON_BOW:
@@ -4180,7 +4149,6 @@ SpellCastResult Spell::checkItems(uint32_t* parameter1, uint32_t* parameter2) co
                     default:
                         break;
                 }
-#endif
                 break;
             }
             default:
@@ -4427,24 +4395,30 @@ SpellCastResult Spell::checkRange(const bool secondCheck)
         }
 
         // Get minimum range
-#if VERSION_STRING < WotLK
-        minRange += rangeEntry->minRange;
-#else
-        if (targetUnit == nullptr)
+        if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+        {
             minRange += rangeEntry->minRange;
+        }
         else
-            minRange += m_caster->isFriendlyTo(targetUnit) ? rangeEntry->minRangeFriendly : rangeEntry->minRange;
-#endif
+        {
+            if (targetUnit == nullptr)
+                minRange += rangeEntry->minRange;
+            else
+                minRange += m_caster->isFriendlyTo(targetUnit) ? rangeEntry->minRangeFriendly : rangeEntry->minRange;
+        }
 
         // Get maximum range
-#if VERSION_STRING < WotLK
-        maxRange = rangeEntry->maxRange;
-#else
-        if (targetUnit == nullptr)
+        if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+        {
             maxRange = rangeEntry->maxRange;
+        }
         else
-            maxRange = m_caster->isFriendlyTo(targetUnit) ? rangeEntry->maxRangeFriendly : rangeEntry->maxRange;
-#endif
+        {
+            if (targetUnit == nullptr)
+                maxRange = rangeEntry->maxRange;
+            else
+                maxRange = m_caster->isFriendlyTo(targetUnit) ? rangeEntry->maxRangeFriendly : rangeEntry->maxRange;
+        }
 
         // Player, creature or corpse target
         if (u_caster != nullptr && (targetUnit != nullptr || m_targets.getTargetMask() & (TARGET_FLAG_CORPSE | TARGET_FLAG_CORPSE2)))
@@ -4514,7 +4488,6 @@ SpellCastResult Spell::checkRange(const bool secondCheck)
     return SPELL_CAST_SUCCESS;
 }
 
-#if VERSION_STRING >= WotLK
 SpellCastResult Spell::checkRunes(bool takeRunes)
 {
     // Check only for players and for spells which have rune cost
@@ -4566,7 +4539,6 @@ SpellCastResult Spell::checkRunes(bool takeRunes)
 
     return SPELL_CAST_SUCCESS;
 }
-#endif
 
 SpellCastResult Spell::checkShapeshift(SpellInfo const* spellInfo, const uint32_t shapeshiftForm) const
 {
@@ -4726,41 +4698,42 @@ void Spell::sendSpellStart()
 
     // Set cast flags
     uint32_t castFlags = SPELL_PACKET_FLAGS_NONE;
-#if VERSION_STRING >= Mop
-    // Only mark trajectory when the cast actually has one - unconditionally setting this flag
-    // makes the Mop client wait on a missile that never arrives, leaving the cast bar/action
-    // button stuck and suppressing the GCD/cooldown display even though the spell resolves fine.
-    if (getSpellInfo()->getSpeed() > 0.0f)
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Mop))
+    {
+        // Only mark trajectory when the cast actually has one - unconditionally setting this flag
+        // makes the Mop client wait on a missile that never arrives, leaving the cast bar/action
+        // button stuck and suppressing the GCD/cooldown display even though the spell resolves fine.
+        if (getSpellInfo()->getSpeed() > 0.0f)
+            castFlags |= SPELL_PACKET_FLAGS_DEFAULT;
+    }
+    else
+    {
         castFlags |= SPELL_PACKET_FLAGS_DEFAULT;
-#else
-    castFlags |= SPELL_PACKET_FLAGS_DEFAULT;
-#endif
+    }
+
     if (GetType() == SPELL_DMG_TYPE_RANGED)
         castFlags |= SPELL_PACKET_FLAGS_RANGED;
 
-#if VERSION_STRING >= WotLK
-    // Power update for players and their summons
-    if ((p_caster != nullptr || (u_caster != nullptr && u_caster->getPlayerOwner() != nullptr)) &&
-        getSpellInfo()->getPowerType() != POWER_TYPE_HEALTH)
-        castFlags |= SPELL_PACKET_FLAGS_POWER_UPDATE;
-#endif
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+    {
+        // Power update for players and their summons
+        if ((p_caster != nullptr || (u_caster != nullptr && u_caster->getPlayerOwner() != nullptr)) &&
+            getSpellInfo()->getPowerType() != POWER_TYPE_HEALTH)
+            castFlags |= SPELL_PACKET_FLAGS_POWER_UPDATE;
+    }
 
     SmsgSpellStart managedPacket(i_caster ? i_caster->GetNewGUID() : m_caster->GetNewGUID(),
         m_caster->GetNewGUID(), getSpellInfo()->getId(), castFlags, extra_cast_number, m_timer, m_castTime, m_targets);
 
-#if VERSION_STRING >= WoD
     // a client with its own data resolves the cast visual from the SpellXSpellVisual row the server names
-    if (WoW::hasOwnClientData(WoW::getServerExpansion()))
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WoD) && WoW::hasOwnClientData(WoW::getServerExpansion()))
         managedPacket.spellVisualId = getSpellInfo()->getSpellVisual(0);
-#endif
 
-#if VERSION_STRING >= WotLK
     if (castFlags & SPELL_PACKET_FLAGS_POWER_UPDATE && u_caster != nullptr)
     {
         managedPacket.powerType = static_cast<uint8_t>(getSpellInfo()->getPowerType());
         managedPacket.powerValue = u_caster->getPower(getSpellInfo()->getPowerType());
     }
-#endif
 
     if (castFlags & SPELL_PACKET_FLAGS_RANGED)
         addProjectileDataToPacket(managedPacket.projectile);
@@ -4790,11 +4763,13 @@ void Spell::sendSpellGo()
 
     // Set cast flags
     uint32_t castFlags = 0;
-#if VERSION_STRING >= Mop
-    // Real Mop protocol always sets this bit on SMSG_SPELL_GO regardless of whether the spell
-    // was cast from an item - without it the client never plays the missile/impact visual.
-    castFlags |= SPELL_PACKET_FLAGS_ITEM_CASTER;
-#endif
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Mop))
+    {
+        // Real Mop protocol always sets this bit on SMSG_SPELL_GO regardless of whether the spell
+        // was cast from an item - without it the client never plays the missile/impact visual.
+        castFlags |= SPELL_PACKET_FLAGS_ITEM_CASTER;
+    }
+
     if (GetType() == SPELL_DMG_TYPE_RANGED)
         castFlags |= SPELL_PACKET_FLAGS_RANGED;
 
@@ -4805,42 +4780,39 @@ void Spell::sendSpellGo()
         castFlags |= SPELL_PACKET_FLAGS_EXTRA_MESSAGE;
 
     uint8_t currentRunes = 0;
-#if VERSION_STRING >= WotLK
-    if (m_missileTravelTime != 0)
-        castFlags |= SPELL_PACKET_FLAGS_UPDATE_MISSILE;
-
-    // Rune update
-    if (p_caster != nullptr && p_caster->isClassDeathKnight())
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
     {
-        // Get current available runes in bitmask
-        currentRunes = static_cast<DeathKnight*>(p_caster)->GetRuneFlags();
+        if (m_missileTravelTime != 0)
+            castFlags |= SPELL_PACKET_FLAGS_UPDATE_MISSILE;
 
-        if (getSpellInfo()->getRuneCostID() > 0 || currentRunes != m_rune_avail_before)
-            castFlags |= SPELL_PACKET_FLAGS_RUNE_UPDATE | SPELL_PACKET_FLAGS_UNK40000;
+        // Rune update
+        if (p_caster != nullptr && p_caster->isClassDeathKnight())
+        {
+            // Get current available runes in bitmask
+            currentRunes = static_cast<DeathKnight*>(p_caster)->GetRuneFlags();
+
+            if (getSpellInfo()->getRuneCostID() > 0 || currentRunes != m_rune_avail_before)
+                castFlags |= SPELL_PACKET_FLAGS_RUNE_UPDATE | SPELL_PACKET_FLAGS_UNK40000;
+        }
+
+        // Power update for players and their summons
+        if ((p_caster != nullptr || (u_caster != nullptr && u_caster->getPlayerOwner() != nullptr)) &&
+            getSpellInfo()->getPowerType() != POWER_TYPE_HEALTH)
+            castFlags |= SPELL_PACKET_FLAGS_POWER_UPDATE;
     }
-
-    // Power update for players and their summons
-    if ((p_caster != nullptr || (u_caster != nullptr && u_caster->getPlayerOwner() != nullptr)) &&
-        getSpellInfo()->getPowerType() != POWER_TYPE_HEALTH)
-        castFlags |= SPELL_PACKET_FLAGS_POWER_UPDATE;
-#endif
 
     SmsgSpellGo managedPacket(i_caster ? i_caster->GetNewGUID() : m_caster->GetNewGUID(), m_caster->GetNewGUID(),
         getSpellInfo()->getId(), castFlags, extra_cast_number, m_timer, Util::getMSTime(),
         m_targets);
 
-#if VERSION_STRING >= WoD
-    if (WoW::hasOwnClientData(WoW::getServerExpansion()))
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WoD) && WoW::hasOwnClientData(WoW::getServerExpansion()))
         managedPacket.spellVisualId = getSpellInfo()->getSpellVisual(0);
-#endif
 
-#if VERSION_STRING >= WotLK
     if (castFlags & SPELL_PACKET_FLAGS_POWER_UPDATE && u_caster != nullptr)
     {
         managedPacket.powerType = static_cast<uint8_t>(getSpellInfo()->getPowerType());
         managedPacket.powerValue = u_caster->getPower(getSpellInfo()->getPowerType());
     }
-#endif
 
     if (castFlags & SPELL_PACKET_FLAGS_RANGED)
         addProjectileDataToPacket(managedPacket.projectile);
@@ -4865,11 +4837,11 @@ void Spell::sendSpellGo()
 void Spell::sendChannelStart(const uint32_t duration)
 {
     MsgChannelStart managedPacket(m_caster->GetNewGUID(), getSpellInfo()->getId(), duration);
-#if VERSION_STRING >= WoD
+
     // a client with its own data resolves the channel visual from the SpellXSpellVisual row the server names
-    if (WoW::hasOwnClientData(WoW::getServerExpansion()))
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WoD) && WoW::hasOwnClientData(WoW::getServerExpansion()))
         managedPacket.spellVisualId = getSpellInfo()->getSpellVisual(0);
-#endif
+
     PacketBroadcast::sendToSet(*m_caster, managedPacket, true);
 
     Object const* channelTarget = nullptr;
@@ -4920,20 +4892,23 @@ void Spell::sendCastResult(Player* caster, uint8_t castCount, SpellCastResult re
         case SPELL_FAILED_REQUIRES_AREA:
             if (parameter1 == 0)
             {
-#if VERSION_STRING == TBC
-                parameter1 = getSpellInfo()->getRequiresAreaId();
-#elif VERSION_STRING >= WotLK
-                // Send the first area id from areagroup to player
-                auto areaGroup = sAreaGroupStore.lookupEntry(static_cast<uint32_t>(getSpellInfo()->getRequiresAreaId()));
-                for (const auto& areaId : areaGroup->areaId)
+                if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
                 {
-                    if (areaId != 0)
+                    parameter1 = getSpellInfo()->getRequiresAreaId();
+                }
+                else
+                {
+                    // Send the first area id from areagroup to player
+                    auto areaGroup = sAreaGroupStore.lookupEntry(static_cast<uint32_t>(getSpellInfo()->getRequiresAreaId()));
+                    for (const auto& areaId : areaGroup->areaId)
                     {
-                        parameter1 = areaId;
-                        break;
+                        if (areaId != 0)
+                        {
+                            parameter1 = areaId;
+                            break;
+                        }
                     }
                 }
-#endif
             } break;
         case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
         case SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND:
@@ -4943,7 +4918,6 @@ void Spell::sendCastResult(Player* caster, uint8_t castCount, SpellCastResult re
                 parameter1 = static_cast<uint32_t>(getSpellInfo()->getEquippedItemClass());
                 parameter2 = static_cast<uint32_t>(getSpellInfo()->getEquippedItemSubClass());
             } break;
-#if VERSION_STRING >= TBC
         case SPELL_FAILED_REAGENTS:
             if (parameter1 == 0)
             {
@@ -4975,6 +4949,10 @@ void Spell::sendCastResult(Player* caster, uint8_t castCount, SpellCastResult re
                 }
             } break;
         case SPELL_FAILED_TOTEM_CATEGORY:
+            // Field does not exist in Classic
+            if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+                break;
+
             if (parameter1 == 0)
             {
                 for (uint8_t i = 0; i < MAX_SPELL_TOTEM_CATEGORIES; ++i)
@@ -4988,7 +4966,6 @@ void Spell::sendCastResult(Player* caster, uint8_t castCount, SpellCastResult re
                     }
                 }
             } break;
-#endif
         case SPELL_FAILED_REQUIRES_SPELL_FOCUS:
             if (parameter1 == 0)
                 parameter1 = getSpellInfo()->getRequiresSpellFocus();
@@ -5002,8 +4979,15 @@ void Spell::sendCastResult(Player* caster, uint8_t castCount, SpellCastResult re
 
 void Spell::addProjectileDataToPacket(ProjectileData& data)
 {
+    // Ammo field no longer exist in Cata+
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+    {
+        data.displayInfo = 0;
+        data.inventoryType = 0;
+        return;
+    }
+
     ItemProperties const* ammoItem = nullptr;
-#if VERSION_STRING < Cata
     if (p_caster != nullptr)
     {
         const auto rangedItem = p_caster->getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_RANGED);
@@ -5033,21 +5017,35 @@ void Spell::addProjectileDataToPacket(ProjectileData& data)
         // Need to loop through all weapon slots because NPCs can have the ranged weapon in main hand
         for (uint8_t i = 0; i <= RANGED; ++i)
         {
-#if VERSION_STRING > TBC
-            const auto entryId = u_caster->getVirtualItemSlotId(i);
-#else
-            const auto entryId = dynamic_cast<Creature*>(u_caster)->getVirtualItemEntry(i);
-#endif
+            // Client data has entry id in wotlk but display id in classic and tbc
+            const auto entryId = WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK) ?
+                u_caster->getVirtualItemSlotOrDisplayId(i) :
+                dynamic_cast<Creature*>(u_caster)->getVirtualItemEntry(i);
+
             if (entryId == 0)
                 continue;
 
-#if VERSION_STRING > TBC
-            // Get the item data from DBC files
-            const auto itemDBC = sItemStore.lookupEntry(entryId);
-            if (itemDBC == nullptr || itemDBC->itemClass != ITEM_CLASS_WEAPON)
-                continue;
+            uint32_t itemSubClass = 0;
+            if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
+            {
+                // Get the item data from DBC files
+                const auto itemDBC = sItemStore.lookupEntry(entryId);
+                if (itemDBC == nullptr || itemDBC->itemClass != ITEM_CLASS_WEAPON)
+                    continue;
 
-            switch (itemDBC->itemSubClass)
+                itemSubClass = itemDBC->itemSubClass;
+            }
+            else
+            {
+                // Get the item data from unitdata
+                const auto itemData = u_caster->getVirtualItemInfoFields(i);
+                if (itemData.fields.item_class != ITEM_CLASS_WEAPON)
+                    continue;
+
+                itemSubClass = itemData.fields.item_subclass;
+            }
+
+            switch (itemSubClass)
             {
                 case ITEM_SUBCLASS_WEAPON_BOW:
                 case ITEM_SUBCLASS_WEAPON_CROSSBOW:
@@ -5064,50 +5062,23 @@ void Spell::addProjectileDataToPacket(ProjectileData& data)
                 default:
                     break;
             }
-#else
-            // Get the item data from unitdata
-            const auto itemData = u_caster->getVirtualItemInfoFields(i);
-            if (itemData.fields.item_class != ITEM_CLASS_WEAPON)
-                continue;
-
-            switch (itemData.fields.item_subclass)
-            {
-                case ITEM_SUBCLASS_WEAPON_BOW:
-                case ITEM_SUBCLASS_WEAPON_CROSSBOW:
-                    // Use Rough Arrow for bows
-                    ammoItem = sMySQLStore.getItemProperties(2512);
-                    break;
-                case ITEM_SUBCLASS_WEAPON_GUN:
-                    // Use Light Shot for guns
-                    ammoItem = sMySQLStore.getItemProperties(2516);
-                    break;
-                case ITEM_SUBCLASS_WEAPON_THROWN:
-                    ammoItem = sMySQLStore.getItemProperties(entryId);
-                    break;
-                default:
-                    break;
-            }
-#endif
 
             // No need to continue if ammo has been found
             if (ammoItem != nullptr)
                 break;
         }
     }
-#endif
 
     if (ammoItem != nullptr)
     {
         data.displayInfo = ammoItem->DisplayInfoID;
         data.inventoryType = ammoItem->InventoryType;
     }
-#if VERSION_STRING > TBC
-    else
+    else if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
     {
         data.displayInfo = 0;
         data.inventoryType = 0;
     }
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -5145,13 +5116,11 @@ void Spell::takePower()
         u_caster->dealDamage(u_caster, getPowerCost(), getSpellInfo()->getId(), false);
         return;
     }
-#if VERSION_STRING >= WotLK
     else if (getSpellInfo()->getPowerType() == POWER_TYPE_RUNES)
     {
         checkRunes(true);
         return;
     }
-#endif
     else if (getSpellInfo()->getPowerType() == POWER_TYPE_MANA && m_powerCost > 0)
     {
         // Start five second timer later at spell cast if spell has a mana cost
@@ -5393,11 +5362,9 @@ SpellCastResult Spell::checkExplicitTarget(Object* target, uint32_t requiredTarg
         {
             if (playerTarget->hasPlayerFlags(PLAYER_FLAG_GM) || playerTarget->m_isGmInvisible)
             {
-#if VERSION_STRING == Classic
-                return SPELL_FAILED_BAD_TARGETS;
-#else
-                return SPELL_FAILED_BM_OR_INVISGOD;
-#endif
+                return WoW::isServerExpansion(WoW::Expansion::_Classic) ?
+                    SPELL_FAILED_BAD_TARGETS :
+                    SPELL_FAILED_BM_OR_INVISGOD;
             }
         }
     }
@@ -5741,9 +5708,8 @@ void Spell::removeReagents()
     if (p_caster == nullptr)
         return;
 
-#if VERSION_STRING >= TBC
-    if (!(p_caster->hasUnitFlags(UNIT_FLAG_NO_REAGANT_COST) && getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_REAGENT_REMOVAL))
-#endif
+    if (!WoW::isServerExpansionAtLeast(WoW::Expansion::_TBC) ||
+        !(p_caster->hasUnitFlags(UNIT_FLAG_NO_REAGANT_COST) && getSpellInfo()->getAttributesExE() & ATTRIBUTESEXE_REAGENT_REMOVAL))
     {
         for (uint8_t i = 0; i < MAX_SPELL_REAGENTS; ++i)
         {
@@ -5756,9 +5722,12 @@ void Spell::removeReagents()
     }
 }
 
-#if VERSION_STRING < Cata
 void Spell::removeAmmo()
 {
+    // Ammo no longer exist in Cata+
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_Cata))
+        return;
+
     if (p_caster == nullptr)
         return;
 
@@ -5775,18 +5744,21 @@ void Spell::removeAmmo()
         // In classic throwing weapons use stack count
         // In TBC throwing weapons use durability
         // In Wotlk+ throwing weapons use neither
-#if VERSION_STRING == Classic
-        // Remove 1 weapon from the stack amount
-        p_caster->getItemInterface()->RemoveItemAmt_ProtectPointer(rangedWeapon->getEntry(), 1, &i_caster);
-#elif VERSION_STRING == TBC
-        // Remove 1 point from durability
-        if (rangedWeapon->getDurability() > 0)
+        if (WoW::isServerExpansion(WoW::Expansion::_Classic))
         {
-            rangedWeapon->setDurability(rangedWeapon->getDurability() - 1);
-            if (rangedWeapon->getDurability() == 0)
-                p_caster->applyItemMods(rangedWeapon, EQUIPMENT_SLOT_RANGED, false, true);
+            // Remove 1 weapon from the stack amount
+            p_caster->getItemInterface()->RemoveItemAmt_ProtectPointer(rangedWeapon->getEntry(), 1, &i_caster);
         }
-#endif
+        else if (WoW::isServerExpansion(WoW::Expansion::_TBC))
+        {
+            // Remove 1 point from durability
+            if (rangedWeapon->getDurability() > 0)
+            {
+                rangedWeapon->setDurability(rangedWeapon->getDurability() - 1);
+                if (rangedWeapon->getDurability() == 0)
+                    p_caster->applyItemMods(rangedWeapon, EQUIPMENT_SLOT_RANGED, false, true);
+            }
+        }
     }
     else
     {
@@ -5794,7 +5766,6 @@ void Spell::removeAmmo()
             p_caster->getItemInterface()->RemoveItemAmt_ProtectPointer(p_caster->getAmmoId(), 1, &i_caster);
     }
 }
-#endif
 
 void Spell::_updateCasterPointers(Object* caster)
 {
@@ -6011,11 +5982,8 @@ void Spell::_prepareProcFlags()
         // Procs for these effects are handled when the real spell is casted
         if (getSpellInfo()->getEffect(i) == SPELL_EFFECT_DUMMY ||
             getSpellInfo()->getEffect(i) == SPELL_EFFECT_SCRIPT_EFFECT ||
-            getSpellInfo()->getEffect(i) == SPELL_EFFECT_TRIGGER_SPELL
-#if VERSION_STRING >= TBC
-            || getSpellInfo()->getEffect(i) == SPELL_EFFECT_TRIGGER_SPELL_WITH_VALUE
-#endif
-            )
+            getSpellInfo()->getEffect(i) == SPELL_EFFECT_TRIGGER_SPELL ||
+            getSpellInfo()->getEffect(i) == SPELL_EFFECT_TRIGGER_SPELL_WITH_VALUE)
             continue;
 
         spellTargetMask |= getSpellInfo()->getRequiredTargetMaskForEffect(i);

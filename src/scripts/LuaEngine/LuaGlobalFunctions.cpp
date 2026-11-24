@@ -64,9 +64,9 @@ int LuaGlobalFunctions::PerformIngameSpawn(lua_State* L)
             if (!pCreature)
                 return 0;
             pCreature->setFaction(faction);
-            pCreature->setVirtualItemSlotId(MELEE, equip1);
-            pCreature->setVirtualItemSlotId(OFFHAND, equip2);
-            pCreature->setVirtualItemSlotId(RANGED, equip3);
+            pCreature->setVirtualItemSlotOrDisplayId(MELEE, equip1);
+            pCreature->setVirtualItemSlotOrDisplayId(OFFHAND, equip2);
+            pCreature->setVirtualItemSlotOrDisplayId(RANGED, equip3);
             pCreature->setPhase(PHASE_SET, 1);
             pCreature->m_noRespawn = true;
             pCreature->AddToWorld(mapMgr);

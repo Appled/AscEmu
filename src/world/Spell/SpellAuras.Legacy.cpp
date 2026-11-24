@@ -5273,28 +5273,23 @@ void Aura::SpellAuraMirrorImage2(AuraEffectModifier* /*aurEff*/, bool apply)
 
     if (apply && m_target->isSummon() && (m_target->getCreatedByGuid() == getCasterGuid()))
     {
-        if (getCaster()->isPlayer())
+        if (auto* const p = getPlayerCaster())
         {
-            Player* p = static_cast<Player*>(getCaster());
-
             Item* item;
 
             item = p->getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_MAINHAND);
             if (item != nullptr)
-                m_target->setVirtualItemSlotId(0, item->getItemProperties()->ItemId);
+                m_target->setVirtualItemSlotOrDisplayId(0, item->getItemProperties()->ItemId);
 
             item = p->getItemInterface()->GetInventoryItem(EQUIPMENT_SLOT_OFFHAND);
             if (item != nullptr)
-                m_target->setVirtualItemSlotId(OFFHAND, item->getItemProperties()->ItemId);
+                m_target->setVirtualItemSlotOrDisplayId(OFFHAND, item->getItemProperties()->ItemId);
         }
-#if VERSION_STRING >= WotLK
-        else if (getCaster()->isCreatureOrPlayer())
+        else if (auto* const unit = getUnitCaster())
         {
-            auto unit = static_cast<Unit*>(getCaster());
-            m_target->setVirtualItemSlotId(MELEE, unit->getVirtualItemSlotId(MELEE));
-            m_target->setVirtualItemSlotId(OFFHAND, unit->getVirtualItemSlotId(OFFHAND));
-            m_target->setVirtualItemSlotId(RANGED, unit->getVirtualItemSlotId(RANGED));
+            m_target->setVirtualItemSlotOrDisplayId(MELEE, unit->getVirtualItemSlotOrDisplayId(MELEE));
+            m_target->setVirtualItemSlotOrDisplayId(OFFHAND, unit->getVirtualItemSlotOrDisplayId(OFFHAND));
+            m_target->setVirtualItemSlotOrDisplayId(RANGED, unit->getVirtualItemSlotOrDisplayId(RANGED));
         }
-#endif
     }
 }

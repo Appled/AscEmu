@@ -857,7 +857,7 @@ Creature* Battleground::spawnSpiritGuide(float x, float y, float z, float o, uin
         pCreature->setGender(1);
         pCreature->setPowerType(0);
 
-        pCreature->setVirtualItemSlotId(MELEE, 22802);
+        pCreature->setVirtualItemSlotOrDisplayId(MELEE, 22802);
 
         pCreature->setUnitFlags(UNIT_FLAG_PLUS_MOB | UNIT_FLAG_IGNORE_PLAYER_COMBAT | UNIT_FLAG_IGNORE_CREATURE_COMBAT); // 832
         pCreature->setPvpFlag();

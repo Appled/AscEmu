@@ -1063,14 +1063,14 @@ void CreatureAIScript::_setWieldWeapon(bool setWieldWeapon)
 
 void CreatureAIScript::_setDisplayWeapon(bool setMainHand, bool setOffHand)
 {
-    _setDisplayWeaponIds(setMainHand ? _creature->getVirtualItemSlotId(MELEE) : 0, setOffHand ? _creature->getVirtualItemSlotId(OFFHAND) : 0);
+    _setDisplayWeaponIds(setMainHand ? _creature->getVirtualItemSlotOrDisplayId(MELEE) : 0, setOffHand ? _creature->getVirtualItemSlotOrDisplayId(OFFHAND) : 0);
 }
 
 void CreatureAIScript::_setDisplayWeaponIds(uint32_t itemId1, uint32_t itemId2, uint32_t itemId3)
 {
-    _creature->setVirtualItemSlotId(MELEE, itemId1);
-    _creature->setVirtualItemSlotId(OFFHAND, itemId2);
-    _creature->setVirtualItemSlotId(RANGED, itemId3);
+    _creature->setVirtualItemSlotOrDisplayId(MELEE, itemId1);
+    _creature->setVirtualItemSlotOrDisplayId(OFFHAND, itemId2);
+    _creature->setVirtualItemSlotOrDisplayId(RANGED, itemId3);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

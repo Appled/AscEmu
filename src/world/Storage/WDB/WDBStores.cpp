@@ -1426,7 +1426,7 @@ bool loadDBCs()
         }
     );
 
-    WDB::loadWDBFile(available_dbc_locales, bad_dbc_files, sSpellRadiusStore, dbc_path, "SpellRadius.dbc"); // todo handle max and level radius
+    WDB::loadWDBFile(available_dbc_locales, bad_dbc_files, sSpellRadiusStore, dbc_path, "SpellRadius.dbc");
 
     WDB::loadUnifiedWDBStore<WDB::Structures::SpellRangeEntry>(
         bad_dbc_files, sSpellRangeStore, dbc_path,

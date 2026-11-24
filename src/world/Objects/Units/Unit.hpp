@@ -36,9 +36,7 @@ This file is released under the MIT license. See README-MIT for more information
 
 namespace WDB::Structures
 {
-#if VERSION_STRING >= Cata
     struct MountCapabilityEntry;
-#endif
 }
 
 namespace MySQLStructure
@@ -143,7 +141,6 @@ using AuraRange = std::ranges::subrange<AuraVector::const_iterator>;
 using AuraEffectList = std::list<AuraEffectModifier const*>;
 using AuraEffectListArray = std::array<AuraEffectList, TOTAL_SPELL_AURAS>;
 using VisualAuraVector = std::vector<uint32_t/*spellId*/>;
-
 
 class SERVER_DECL Unit : public Object
 {
@@ -278,9 +275,11 @@ public:
     void setFaction(uint32_t factionId);
 
     // the same field: item entry since WotLK, item display id in classic and tbc
-    uint32_t getVirtualItemSlotId(uint8_t slot) const;
-    uint32_t getVirtualItemDisplayId(uint8_t slot) const;
-    void setVirtualItemSlotId(uint8_t slot, uint32_t item_id);
+    // Creature::getVirtualItemEntry holds item id for classic and tbc
+    uint32_t getVirtualItemSlotOrDisplayId(uint8_t slot) const;
+    // Item entry used for all versions; classic and tbc set virtual item info by entry
+    // and adds the item entry to Creature data
+    void setVirtualItemSlotOrDisplayId(uint8_t slot, uint32_t item_id);
 
     uint64_t getVirtualItemInfo(uint8_t slot) const;
     unit_virtual_item_info getVirtualItemInfoFields(uint8_t slot) const;
@@ -966,10 +965,8 @@ public:
     void regeneratePower(PowerType type, uint16_t timePassed);
     void interruptHealthRegeneration(uint32_t timeInMS);
     bool isHealthRegenerationInterrupted() const;
-#if VERSION_STRING < Cata
     void interruptPowerRegeneration(uint32_t timeInMS);
     bool isPowerRegenerationInterrupted() const;
-#endif
 
     void energize(Unit* target, uint32_t spellId, uint32_t amount, PowerType type, bool sendPacket = true);
     void sendSpellEnergizeLog(Unit* target, uint32_t spellId, uint32_t amount, PowerType type);
@@ -985,10 +982,8 @@ private:
     uint8_t getPowerIndexFromDBC(PowerType type) const;
 
     uint32_t m_healthRegenerationInterruptTime = 0;
-#if VERSION_STRING < Cata
-    // Five second mana regeneration interrupt timer
+    // Five second mana regeneration interrupt timer pre-Cata
     uint32_t m_powerRegenerationInterruptTime = 0;
-#endif
 
     // The leftover power from power regeneration which will be added to new value on next power update
     float_t m_powerFractions[TOTAL_PLAYER_POWER_TYPES] = {0};
@@ -1353,9 +1348,8 @@ public:
 
     uint32_t m_canMove = 0; //Zyres: set true in Spell::finish check for false in AIInterface::selectCurrentAgent
 
-#if VERSION_STRING >= Cata
     WDB::Structures::MountCapabilityEntry const* getMountCapability(uint32_t mountType);
-#endif
+
     void setOnMeleeSpell(uint32_t spellId, uint8_t ecn = 0) { m_meleeSpell = spellId; m_meleeSpell_ecn = ecn; }
     uint32_t getOnMeleeSpell() const { return m_meleeSpell; }
     uint8_t getOnMeleeSpellEcn() const { return m_meleeSpell_ecn; }

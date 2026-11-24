@@ -52,10 +52,7 @@ using SpellRequiredMapRange = std::ranges::subrange<SpellRequiredMap::const_iter
 using SpellsRequiringSpellMapRange = std::ranges::subrange<SpellsRequiringSpellMap::const_iterator>;
 using SkillSkillAbilityMapRange = std::ranges::subrange<SkillSkillAbilityMap::const_iterator>;
 using SpellSkillAbilityMapRange = std::ranges::subrange<SpellSkillAbilityMap::const_iterator>;
-
-#if VERSION_STRING < WotLK
 using CalculatedCoefficients = std::unordered_multimap<uint32_t/*spellid*/, uint8_t/*effIndex*/>;
-#endif
 
 typedef std::map<uint32_t, std::unique_ptr<SpellTargetConstraint>> SpellTargetConstraintMap;
 
@@ -87,9 +84,8 @@ public:
     void finalize();
 
     void loadSpellDataFromDatabase();
-#if VERSION_STRING < WotLK
     void calculateSpellCoefficients();
-#endif
+
     // Legacy scripts
     void loadSpellScripts();
 
@@ -149,9 +145,7 @@ private:
     // DBC files
     void loadSpellInfoData();
     void loadSkillLineAbilityMap();
-#if VERSION_STRING < Mop
     void loadTalentRanks();
-#endif
 
     // Database tables
     void loadSpellCoefficientOverride();
@@ -164,11 +158,9 @@ private:
     void loadSpellDisabled();
     void loadSpellRanks();
 
-#if VERSION_STRING < WotLK
-    // Calculates spell power coefficient
+    // Calculates spell power coefficient (Classic - TBC)
     void setSpellCoefficient(SpellInfo* sp);
     CalculatedCoefficients m_calculatedCoefficients;
-#endif
 
     // Custom setters (defined in SpellCustomizations.cpp)
     void setSpellEffectAmplitude(SpellInfo* sp);
