@@ -6,6 +6,8 @@ This file is released under the MIT license. See README-MIT for more information
 #pragma once
 
 #include "ManagedPacket.h"
+#include "Spell/Definitions/SpellFailure.hpp"
+
 #include <cstdint>
 
 namespace AscEmu::Packets
@@ -32,7 +34,15 @@ namespace AscEmu::Packets
         {
             if (m_protocol.expansion <= WoW::Expansion::_Cata)
             {
-                packet << reason;
+                auto wireReason = reason;
+                if (reason == PETTAME_UNKNOWNERROR)
+                {
+                    wireReason = m_protocol.expansion <= WoW::Expansion::_WotLK ?
+                        PETTAME_UNKNOWNERROR_PRE_CATA :
+                        PETTAME_UNKNOWNERROR_POST_CATA;
+                }
+
+                packet << wireReason;
                 return true;
             }
 

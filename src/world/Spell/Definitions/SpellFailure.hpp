@@ -470,12 +470,11 @@ enum PetTameFailure : uint8_t
     PETTAME_DEAD                                = 10, // Your pet is dead
     PETTAME_NOTDEAD                             = 11, // Your pet is not dead
     PETTAME_CANTCONTROLEXOTIC                   = 12, // You are unable to control exotic creatures
-#if VERSION_STRING <= WotLK
-    PETTAME_UNKNOWNERROR                        = 13 // Unknown taming error
-#else
-    PETTAME_SLOTLOCKED                          = 13, // That slot is locked
-    PETTAME_UNKNOWNERROR                        = 14 // Unknown taming error
-#endif
+    PETTAME_SLOTLOCKED                          = 13, // Cata+: That slot is locked
+
+    PETTAME_UNKNOWNERROR                        = 0xFF, // Internal value; serialized as 13 pre-Cata and as 14 post-Cata
+    PETTAME_UNKNOWNERROR_PRE_CATA               = 13, // Unknown taming error
+    PETTAME_UNKNOWNERROR_POST_CATA              = 14, // Unknown taming error
 };
 
 enum MountFailure : uint8_t
