@@ -1704,7 +1704,7 @@ uint32_t Spell::GetMechanic(SpellInfo const* sp)
     return 0;
 }
 
-uint8_t Spell::CanCast(bool /*tolerate*/)
+uint16_t Spell::CanCast(bool /*tolerate*/)
 {
     /**
      * Object cast checks

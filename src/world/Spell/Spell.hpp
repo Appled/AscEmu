@@ -89,9 +89,7 @@ private:
     SpellCastResult checkItems(uint32_t* parameter1, uint32_t* parameter2) const;
     SpellCastResult checkCasterState() const;
     SpellCastResult checkRange(const bool secondCheck);
-#if VERSION_STRING >= WotLK
     SpellCastResult checkRunes(bool takeRunes);
-#endif
     SpellCastResult checkShapeshift(SpellInfo const* spellInfo, const uint32_t shapeshiftForm) const;
 
 public:
@@ -308,9 +306,7 @@ private:
     // Removes used item and/or item charges
     void removeCastItem();
     void removeReagents();
-#if VERSION_STRING < Cata
     void removeAmmo();
-#endif
 
     void _updateCasterPointers(Object* caster);
     void _updateTargetPointers(const uint64_t targetGuid);
@@ -532,7 +528,7 @@ public:
     //void TriggerSpell();
 
     // Checks the caster is ready for cast
-    uint8_t CanCast(bool);
+    uint16_t CanCast(bool);
 
     // Handles Teleport function
     void HandleTeleport(LocationVector position, uint32_t mapid, Unit* Target);

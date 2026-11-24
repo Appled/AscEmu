@@ -317,7 +317,7 @@ void Aura::removeAura(AuraRemoveMode mode/* = AURA_REMOVE_BY_SERVER*/)
 
     // Send packet before removing modifiers
     // Otherwise shapeshift spells can still appear active on stance bar -Appled
-    if (m_visualSlot < AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (m_visualSlot < AuraSlots::getNegativeVisualSlotEnd())
     {
 #if VERSION_STRING < WotLK
         getOwner()->setAura(this, false);

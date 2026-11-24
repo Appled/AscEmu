@@ -129,7 +129,8 @@ Unit::Unit() :
 
     m_lastAiInterfaceUpdateTime = Util::getMSTime();
 
-    std::fill(m_auraList.begin(), m_auraList.end(), nullptr);
+    m_auraList.resize(AuraSlots::getTotalSlotEnd());
+    m_auraVisualList.resize(AuraSlots::getNegativeVisualSlotEnd(), 0);
 
     m_aiInterface->Init(this);
     getThreatManager().initialize();
@@ -1253,7 +1254,7 @@ void Unit::setAura(Aura const* aur, bool apply)
         return;
 
     const auto slot = aur->getVisualSlot();
-    if (slot >= AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (slot >= AuraSlots::getNegativeVisualSlotEnd())
         return;
 
     const auto spellId = apply ? aur->getSpellId() : 0;
@@ -1267,7 +1268,7 @@ void Unit::setAuraFlags(Aura const* aur, bool apply)
         return;
 
     const auto slot = aur->getVisualSlot();
-    if (slot >= AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (slot >= AuraSlots::getNegativeVisualSlotEnd())
         return;
 
     const uint8_t index = slot / 4;
@@ -1291,7 +1292,7 @@ void Unit::setAuraLevel(Aura* aur)
         return;
 
     const auto slot = aur->getVisualSlot();
-    if (slot >= AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (slot >= AuraSlots::getNegativeVisualSlotEnd())
         return;
 
     const uint8_t index = slot / 4;
@@ -1313,7 +1314,7 @@ void Unit::setAuraApplication(Aura const* aur)
         return;
 
     const auto slot = aur->getVisualSlot();
-    if (slot >= AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (slot >= AuraSlots::getNegativeVisualSlotEnd())
         return;
 
     const uint8_t index = slot / 4;
@@ -4075,20 +4076,21 @@ void Unit::addAura(std::unique_ptr<Aura> auraHolder)
 
     auto* const caster = auraHolder->getUnitCaster();
 
-#if VERSION_STRING >= WotLK
-    // Check aura apply immunity (aur eff 267)
-    if (auraHolder->isNegative() && caster != nullptr && caster->isHostileTo(this))
+    if (WoW::isServerExpansionAtLeast(WoW::Expansion::_WotLK))
     {
-        for (const auto& aurEff : m_auraEffectList[SPELL_AURA_IMMUNE_NEGATIVE_AURA_SCHOOL_AND_CANCEL_AURA_WHEN_ABSORBED])
+        // Check aura apply immunity (aur eff 267)
+        if (auraHolder->isNegative() && caster != nullptr && caster->isHostileTo(this))
         {
-            if (aurEff->getEffectMiscValue() & auraHolder->getSpellInfo()->getSchoolMask())
+            for (const auto& aurEff : m_auraEffectList[SPELL_AURA_IMMUNE_NEGATIVE_AURA_SCHOOL_AND_CANCEL_AURA_WHEN_ABSORBED])
             {
-                caster->sendSpellOrDamageImmune(auraHolder->getCasterGuid(), this, auraHolder->getSpellId());
-                return;
+                if (aurEff->getEffectMiscValue() & auraHolder->getSpellInfo()->getSchoolMask())
+                {
+                    caster->sendSpellOrDamageImmune(auraHolder->getCasterGuid(), this, auraHolder->getSpellId());
+                    return;
+                }
             }
         }
     }
-#endif
 
     // Check if aura has effects
     if (auraHolder->getAppliedEffectCount() == 0)
@@ -4136,9 +4138,9 @@ void Unit::addAura(std::unique_ptr<Aura> auraHolder)
     {
         std::pair<uint16_t, uint16_t> auraSlots;
         if (auraHolder->isNegative())
-            auraSlots = { AuraSlots::NEGATIVE_SLOT_START, AuraSlots::NEGATIVE_SLOT_END };
+            auraSlots = { AuraSlots::getNegativeSlotStart(), AuraSlots::getNegativeSlotEnd()};
         else
-            auraSlots = { AuraSlots::POSITIVE_SLOT_START, AuraSlots::POSITIVE_SLOT_END };
+            auraSlots = { AuraSlots::getPositiveSlotStart(), AuraSlots::getPositiveSlotEnd()};
 
         auto deleteAur = false;
 
@@ -4223,7 +4225,7 @@ void Unit::addAura(std::unique_ptr<Aura> auraHolder)
     {
         // Passive spells always apply
         ///\ todo: probably should add check for passive aura stacking
-        for (uint16_t i = AuraSlots::PASSIVE_SLOT_START; i < AuraSlots::PASSIVE_SLOT_END; ++i)
+        for (uint16_t i = AuraSlots::PassiveSlotStart; i < AuraSlots::getPassiveSlotEnd(); ++i)
         {
             if (m_auraList[i] == nullptr)
             {
@@ -4261,7 +4263,7 @@ void Unit::addAura(std::unique_ptr<Aura> auraHolder)
         }
     }
 
-    if (visualSlot < AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (visualSlot < AuraSlots::getNegativeVisualSlotEnd())
     {
         m_auraVisualList[visualSlot] = aur->getSpellId();
 
@@ -4370,13 +4372,13 @@ uint8_t Unit::findVisualSlotForAura(Aura const* aur) const
     uint8_t start, end;
     if (!aur->isNegative())
     {
-        start = AuraSlots::POSITIVE_VISUAL_SLOT_START;
-        end = AuraSlots::POSITIVE_VISUAL_SLOT_END;
+        start = AuraSlots::PositiveVisualSlotStart;
+        end = AuraSlots::getPositiveVisualSlotEnd();
     }
     else
     {
-        start = AuraSlots::NEGATIVE_VISUAL_SLOT_START;
-        end = AuraSlots::NEGATIVE_VISUAL_SLOT_END;
+        start = AuraSlots::getNegativeVisualSlotStart();
+        end = AuraSlots::getNegativeVisualSlotEnd();
     }
 
     // Find an empty slot
@@ -4472,7 +4474,7 @@ Aura* Unit::getAuraWithVisualSlot(uint8_t visualSlot) const
 
 Aura* Unit::getAuraWithAuraSlot(uint16_t auraSlot) const
 {
-    if (auraSlot >= AuraSlots::TOTAL_SLOT_END)
+    if (auraSlot >= AuraSlots::getTotalSlotEnd())
         return nullptr;
 
     return m_auraList[auraSlot].get();
@@ -4673,10 +4675,10 @@ void Unit::removeAuraStateAndAuras(AuraState state)
         removeAuraState(static_cast<uint32_t>(1 << (state - 1)));
 
         // Remove self-applied auras requiring this aurastate
-        std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TOTAL_SLOT_START, AuraSlots::TOTAL_SLOT_END };
+        std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TotalSlotStart, AuraSlots::getTotalSlotEnd() };
         // Do not remove non-passive enrage effects
         if (state == AURASTATE_FLAG_ENRAGED)
-            auraSlots = { AuraSlots::PASSIVE_SLOT_START, AuraSlots::PASSIVE_SLOT_END };
+            auraSlots = { AuraSlots::PassiveSlotStart, AuraSlots::getPassiveSlotEnd() };
 
         const auto auraRange = std::ranges::subrange(m_auraList.cbegin() + auraSlots.first, m_auraList.cbegin() + auraSlots.second);
         for (const auto& aur : auraRange)
@@ -4840,9 +4842,9 @@ void Unit::removeAllAurasByAuraEffect(AuraEffect effect, uint32_t skipSpell/* = 
 
 void Unit::removeAllAurasBySpellMechanic(SpellMechanic mechanic, bool negativeOnly/* = true*/) const
 {
-    std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TOTAL_SLOT_START, AuraSlots::TOTAL_SLOT_END };
+    std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TotalSlotStart, AuraSlots::getTotalSlotEnd() };
     if (negativeOnly)
-        auraSlots = { AuraSlots::NEGATIVE_SLOT_START, AuraSlots::NEGATIVE_SLOT_END };
+        auraSlots = { AuraSlots::getNegativeSlotStart(), AuraSlots::getNegativeSlotEnd() };
 
     const auto auraRange = std::ranges::subrange(m_auraList.cbegin() + auraSlots.first, m_auraList.cbegin() + auraSlots.second);
     for (const auto& aur : auraRange)
@@ -4871,9 +4873,9 @@ void Unit::removeAllAurasBySpellMechanic(SpellMechanic mechanic, bool negativeOn
 
 void Unit::removeAllAurasBySpellMechanic(SpellMechanic const* mechanic, bool negativeOnly/* = true*/) const
 {
-    std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TOTAL_SLOT_START, AuraSlots::TOTAL_SLOT_END };
+    std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TotalSlotStart, AuraSlots::getTotalSlotEnd() };
     if (negativeOnly)
-        auraSlots = { AuraSlots::NEGATIVE_SLOT_START, AuraSlots::NEGATIVE_SLOT_END };
+        auraSlots = { AuraSlots::getNegativeSlotStart(), AuraSlots::getNegativeSlotEnd() };
 
     const auto auraRange = std::ranges::subrange(m_auraList.cbegin() + auraSlots.first, m_auraList.cbegin() + auraSlots.second);
     for (const auto& aur : auraRange)
@@ -4925,9 +4927,9 @@ void Unit::removeAllAurasBySpellType(SpellTypes type, uint64_t casterGuid/* = 0*
 
 void Unit::removeAllAurasBySchoolMask(SchoolMask schoolMask, bool negativeOnly/* = true*/, bool isImmune/* = false*/) const
 {
-    std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TOTAL_SLOT_START, AuraSlots::TOTAL_SLOT_END };
+    std::pair<uint16_t, uint16_t> auraSlots{ AuraSlots::TotalSlotStart, AuraSlots::getTotalSlotEnd() };
     if (negativeOnly)
-        auraSlots = { AuraSlots::NEGATIVE_SLOT_START, AuraSlots::NEGATIVE_SLOT_END };
+        auraSlots = { AuraSlots::getNegativeSlotStart(), AuraSlots::getNegativeSlotEnd() };
 
     const auto auraRange = std::ranges::subrange(m_auraList.cbegin() + auraSlots.first, m_auraList.cbegin() + auraSlots.second);
     for (const auto& aur : auraRange)
@@ -5105,7 +5107,7 @@ void Unit::setTransformAura(uint32_t auraId)
 
 void Unit::sendAuraUpdate(Aura* aur, bool remove)
 {
-    if (aur->getVisualSlot() >= AuraSlots::NEGATIVE_VISUAL_SLOT_END)
+    if (aur->getVisualSlot() >= AuraSlots::getNegativeVisualSlotEnd())
         return;
 
 #if VERSION_STRING < WotLK
@@ -5369,34 +5371,34 @@ bool Unit::sendPeriodicAuraLog(const WoWGuid& casterGuid, const WoWGuid& targetG
     return true;
 }
 
-AuraArray const& Unit::getAuraList() const
+AuraVector const& Unit::getAuraList() const
 {
     return m_auraList;
 }
 
 AuraRange Unit::getPassiveAuraRange() const
 {
-    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::PASSIVE_SLOT_START, m_auraList.cbegin() + AuraSlots::PASSIVE_SLOT_END);
+    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::PassiveSlotStart, m_auraList.cbegin() + AuraSlots::getPassiveSlotEnd());
 }
 
 AuraRange Unit::getPositiveAuraRange() const
 {
-    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::POSITIVE_SLOT_START, m_auraList.cbegin() + AuraSlots::POSITIVE_SLOT_END);
+    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::getPositiveSlotStart(), m_auraList.cbegin() + AuraSlots::getPositiveSlotEnd());
 }
 
 AuraRange Unit::getNegativeAuraRange() const
 {
-    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::NEGATIVE_SLOT_START, m_auraList.cbegin() + AuraSlots::NEGATIVE_SLOT_END);
+    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::getNegativeSlotStart(), m_auraList.cbegin() + AuraSlots::getNegativeSlotEnd());
 }
 
 AuraRange Unit::getRemovableAuraRange() const
 {
-    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::REMOVABLE_SLOT_START, m_auraList.cbegin() + AuraSlots::REMOVABLE_SLOT_END);
+    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::getRemovableSlotStart(), m_auraList.cbegin() + AuraSlots::getRemovableSlotEnd());
 }
 
 AuraRange Unit::getPassiveAndPositiveAuraRange() const
 {
-    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::PASSIVE_SLOT_START, m_auraList.cbegin() + AuraSlots::POSITIVE_SLOT_END);
+    return std::ranges::subrange(m_auraList.cbegin() + AuraSlots::PassiveSlotStart, m_auraList.cbegin() + AuraSlots::getPositiveSlotEnd());
 }
 
 AuraEffectList const& Unit::getAuraEffectList(AuraEffect effect) const
@@ -5404,7 +5406,7 @@ AuraEffectList const& Unit::getAuraEffectList(AuraEffect effect) const
     return m_auraEffectList[effect];
 }
 
-VisualAuraArray const& Unit::getVisualAuraList() const
+VisualAuraVector const& Unit::getVisualAuraList() const
 {
     return m_auraVisualList;
 }
@@ -16368,4 +16370,3 @@ void Unit::setPossessedVisibilityRoles(bool possessed)
     map->processPendingVisibilityChangesForViewer(GetNewGUID(), 512, 512);
     map->clearVisibilityRecipientForViewer(GetNewGUID());
 }
-

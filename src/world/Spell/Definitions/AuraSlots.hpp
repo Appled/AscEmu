@@ -5,63 +5,96 @@ This file is released under the MIT license. See README-MIT for more information
 
 #pragma once
 
-#include "AEVersion.hpp"
+#include "Server/ClientProtocol.hpp"
 
 #include <cstdint>
 
 namespace AuraSlots
 {
-    enum AuraSlotEnum : uint16_t
+    constexpr uint16_t PassiveSlotStart = 0;
+    constexpr uint16_t TotalSlotStart = 0;
+    constexpr uint16_t PositiveVisualSlotStart = 0;
+
+    inline uint16_t getPassiveSlotEnd() noexcept
     {
-        PASSIVE_SLOT_START      = 0,
-#if VERSION_STRING == Classic
-        // 100 passive aura slots for each unit
-        PASSIVE_SLOT_END        = PASSIVE_SLOT_START + 100,
-        // 32 helpful aura slots for each unit
-        POSITIVE_SLOT_START     = PASSIVE_SLOT_END,
-        POSITIVE_SLOT_END       = POSITIVE_SLOT_START + 32,
-        // 16 harmful aura slots for each unit
-        NEGATIVE_SLOT_START     = POSITIVE_SLOT_END,
-        NEGATIVE_SLOT_END       = NEGATIVE_SLOT_START + 16,
-#elif VERSION_STRING == TBC
-        // 170 passive aura slots for each unit
-        PASSIVE_SLOT_END        = PASSIVE_SLOT_START + 170,
-        // 40 helpful aura slots for each unit
-        POSITIVE_SLOT_START     = PASSIVE_SLOT_END,
-        POSITIVE_SLOT_END       = POSITIVE_SLOT_START + 40,
-        // 40 harmful aura slots for each unit
-        NEGATIVE_SLOT_START     = POSITIVE_SLOT_END,
-        NEGATIVE_SLOT_END       = NEGATIVE_SLOT_START + 40,
-#else
-        // 180 passive aura slots for each unit
-        PASSIVE_SLOT_END        = PASSIVE_SLOT_START + 180,
-        // 80 helpful aura slots for each unit
-        POSITIVE_SLOT_START     = PASSIVE_SLOT_END,
-        POSITIVE_SLOT_END       = POSITIVE_SLOT_START + 80,
-        // 100 harmful aura slots for each unit
-        NEGATIVE_SLOT_START     = POSITIVE_SLOT_END,
-        NEGATIVE_SLOT_END       = NEGATIVE_SLOT_START + 100,
-#endif
+        // 100 passive aura slots for each unit in Classic
+        if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+            return PassiveSlotStart + 100;
+        // 170 passive aura slots for each unit in TBC
+        if (WoW::isServerExpansion(WoW::Expansion::_TBC))
+            return PassiveSlotStart + 170;
+        // 180 passive aura slots for each unit in other versions
+        return PassiveSlotStart + 180;
+    }
 
-        // Helpers
+    inline uint16_t getPositiveSlotStart() noexcept
+    {
+        return getPassiveSlotEnd();
+    }
 
-        REMOVABLE_SLOT_START = POSITIVE_SLOT_START,
-        REMOVABLE_SLOT_END = NEGATIVE_SLOT_END,
+    inline uint16_t getPositiveSlotEnd() noexcept
+    {
+        // 32 helpful aura slots for each unit in Classic
+        if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+            return getPositiveSlotStart() + 32;
+        // 40 helpful aura slots for each unit in TBC
+        if (WoW::isServerExpansion(WoW::Expansion::_TBC))
+            return getPositiveSlotStart() + 40;
+        // 80 helpful aura slots for each unit in other versions
+        return getPositiveSlotStart() + 80;
+    }
 
-        TOTAL_SLOT_START = PASSIVE_SLOT_START,
-        TOTAL_SLOT_END = NEGATIVE_SLOT_END,
-    };
+    inline uint16_t getNegativeSlotStart() noexcept
+    {
+        return getPositiveSlotEnd();
+    }
+
+    inline uint16_t getNegativeSlotEnd() noexcept
+    {
+        // 16 harmful aura slots for each unit in Classic
+        if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+            return getNegativeSlotStart() + 16;
+        // 40 harmful aura slots for each unit in TBC
+        if (WoW::isServerExpansion(WoW::Expansion::_TBC))
+            return getNegativeSlotStart() + 40;
+        // 100 harmful aura slots for each unit in other versions
+        return getNegativeSlotStart() + 100;
+    }
+
+    inline uint16_t getRemovableSlotStart() noexcept
+    {
+        return getPositiveSlotStart();
+    }
+
+    inline uint16_t getRemovableSlotEnd() noexcept
+    {
+        return getNegativeSlotEnd();
+    }
+
+    inline uint16_t getTotalSlotEnd() noexcept
+    {
+        return getNegativeSlotEnd();
+    }
 
     // These refer to visual slots (= auras visible on client)
-    enum VisualAuraSlots : uint8_t
+
+    inline uint8_t getPositiveVisualSlotEnd() noexcept
     {
-        POSITIVE_VISUAL_SLOT_START  = 0,
-#if VERSION_STRING == Classic
-        POSITIVE_VISUAL_SLOT_END    = POSITIVE_VISUAL_SLOT_START + 32,
-#else
-        POSITIVE_VISUAL_SLOT_END    = POSITIVE_VISUAL_SLOT_START + 40,
-#endif
-        NEGATIVE_VISUAL_SLOT_START  = POSITIVE_VISUAL_SLOT_END,
-        NEGATIVE_VISUAL_SLOT_END    = NEGATIVE_VISUAL_SLOT_START + 16,
-    };
+        // 32 helpful visual aura slots for each unit in Classic
+        if (WoW::isServerExpansion(WoW::Expansion::_Classic))
+            return PositiveVisualSlotStart + 32;
+        // 40 helpful visual aura slots for each unit in other versions
+        return PositiveVisualSlotStart + 40;
+    }
+
+    inline uint8_t getNegativeVisualSlotStart() noexcept
+    {
+        return getPositiveVisualSlotEnd();
+    }
+
+    inline uint8_t getNegativeVisualSlotEnd() noexcept
+    {
+        // 16 harmful visual aura slots for each unit in all versions
+        return getNegativeVisualSlotStart() + 16;
+    }
 };

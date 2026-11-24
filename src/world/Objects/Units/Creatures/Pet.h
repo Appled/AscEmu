@@ -186,7 +186,7 @@ public:
     // Packets
 
     void sendActionFeedback(PetActionFeedback feedback);
-    void sendPetCastFailed(uint32_t spellId, uint8_t reason);
+    void sendPetCastFailed(uint32_t spellId, uint16_t reason);
 
 public:
     // MIT END

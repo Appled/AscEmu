@@ -10126,7 +10126,7 @@ void Player::sendDismountResultPacket(uint32_t result)
     m_session->sendManagedPacket(managedPacket);
 }
 
-void Player::sendCastFailedPacket(uint32_t spellId, uint8_t errorMessage, uint8_t multiCast, uint32_t extra1, uint32_t extra2 /*= 0*/)
+void Player::sendCastFailedPacket(uint32_t spellId, uint16_t errorMessage, uint8_t multiCast, uint32_t extra1, uint32_t extra2 /*= 0*/)
 {
     SmsgCastFailed managedPacket(multiCast, spellId, errorMessage, extra1, extra2);
     managedPacket.casterGuid = getGuid();
@@ -17074,7 +17074,7 @@ void Player::saveAuras(std::stringstream& ss)
 
     // save all auras why only just positive?
     //for (const auto& aur : getRemovableAuraRange())
-    for (uint16_t x = AuraSlots::REMOVABLE_SLOT_START; x < AuraSlots::REMOVABLE_SLOT_END; x++)
+    for (uint16_t x = AuraSlots::getRemovableSlotStart(); x < AuraSlots::getRemovableSlotEnd(); x++)
     {
         auto* const aur = getAuraWithAuraSlot(x);
         if (aur != nullptr && !aur->isTemporaryAura() && aur->getTimeLeft() > 3000)

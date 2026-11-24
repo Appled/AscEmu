@@ -27,6 +27,7 @@ This file is released under the MIT license. See README-MIT for more information
 #include <list>
 #include <optional>
 #include <unordered_set>
+#include <vector>
 
 #include "Spell/SpellDefines.hpp"
 #include "Spell/Definitions/AuraRemoveMode.hpp"
@@ -137,11 +138,11 @@ struct AuraCheckResponse
 
 typedef std::list<struct ProcTriggerSpellOnSpell> ProcTriggerSpellOnSpellList;
 
-using AuraArray = std::array<std::unique_ptr<Aura>, AuraSlots::TOTAL_SLOT_END>;
-using AuraRange = std::ranges::subrange<AuraArray::const_iterator>;
+using AuraVector = std::vector<std::unique_ptr<Aura>>;
+using AuraRange = std::ranges::subrange<AuraVector::const_iterator>;
 using AuraEffectList = std::list<AuraEffectModifier const*>;
 using AuraEffectListArray = std::array<AuraEffectList, TOTAL_SPELL_AURAS>;
-using VisualAuraArray = std::array<uint32_t/*spellId*/, AuraSlots::NEGATIVE_VISUAL_SLOT_END>;
+using VisualAuraVector = std::vector<uint32_t/*spellId*/>;
 
 
 class SERVER_DECL Unit : public Object
@@ -887,7 +888,7 @@ public:
     // Returns true if packet could be sent
     bool sendPeriodicAuraLog(const WoWGuid& casterGuid, const WoWGuid& targetGuid, SpellInfo const* spellInfo, uint32_t amount, uint32_t overKillOrOverHeal, uint32_t absorbed, uint32_t resisted, AuraEffect auraEffect, bool isCritical, uint32_t miscValue = 0, float gainMultiplier = 0.0f);
 
-    AuraArray const& getAuraList() const;
+    AuraVector const& getAuraList() const;
     // Note: passive non persistent area auras are in positive/negative aura range
     AuraRange getPassiveAuraRange() const;
     AuraRange getPositiveAuraRange() const;
@@ -896,7 +897,7 @@ public:
     AuraRange getRemovableAuraRange() const;
     AuraRange getPassiveAndPositiveAuraRange() const;
     AuraEffectList const& getAuraEffectList(AuraEffect effect) const;
-    VisualAuraArray const& getVisualAuraList() const;
+    VisualAuraVector const& getVisualAuraList() const;
 
     bool isPoisoned() const;
     bool isDazed() const;
@@ -914,9 +915,9 @@ private:
 
     uint32_t m_transformAura = 0;
 
-    AuraArray m_auraList;
+    AuraVector m_auraList;
     AuraEffectListArray m_auraEffectList;
-    VisualAuraArray m_auraVisualList = { 0 };
+    VisualAuraVector m_auraVisualList;
 
 public:
     //////////////////////////////////////////////////////////////////////////////////////////
