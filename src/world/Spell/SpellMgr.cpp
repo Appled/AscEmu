@@ -543,9 +543,9 @@ SpellInfo const* SpellMgr::getEquivalentSpellRankFor(SpellInfo const* originalSp
 
 void SpellMgr::loadSpellInfoData()
 {
-    for (uint32_t i = 0; i < sSpellStore.getNumRows(); ++i)
+    for (const auto& [rawSpellId, rawDbcSpellEntry] : sSpellStore)
     {
-        const auto dbcSpellEntry = sSpellStore.lookupEntry(i);
+        const auto dbcSpellEntry = &rawDbcSpellEntry;
         if (dbcSpellEntry == nullptr)
             continue;
 
